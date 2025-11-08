@@ -5,7 +5,8 @@ import {
   SavingsModule, 
   MonthlyIncomeModule, 
   DayCounterModule, 
-  RandomExpensesModule 
+  RandomExpensesModule,
+  AIInputModule
 } from '../components/modules';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -85,6 +86,11 @@ export default function DashboardPage() {
                 categories={data.categories}
                 onRefresh={data.refetch}
               />
+            </motion.div>
+
+            {/* Módulo de entrada con IA */}
+            <motion.div variants={itemVariants}>
+              <AIInputModule onRefresh={data.refetch} />
             </motion.div>
           </motion.div>
         </div>

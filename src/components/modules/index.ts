@@ -8,3 +8,4 @@ export { SavingsModule } from './Savings';
 export { MonthlyIncomeModule } from './MonthlyIncome';
 export { DayCounterModule } from './DayCounter';
 export { RandomExpensesModule } from './RandomExpenses';
+export { AIInputModule } from './AIInput';

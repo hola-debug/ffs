@@ -29,18 +29,16 @@ export function DailyExpensesModule({
 
   // Determinar el color según la condición
   const sectionColor = useMemo(() => {
-    if (!dailySpendable) return '#00D73D'; // Verde por defecto
+    if (!dailySpendable) return '#00D73D';
     
-    console.log('gastos_hoy:', dailySpendable.gastos_hoy, 'saldo_diario_hoy:', dailySpendable.saldo_diario_hoy);
-    
-    // Si gastos de hoy > saldo diario hoy = rojo
-    if (dailySpendable.gastos_hoy > dailySpendable.saldo_diario_hoy) {
-      console.log('Color rojo');
-      return '#FF0000';
+    // Verificar si saldo_diario_base existe
+    if (dailySpendable.saldo_diario_base === undefined || dailySpendable.saldo_diario_base === null) {
+      // Fallback a saldo_diario_hoy si no existe saldo_diario_base
+      return dailySpendable.gastos_hoy > dailySpendable.saldo_diario_hoy ? '#FF0000' : '#00D73D';
     }
     
-    console.log('Color verde');
-    return '#00D73D';
+    // Si gastos de hoy > saldo diario base = rojo
+    return dailySpendable.gastos_hoy > dailySpendable.saldo_diario_base ? '#FF0000' : '#00D73D';
   }, [dailySpendable]);
 
   const handleSuccess = () => {
