@@ -30,7 +30,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
   };
 
   return (
-    <div className="bg-black rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-white font-sans relative w-full overflow-x-hidden">
+    <div className="bg-black rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-white font-sans relative w-full overflow-x-hidden h-[269px]">
       {/* Header */}
       <div className="flex items-center mb-4 sm:mb-6 justify-center gap-2">
         <h2 className="text-[10px] sm:text-xs uppercase text-[#ffffff] font-regular text-center">
@@ -55,7 +55,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
               separator="."
               direction="up"
               duration={1}
-              className="text-[39px] font-bold leading-none"
+              className="text-[39px] font-bold leading-none text-center tracking-tighter"
             />
           </div>
           <EyeIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
@@ -68,7 +68,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
 
       {/* Projections List */}
       {projectionsLoading ? (
-        <div className="text-xs text-gray-500">Cargando...</div>
+        <div className="text-xs text-gray-500"></div>
       ) : projections.length > 0 ? (
         <div className="relative z-10">
         <AnimatedList<DailyProjection>
@@ -77,7 +77,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
           enableArrowNavigation={false}
           displayScrollbar={false}
           className="w-full"
-          maxHeight="150px"
+          maxHeight="100px"
           gradientColor="#000000"
           renderItem={(proj, index, isSelected) => {
             const isToday = new Date(proj.date).toDateString() === new Date().toDateString();

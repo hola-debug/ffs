@@ -111,3 +111,23 @@ export interface DailyProjection {
   month_number: number;
   accumulated_balance: number; // Saldo acumulado proyectado para ese día
 }
+
+export interface DailyExpensesAccumulated {
+  user_id: string;
+  dia_actual: number;
+  mes_actual: number;
+  ano_actual: number;
+  total_dias_mes: number;
+  gastos_acumulados_mes: number; // Gastos variables acumulados del mes hasta hoy
+  gastos_hoy: number; // Gastos variables solo de hoy
+  promedio_diario_gasto: number; // Promedio de gasto diario
+}
+
+export interface DailyExpensesProjection {
+  date: string;
+  day_name: string;
+  day_number: number;
+  month_number: number;
+  accumulated_expenses: number; // Gastos acumulados proyectados para ese día
+  projected_daily_avg: number; // Promedio diario usado para la proyección
+}

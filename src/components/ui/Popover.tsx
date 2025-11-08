@@ -39,11 +39,10 @@ export function Popover({
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
                 className="
-                  p-4 py-4
-                  min-w-[225px] max-w-[200px]
+                  p-4
+                  w-[320px] max-w-[90vw]
                   bg-[#FFFFFF]/10 backdrop-blur-xl
-                  rounded-[25px]
-                  p-2
+                  rounded-[20px]
                   z-[9999]
                   outline-none
                 "

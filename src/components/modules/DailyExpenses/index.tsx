@@ -1,7 +1,14 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { TodayExpenses, Account, Category } from '../../../lib/types';
-import { BaseCard } from '../BaseCard';
-import AddExpenseModal from '../../AddExpenseModal';
+import { useDailyExpensesAccumulated } from '../../../hooks/useDailyExpensesAccumulated';
+import { useTodayTransactions } from '../../../hooks/useTodayTransactions';
+import { useDashboardData } from '../../../hooks/useDashboardData';
+import AddExpensePopover from '../../AddExpensePopover';
+import AnimatedList from '../../ui/AnimatedList';
+import CountUp from '../../ui/CountUp';
+import type { TodayTransaction } from '../../../hooks/useTodayTransactions';
+import type { DailyExpensesProjection } from '../../../lib/types';
+import logo from '../../../assets/logo.svg';
 
 interface DailyExpensesModuleProps {
   data: TodayExpenses | null;
@@ -16,48 +23,79 @@ export function DailyExpensesModule({
   categories, 
   onRefresh 
 }: DailyExpensesModuleProps) {
-  const [showModal, setShowModal] = useState(false);
+  const { transactions, loading: transactionsLoading, refetch: refetchTransactions } = useTodayTransactions();
+  const { data: expensesAccum, projections, loading: accLoading, refetch: refetchAccum } = useDailyExpensesAccumulated(30);
+  const { dailySpendable } = useDashboardData();
+
+  // Determinar el color según la condición
+  const sectionColor = useMemo(() => {
+    if (!dailySpendable) return '#00D73D'; // Verde por defecto
+    
+    console.log('gastos_hoy:', dailySpendable.gastos_hoy, 'saldo_diario_hoy:', dailySpendable.saldo_diario_hoy);
+    
+    // Si gastos de hoy > saldo diario hoy = rojo
+    if (dailySpendable.gastos_hoy > dailySpendable.saldo_diario_hoy) {
+      console.log('Color rojo');
+      return '#FF0000';
+    }
+    
+    console.log('Color verde');
+    return '#00D73D';
+  }, [dailySpendable]);
+
+  const handleSuccess = () => {
+    onRefresh();
+    refetchTransactions();
+    refetchAccum();
+  };
 
   return (
     <>
-      <BaseCard variant="success">
-        <div className="text-center min-w-0">
-          <h2 className="text-sm font-semibold mb-2 uppercase tracking-wide truncate">
-            Gastos Diarios
+      <div className="bg-black text-white font-sans  w-full rounded-t-[20px] rounded-b-[14px]  h-[269px] ">
+        {/* Green Section - Top */}
+        <div 
+          className="w-full p-2 h-[169px] rounded-[14px] flex flex-col items-center justify-center transition-colors duration-300"
+          style={{ backgroundColor: sectionColor }}
+        >
+          {/* Header */}
+          <h2 className="text-[10px] sm:text-xs mb-2 uppercase text-[#ffffff] font-regular text-center">
+            GASTOS DIARIOS
           </h2>
-          <div className="mb-1">
-            <span className="text-xs sm:text-sm">RESTA</span>
+          <h3 className="text-[10px] sm:text-xs uppercase text-[#ffffff] font-regular text-center sm:mb-6 mb-4">
+            RESTA
+          </h3>
+          {/* Main Amount */}
+          <div className="mb-4 sm:mb-5 flex flex-col items-center justify-center">
+            <div className="flex items-baseline gap-0 mb-2 sm:mb-3">
+              <span className="text-[19px] font-bold">$</span>
+              <CountUp
+                from={0}
+                to={Math.round(expensesAccum?.gastos_acumulados_mes || 0)}
+                separator="."
+                direction="up"
+                duration={1}
+                className="text-[50px] font-bold leading-none text-center tracking-tighter"
+              />
+            </div>
           </div>
-          <div className="text-3xl sm:text-7xl font-bold mb-2 sm:mb-6 break-all px-1">
-            ${(data?.total_today || 0).toLocaleString('es-UY')}
-          </div>
-          
-          <button
-            onClick={() => setShowModal(true)}
-            className="w-full py-2 sm:py-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold uppercase text-xs sm:text-base tracking-wide transition-colors"
-          >
-            Agregar Gasto
-          </button>
+          {/* Add Expense Button */}
+          <AddExpensePopover
+            accounts={accounts}
+            categories={categories}
+            isRandom={false}
+            onSuccess={handleSuccess}
+            trigger={
+              <button className="w-11/12 bg-black text-white font-regular text-[10px] rounded-[9px] h-[25px] w-[174px] transition-colors duration-200 flex items-center justify-center uppercase tracking-[0.3em]">
+                AGREGAR GASTO
+              </button>
+            }
+          />
         </div>
-
-        {/* Logo o branding */}
-        <div className="mt-2 sm:mt-6 text-center opacity-50">
-          <div className="text-sm sm:text-2xl font-bold italic break-all">FFS.FINANCE</div>
+        {/* Black Section - Bottom */}
+        <div className="flex flex-col h-[100px] items-center  justify-center ">
+          <img src={logo} alt="FFS Finance" width={141} height={33.84} />
         </div>
-      </BaseCard>
-
-      {showModal && (
-        <AddExpenseModal
-          accounts={accounts}
-          categories={categories}
-          isRandom={false}
-          onClose={() => setShowModal(false)}
-          onSuccess={() => {
-            onRefresh();
-            setShowModal(false);
-          }}
-        />
-      )}
+      </div>
     </>
   );
 }
