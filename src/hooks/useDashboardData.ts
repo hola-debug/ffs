@@ -35,10 +35,10 @@ export function useDashboardData() {
         accountsRes,
         categoriesRes,
       ] = await Promise.all([
-        supabase.from('vw_daily_spendable').select('*').single(),
-        supabase.from('vw_month_summary').select('*').single(),
-        supabase.from('vw_today_expenses').select('*').single(),
-        supabase.from('vw_random_expenses_month').select('*').single(),
+        supabase.from('vw_daily_spendable').select('*').maybeSingle(),
+        supabase.from('vw_month_summary').select('*').maybeSingle(),
+        supabase.from('vw_today_expenses').select('*').maybeSingle(),
+        supabase.from('vw_random_expenses_month').select('*').maybeSingle(),
         supabase.from('vw_savings_total').select('*'),
         supabase.from('accounts').select('*').order('is_primary', { ascending: false }),
         supabase.from('categories').select('*').order('name'),
@@ -61,6 +61,56 @@ export function useDashboardData() {
 
   useEffect(() => {
     fetchData();
+
+    // Suscribirse a cambios en tiempo real
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions' },
+        () => {
+          console.log('Transaction changed, refetching data...');
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_moves' },
+        () => {
+          console.log('Savings move changed, refetching data...');
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'accounts' },
+        () => {
+          console.log('Account changed, refetching data...');
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories' },
+        () => {
+          console.log('Category changed, refetching data...');
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'monthly_plan' },
+        () => {
+          console.log('Monthly plan changed, refetching data...');
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    // Cleanup al desmontar
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {

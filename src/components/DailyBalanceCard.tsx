@@ -7,7 +7,7 @@ interface Props {
 export default function DailyBalanceCard({ data }: Props) {
   if (!data) {
     return (
-      <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
+      <div className="bg-[#000000] rounded-lg p-6 shadow-lg">
         <h2 className="text-lg font-semibold mb-4">Saldo diario</h2>
         <p className="text-gray-400">Sin datos</p>
       </div>
@@ -15,7 +15,7 @@ export default function DailyBalanceCard({ data }: Props) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-lg p-6 shadow-lg">
+    <div className="bg-[#000000] rounded-lg p-6 shadow-lg">
       <h2 className="text-lg font-semibold mb-2">Saldo diario</h2>
       <div className="text-5xl font-bold mb-4">
         ${data.saldo_diario_restante_hoy.toLocaleString('es-UY')}

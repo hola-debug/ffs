@@ -19,13 +19,7 @@ export default function DashboardPage() {
     navigate('/login');
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-2xl">Cargando dashboard...</div>
-      </div>
-    );
-  }
+
 
   if (error) {
     return (
@@ -41,22 +35,8 @@ export default function DashboardPage() {
       
 
         <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full box-border">
-          <DailyBalanceModule data={data.dailySpendable} />
-          <DailyExpensesModule
-            data={data.todayExpenses}
-            accounts={data.accounts}
-            categories={data.categories}
-            onRefresh={data.refetch}
-          />
-          <SavingsModule data={data.savingsTotal} onRefresh={data.refetch} />
-          <MonthlyIncomeModule data={data.monthSummary} />
-          <DayCounterModule />
-          <RandomExpensesModule
-            data={data.randomExpenses}
-            accounts={data.accounts}
-            categories={data.categories}
-            onRefresh={data.refetch}
-          />
+          <DailyBalanceModule data={data.dailySpendable} onRefresh={data.refetch} />
+      
         </div>
       </div>
     </div>

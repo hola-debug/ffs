@@ -98,4 +98,16 @@ export interface DailySpendable {
   saldo_diario_hoy: number;
   gastos_hoy: number;
   saldo_diario_restante_hoy: number;
+  // Campos para saldo acumulado
+  saldo_diario_base: number; // Lo que se suma cada día
+  saldo_acumulado_hoy: number; // Total acumulado disponible hoy
+  total_mensual_teorico: number; // saldo_diario_base * días del mes
+}
+
+export interface DailyProjection {
+  date: string;
+  day_name: string; // Ej: "LUN", "MAR"
+  day_number: number;
+  month_number: number;
+  accumulated_balance: number; // Saldo acumulado proyectado para ese día
 }
