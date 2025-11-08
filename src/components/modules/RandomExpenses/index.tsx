@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RandomExpensesMonth, Account, Category } from '../../../lib/types';
 import { BaseCard } from '../BaseCard';
-import AddExpenseModal from '../../AddExpenseModal';
+import AddExpensePopover from '../../AddExpensePopover';
 
 interface RandomExpensesModuleProps {
   data: RandomExpensesMonth | null;
@@ -38,7 +38,7 @@ export function RandomExpensesModule({
       </BaseCard>
 
       {showModal && (
-        <AddExpenseModal
+        <AddExpensePopover
           accounts={accounts}
           categories={categories}
           isRandom={true}
