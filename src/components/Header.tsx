@@ -1,4 +1,5 @@
 import { StaggeredMenu } from './ui/StaggeredMenu';
+import logoSvg from '../assets/logo.svg';
 
 const menuItems = [
   { label: 'Dashboard', ariaLabel: 'Go to dashboard', link: '/' },
@@ -31,7 +32,7 @@ export default function Header() {
           openMenuButtonColor="#000"
           changeMenuColorOnOpen={true}
           colors={['#1a1a1a', '#000000']}
-          logoUrl="/src/assets/logo.svg"
+          logoUrl={logoSvg}
           accentColor="#5227FF"
           isFixed={true}
           onMenuOpen={() => console.log('Menu opened')}

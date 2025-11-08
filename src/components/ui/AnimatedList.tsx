@@ -137,7 +137,7 @@ const AnimatedList = <T = string,>({
     <div className={`relative ${className}`}>
       <div
         ref={listRef}
-        className={`overflow-y-auto ${containerClassName} ${
+        className={`overflow-y-auto overflow-x-hidden ${containerClassName} ${
           displayScrollbar
             ? '[&::-webkit-scrollbar]:w-[8px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#333] [&::-webkit-scrollbar-thumb]:rounded-[4px]'
             : 'scrollbar-hide'
@@ -146,7 +146,9 @@ const AnimatedList = <T = string,>({
         style={{
           maxHeight,
           scrollbarWidth: displayScrollbar ? 'thin' : 'none',
-          scrollbarColor: `#333 ${gradientColor}`
+          scrollbarColor: `#333 ${gradientColor}`,
+          touchAction: 'pan-y',
+          overscrollBehaviorX: 'none'
         }}
       >
         {items.map((item, index) => (
