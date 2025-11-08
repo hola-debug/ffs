@@ -6,6 +6,7 @@ interface UseDailyProjectionResult {
   projections: DailyProjection[];
   loading: boolean;
   error: string | null;
+  refetch: () => Promise<void>;
 }
 
 export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionResult {
@@ -13,43 +14,44 @@ export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionRes
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchProjections = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchProjections = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Obtener el user_id del usuario actual
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error('No hay usuario autenticado');
-        }
-
-        // Llamar a la función RPC
-        const { data, error: rpcError } = await supabase.rpc('get_daily_projection', {
-          p_user_id: user.id,
-          p_days_ahead: daysAhead,
-        });
-
-        if (rpcError) throw rpcError;
-
-        // Transformar los datos
-        const formattedData: DailyProjection[] = (data || []).map((item: any) => ({
-          date: item.date,
-          day_name: item.day_name,
-          day_number: item.day_number,
-          month_number: item.month_number,
-          accumulated_balance: parseFloat(item.accumulated_balance),
-        }));
-
-        setProjections(formattedData);
-      } catch (err: any) {
-        setError(err.message);
-        console.error('Error fetching daily projection:', err);
-      } finally {
-        setLoading(false);
+      // Obtener el user_id del usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('No hay usuario autenticado');
       }
-    };
+
+      // Llamar a la función RPC
+      const { data, error: rpcError } = await supabase.rpc('get_daily_projection', {
+        p_user_id: user.id,
+        p_days_ahead: daysAhead,
+      });
+
+      if (rpcError) throw rpcError;
+
+      // Transformar los datos
+      const formattedData: DailyProjection[] = (data || []).map((item: any) => ({
+        date: item.date,
+        day_name: item.day_name,
+        day_number: item.day_number,
+        month_number: item.month_number,
+        accumulated_balance: parseFloat(item.accumulated_balance),
+      }));
+
+      setProjections(formattedData);
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error fetching daily projection:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
 
     fetchProjections();
 
@@ -88,5 +90,5 @@ export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionRes
     };
   }, [daysAhead]);
 
-  return { projections, loading, error };
+  return { projections, loading, error, refetch: fetchProjections };
 }

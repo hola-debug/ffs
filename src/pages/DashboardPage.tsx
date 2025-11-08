@@ -9,6 +9,7 @@ import {
 } from '../components/modules';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
 
 export default function DashboardPage() {
   const { loading, error, ...data } = useDashboardData();
@@ -30,15 +31,18 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border">
-      <div className="max-w-4xl mx-auto w-full box-border px-2 sm:px-4 py-2 sm:py-4">
-      
+    <>
+      <Header />
+      <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20">
+        <div className="max-w-4xl mx-auto w-full box-border px-2 sm:px-4 py-2 sm:py-4">
+        
 
-        <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full box-border">
-          <DailyBalanceModule data={data.dailySpendable} onRefresh={data.refetch} />
-      
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full box-border">
+            <DailyBalanceModule data={data.dailySpendable} onRefresh={data.refetch} />
+        
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

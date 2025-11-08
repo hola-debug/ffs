@@ -71,11 +71,12 @@ export function DailyLimitModal({
       onOpenChange={setOpen}
       trigger={
         <button
-          className="p-1 rounded"
+          className="p-1 rounded relative z-10"
           title="Configurar saldo diario"
           onClick={() => setOpen((v) => !v)}
+          style={{ pointerEvents: 'auto' }}
         >
-          <Cog6ToothIcon className="w-5 h-5  hover:text-white" />
+          <Cog6ToothIcon className="w-5 h-5 hover:text-white" />
         </button>
       }
     >
