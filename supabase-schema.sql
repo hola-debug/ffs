@@ -10,12 +10,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- TABLAS BASE
 -- ============================================
 
--- Perfiles de usuario (espejo de auth.users)
+-- Perfiles de usuario (espejo de auth.users) 
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- Cuentas del usuario (efectivo, banco, billetera, cripto)
@@ -25,6 +26,7 @@ CREATE TABLE accounts (
   name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'wallet', 'crypto', 'other')),
   currency TEXT NOT NULL DEFAULT 'UYU',
+  balance NUMERIC(12,2) NOT NULL DEFAULT 0,
   is_primary BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

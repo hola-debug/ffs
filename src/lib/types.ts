@@ -11,6 +11,7 @@ export interface Account {
   name: string;
   type: 'cash' | 'bank' | 'wallet' | 'crypto' | 'other';
   currency: string;
+  balance: number;
   is_primary: boolean;
   created_at: string;
 }
