@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { motion } from 'framer-motion';
+import { useDashboardSync } from '../hooks/useDashboardSync';
 
 // Variantes de animación Tetris (deslizamiento desde abajo)
 const containerVariants = {
@@ -41,6 +42,7 @@ const itemVariants = {
 export default function DashboardPage() {
   const { loading, error, ...data } = useDashboardData();
   const navigate = useNavigate();
+  useDashboardSync();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

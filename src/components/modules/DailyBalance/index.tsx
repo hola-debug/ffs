@@ -11,6 +11,22 @@ interface DailyBalanceModuleProps {
 }
 
 export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps) {
+  const fallbackData: DailySpendable = {
+    user_id: 'placeholder',
+    ingresos_mes: 0,
+    gastos_fijos_mes: 0,
+    ahorro_mes: 0,
+    disponible_mes: 0,
+    dias_restantes: 0,
+    saldo_diario_hoy: 0,
+    gastos_hoy: 0,
+    saldo_diario_restante_hoy: 0,
+    saldo_diario_base: 0,
+    saldo_acumulado_hoy: 0,
+    total_mensual_teorico: 0,
+  };
+  const safeData = data ?? fallbackData;
+
   // Calcular días restantes del mes para mostrar todo
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
   const currentDay = new Date().getDate();
@@ -18,11 +34,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
   
   const { projections, loading: projectionsLoading, refetch: refetchProjections } = useDailyProjection(daysRemaining);
 
-  if (!data) {
-    return null;
-  }
-
-  const autoCalculatedLimit = data?.disponible_mes / (new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate());
+  const autoCalculatedLimit = safeData.disponible_mes / (new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate());
 
   const handleSuccess = () => {
     if (onRefresh) onRefresh();
@@ -37,7 +49,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
           SALDO DIARIO
         </h2>
         <DailyLimitModal
-          currentLimit={data.saldo_diario_base}
+          currentLimit={safeData.saldo_diario_base}
           autoCalculatedLimit={autoCalculatedLimit}
           onSuccess={handleSuccess}
         />
@@ -51,7 +63,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
             <span className=" text-[19px] font-bold">$</span>
             <CountUp
               from={0}
-              to={Math.round(data.saldo_acumulado_hoy ?? data.saldo_diario_restante_hoy)}
+              to={Math.round(safeData.saldo_acumulado_hoy ?? safeData.saldo_diario_restante_hoy)}
               separator="."
               direction="up"
               duration={1}
@@ -62,7 +74,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
         </div>
         
         <div className="text-[7px] sm:text-[8px] uppercase text-center text-[#FFFFFF] font-bold">
-          TOTAL MENSUAL {Math.round(data.total_mensual_teorico ?? data.disponible_mes).toLocaleString('es-UY', { minimumFractionDigits: 0 })}
+          TOTAL MENSUAL {Math.round(safeData.total_mensual_teorico ?? safeData.disponible_mes).toLocaleString('es-UY', { minimumFractionDigits: 0 })}
         </div>
       </div>
 
@@ -77,7 +89,7 @@ export function DailyBalanceModule({ data, onRefresh }: DailyBalanceModuleProps)
           enableArrowNavigation={false}
           displayScrollbar={false}
           className="w-full"
-          maxHeight="100px"
+          maxHeight="80px"
           gradientColor="#000000"
           renderItem={(proj, index, isSelected) => {
             const isToday = new Date(proj.date).toDateString() === new Date().toDateString();

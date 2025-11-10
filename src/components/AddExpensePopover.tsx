@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Account, Category } from '../lib/types';
+import { dispatchDashboardRefresh } from '../lib/dashboardEvents';
 import { 
   Popover, 
   PopoverInput, 
@@ -64,6 +65,7 @@ export default function AddExpensePopover({
       setIsRandomToggle(isRandom);
       
       onSuccess();
+      dispatchDashboardRefresh();
       setOpen(false);
     } catch (err: any) {
       setError(err.message);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { DailyProjection } from '../lib/types';
+import { subscribeToDashboardRefresh } from '../lib/dashboardEvents';
 
 interface UseDailyProjectionResult {
   projections: DailyProjection[];
@@ -52,8 +53,9 @@ export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionRes
   };
 
   useEffect(() => {
-
     fetchProjections();
+    const unsubscribeRefresh = subscribeToDashboardRefresh(() => fetchProjections());
+    const intervalId = setInterval(() => fetchProjections(), 15000);
 
     // Suscribirse a cambios en tiempo real
     const channel = supabase
@@ -87,6 +89,8 @@ export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionRes
     // Cleanup al desmontar
     return () => {
       supabase.removeChannel(channel);
+      unsubscribeRefresh();
+      clearInterval(intervalId);
     };
   }, [daysAhead]);
 

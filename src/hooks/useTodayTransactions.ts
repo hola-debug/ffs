@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Transaction, Category, Account } from '../lib/types';
+import { subscribeToDashboardRefresh } from '../lib/dashboardEvents';
 
 export interface TodayTransaction extends Transaction {
   category?: Category;
@@ -61,6 +62,8 @@ export function useTodayTransactions(): UseTodayTransactionsResult {
 
   useEffect(() => {
     fetchTransactions();
+    const unsubscribeRefresh = subscribeToDashboardRefresh(() => fetchTransactions());
+    const intervalId = setInterval(() => fetchTransactions(), 15000);
 
     // Suscribirse a cambios en tiempo real
     const channel = supabase
@@ -78,6 +81,8 @@ export function useTodayTransactions(): UseTodayTransactionsResult {
     // Cleanup al desmontar
     return () => {
       supabase.removeChannel(channel);
+      unsubscribeRefresh();
+      clearInterval(intervalId);
     };
   }, []);
 

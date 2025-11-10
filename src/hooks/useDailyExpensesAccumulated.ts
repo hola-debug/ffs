@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { DailyExpensesAccumulated, DailyExpensesProjection } from '../lib/types';
+import { subscribeToDashboardRefresh } from '../lib/dashboardEvents';
 
 interface UseDailyExpensesAccumulatedResult {
   data: DailyExpensesAccumulated | null;
@@ -16,7 +17,7 @@ export function useDailyExpensesAccumulated(daysAhead: number = 30): UseDailyExp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -32,7 +33,7 @@ export function useDailyExpensesAccumulated(daysAhead: number = 30): UseDailyExp
         .from('vw_daily_expenses_accumulated')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (viewError && viewError.code !== 'PGRST116') { // PGRST116 = no rows
         throw viewError;
@@ -68,10 +69,12 @@ export function useDailyExpensesAccumulated(daysAhead: number = 30): UseDailyExp
     } finally {
       setLoading(false);
     }
-  };
+  }, [daysAhead]);
 
   useEffect(() => {
     fetchData();
+    const unsubscribeRefresh = subscribeToDashboardRefresh(() => fetchData());
+    const intervalId = setInterval(() => fetchData(), 15000);
 
     // Suscribirse a cambios en tiempo real
     const channel = supabase
@@ -89,8 +92,10 @@ export function useDailyExpensesAccumulated(daysAhead: number = 30): UseDailyExp
     // Cleanup al desmontar
     return () => {
       supabase.removeChannel(channel);
+      unsubscribeRefresh();
+      clearInterval(intervalId);
     };
-  }, [daysAhead]);
+  }, [fetchData]);
 
   return { data, projections, loading, error, refetch: fetchData };
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { subscribeToDashboardRefresh } from '../lib/dashboardEvents';
 import {
   DailySpendable,
   MonthSummary,
@@ -12,6 +13,7 @@ import {
 
 export function useDashboardData() {
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dailySpendable, setDailySpendable] = useState<DailySpendable | null>(null);
   const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null);
@@ -21,9 +23,13 @@ export function useDashboardData() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  const fetchData = async () => {
+  const fetchData = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
 
       const [
@@ -56,11 +62,14 @@ export function useDashboardData() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchData();
+    const unsubscribeRefresh = subscribeToDashboardRefresh(() => fetchData(true));
+    const intervalId = setInterval(() => fetchData(true), 15000);
 
     // Suscribirse a cambios en tiempo real
     const channel = supabase
@@ -70,7 +79,7 @@ export function useDashboardData() {
         { event: '*', schema: 'public', table: 'transactions' },
         () => {
           console.log('Transaction changed, refetching data...');
-          fetchData();
+          fetchData(true);
         }
       )
       .on(
@@ -78,7 +87,7 @@ export function useDashboardData() {
         { event: '*', schema: 'public', table: 'savings_moves' },
         () => {
           console.log('Savings move changed, refetching data...');
-          fetchData();
+          fetchData(true);
         }
       )
       .on(
@@ -86,7 +95,7 @@ export function useDashboardData() {
         { event: '*', schema: 'public', table: 'accounts' },
         () => {
           console.log('Account changed, refetching data...');
-          fetchData();
+          fetchData(true);
         }
       )
       .on(
@@ -94,7 +103,7 @@ export function useDashboardData() {
         { event: '*', schema: 'public', table: 'categories' },
         () => {
           console.log('Category changed, refetching data...');
-          fetchData();
+          fetchData(true);
         }
       )
       .on(
@@ -102,7 +111,7 @@ export function useDashboardData() {
         { event: '*', schema: 'public', table: 'monthly_plan' },
         () => {
           console.log('Monthly plan changed, refetching data...');
-          fetchData();
+          fetchData(true);
         }
       )
       .subscribe();
@@ -110,11 +119,14 @@ export function useDashboardData() {
     // Cleanup al desmontar
     return () => {
       supabase.removeChannel(channel);
+      unsubscribeRefresh();
+      clearInterval(intervalId);
     };
   }, []);
 
   return {
     loading,
+    isRefreshing,
     error,
     dailySpendable,
     monthSummary,
@@ -123,6 +135,6 @@ export function useDashboardData() {
     savingsTotal,
     accounts,
     categories,
-    refetch: fetchData,
+    refetch: () => fetchData(true),
   };
 }

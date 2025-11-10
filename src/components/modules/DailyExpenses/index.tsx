@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { TodayExpenses, Account, Category } from '../../../lib/types';
 import { useDailyExpensesAccumulated } from '../../../hooks/useDailyExpensesAccumulated';
 import { useTodayTransactions } from '../../../hooks/useTodayTransactions';
@@ -26,6 +26,16 @@ export function DailyExpensesModule({
   const { transactions, loading: transactionsLoading, refetch: refetchTransactions } = useTodayTransactions();
   const { data: expensesAccum, projections, loading: accLoading, refetch: refetchAccum } = useDailyExpensesAccumulated(30);
   const { dailySpendable } = useDashboardData();
+
+  const transactionsSignature = useMemo(
+    () => transactions.map((t) => `${t.id}-${t.amount}-${t.date}`).join('|'),
+    [transactions]
+  );
+
+  useEffect(() => {
+    if (transactionsLoading) return;
+    refetchAccum();
+  }, [transactionsSignature, transactionsLoading, refetchAccum]);
 
   // Determinar el color según la condición
   const sectionColor = useMemo(() => {
@@ -68,7 +78,7 @@ export function DailyExpensesModule({
               <span className="text-[19px] font-bold">$</span>
               <CountUp
                 from={0}
-                to={Math.round(expensesAccum?.gastos_acumulados_mes || 0)}
+                to={Math.round(expensesAccum?.gastos_hoy ?? data?.total_today ?? 0)}
                 separator="."
                 direction="up"
                 duration={1}

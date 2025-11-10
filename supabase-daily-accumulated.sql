@@ -9,7 +9,11 @@ DROP VIEW IF EXISTS vw_daily_spendable;
 
 -- Recrear la vista con los nuevos campos
 CREATE VIEW vw_daily_spendable AS
-WITH month_data AS (
+WITH user_base AS (
+  SELECT id AS user_id
+  FROM profiles
+),
+month_data AS (
   SELECT
     user_id,
     COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS ingresos_mes,
@@ -64,13 +68,13 @@ gastos_variables_acumulados AS (
   GROUP BY user_id
 )
 SELECT
-  m.user_id,
-  m.ingresos_mes,
-  m.gastos_fijos_mes,
+  u.user_id,
+  COALESCE(m.ingresos_mes, 0) AS ingresos_mes,
+  COALESCE(m.gastos_fijos_mes, 0) AS gastos_fijos_mes,
   COALESCE(s.ahorro_mes, 0) AS ahorro_mes,
   
   -- Disponible para gastos variables del mes
-  (m.ingresos_mes - m.gastos_fijos_mes - COALESCE(s.ahorro_mes, 0)) AS disponible_mes,
+  (COALESCE(m.ingresos_mes, 0) - COALESCE(m.gastos_fijos_mes, 0) - COALESCE(s.ahorro_mes, 0)) AS disponible_mes,
   
   -- Días restantes (incluyendo hoy)
   (d.total_dias_mes - d.dia_actual + 1) AS dias_restantes,
@@ -78,14 +82,14 @@ SELECT
   -- Saldo diario base: usa el límite manual si existe, sino calcula automático
   COALESCE(
     mp.daily_spendable_limit,
-    ROUND((m.ingresos_mes - m.gastos_fijos_mes - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes, 0), 2)
+    ROUND((COALESCE(m.ingresos_mes, 0) - COALESCE(m.gastos_fijos_mes, 0) - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes, 0), 2)
   ) AS saldo_diario_base,
   
   -- Saldo que debería tener acumulado HOY (días transcurridos * saldo_diario_base)
   ROUND(
     COALESCE(
       mp.daily_spendable_limit,
-      (m.ingresos_mes - m.gastos_fijos_mes - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes, 0)
+      (COALESCE(m.ingresos_mes, 0) - COALESCE(m.gastos_fijos_mes, 0) - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes, 0)
     ) * d.dia_actual,
     2
   ) AS saldo_teorico_hoy,
@@ -97,25 +101,26 @@ SELECT
   ROUND(
     (COALESCE(
       mp.daily_spendable_limit,
-      (m.ingresos_mes - m.gastos_fijos_mes - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes, 0)
+      (COALESCE(m.ingresos_mes, 0) - COALESCE(m.gastos_fijos_mes, 0) - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes, 0)
     ) * d.dia_actual) - COALESCE(gv.gastos_variables_acum, 0),
     2
   ) AS saldo_acumulado_hoy,
   
   -- Total mensual teórico (si no se gasta nada)
-  ROUND((m.ingresos_mes - m.gastos_fijos_mes - COALESCE(s.ahorro_mes, 0)), 2) AS total_mensual_teorico,
+  ROUND((COALESCE(m.ingresos_mes, 0) - COALESCE(m.gastos_fijos_mes, 0) - COALESCE(s.ahorro_mes, 0)), 2) AS total_mensual_teorico,
   
   -- Campos legacy (mantener compatibilidad)
-  ROUND((m.ingresos_mes - m.gastos_fijos_mes - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes - d.dia_actual + 1, 0), 2) AS saldo_diario_hoy,
+  ROUND((COALESCE(m.ingresos_mes, 0) - COALESCE(m.gastos_fijos_mes, 0) - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes - d.dia_actual + 1, 0), 2) AS saldo_diario_hoy,
   COALESCE(t.gastos_hoy, 0) AS gastos_hoy,
-  ROUND((m.ingresos_mes - m.gastos_fijos_mes - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes - d.dia_actual + 1, 0) - COALESCE(t.gastos_hoy, 0), 2) AS saldo_diario_restante_hoy
+  ROUND((COALESCE(m.ingresos_mes, 0) - COALESCE(m.gastos_fijos_mes, 0) - COALESCE(s.ahorro_mes, 0)) / NULLIF(d.total_dias_mes - d.dia_actual + 1, 0) - COALESCE(t.gastos_hoy, 0), 2) AS saldo_diario_restante_hoy
 
-FROM month_data m
+FROM user_base u
 CROSS JOIN days_calc d
-LEFT JOIN savings_data s ON s.user_id = m.user_id
-LEFT JOIN today_data t ON t.user_id = m.user_id
-LEFT JOIN gastos_variables_acumulados gv ON gv.user_id = m.user_id
-LEFT JOIN monthly_plan_data mp ON mp.user_id = m.user_id;
+LEFT JOIN month_data m ON m.user_id = u.user_id
+LEFT JOIN savings_data s ON s.user_id = u.user_id
+LEFT JOIN today_data t ON t.user_id = u.user_id
+LEFT JOIN gastos_variables_acumulados gv ON gv.user_id = u.user_id
+LEFT JOIN monthly_plan_data mp ON mp.user_id = u.user_id;
 
 -- ============================================
 -- Función: Proyección de saldo diario para los próximos días

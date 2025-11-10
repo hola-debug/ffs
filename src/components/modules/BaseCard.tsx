@@ -4,7 +4,7 @@ interface BaseCardProps {
   title?: string;
   className?: string;
   children: ReactNode;
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'gradient';
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'gradient' | 'solid';
 }
 
 const variantStyles = {
@@ -14,6 +14,7 @@ const variantStyles = {
   warning: 'bg-yellow-900',
   danger: 'bg-red-900',
   gradient: 'bg-gradient-to-br from-blue-900 to-blue-800',
+  solid: 'bg-black',
 };
 
 export function BaseCard({ 
