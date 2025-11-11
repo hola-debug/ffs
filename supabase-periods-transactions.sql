@@ -222,3 +222,21 @@ CREATE POLICY transactions_delete
 ON transactions
 FOR DELETE
 USING (auth.uid() = user_id);
+
+-- 7) Vista para gastos random diarios dentro de un período
+CREATE OR REPLACE VIEW vw_period_random_daily AS
+SELECT
+  t.user_id,
+  t.period_id,
+  t.date,
+  SUM(t.amount) AS daily_random_total,
+  SUM(SUM(t.amount)) OVER (
+    PARTITION BY t.user_id, t.period_id
+    ORDER BY t.date
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS accumulated_random_total
+FROM transactions t
+WHERE t.type = 'expense'
+  AND t.scope = 'period'
+  AND t.is_random = TRUE
+GROUP BY t.user_id, t.period_id, t.date;

@@ -17,14 +17,7 @@ export function PeriodBalanceModule({ periods, accounts, onRefresh }: PeriodBala
   const [error, setError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Debug: ver qué periodos están llegando
-  console.log('PeriodBalanceModule - Periods received:', periods);
-  console.log('PeriodBalanceModule - Periods count:', periods.length);
-  console.log('PeriodBalanceModule - Period statuses:', periods.map(p => p.status));
-
-  // Buscar el periodo activo
   const activePeriod = periods.find(p => p.status === 'active');
-  console.log('PeriodBalanceModule - Active period found:', activePeriod);
   
   // Buscar cuenta principal para la devolución
   const primaryAccount = accounts.find(a => a.is_primary) || accounts[0];

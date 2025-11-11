@@ -156,3 +156,11 @@ export interface DailyExpensesProjection {
   accumulated_expenses: number; // Gastos acumulados proyectados para ese día
   projected_daily_avg: number; // Promedio diario usado para la proyección
 }
+
+export interface PeriodRandomDaily {
+  user_id: string;
+  period_id: string;
+  date: string;
+  daily_random_total: number;
+  accumulated_random_total: number;
+}

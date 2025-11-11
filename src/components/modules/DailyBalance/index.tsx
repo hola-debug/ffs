@@ -10,13 +10,7 @@ interface DailyBalanceModuleProps {
 }
 
 export function DailyBalanceModule({ periods, onRefresh }: DailyBalanceModuleProps) {
-  // Find active period
   const activePeriod = periods.find(p => p.status === 'active');
-  
-  console.log('🔍 DailyBalance - Active period:', activePeriod);
-  console.log('🔍 DailyBalance - daily_amount:', activePeriod?.daily_amount, 'type:', typeof activePeriod?.daily_amount);
-  console.log('🔍 DailyBalance - spent_amount:', activePeriod?.spent_amount, 'type:', typeof activePeriod?.spent_amount);
-  console.log('🔍 DailyBalance - allocated_amount:', activePeriod?.allocated_amount, 'type:', typeof activePeriod?.allocated_amount);
 
   // Calculate days data
   const today = new Date();
@@ -69,7 +63,6 @@ export function DailyBalanceModule({ periods, onRefresh }: DailyBalanceModulePro
         <>
           <div className="mb-4 sm:mb-5">
             <div className="flex items-baseline justify-between mb-2 sm:mb-3">
-              <span className="text-[10px] font-normal">ACUMULADO</span>
               <div className="flex items-baseline">
                 <span className="text-[19px] font-bold">$</span>
                 <CountUp
@@ -91,9 +84,9 @@ export function DailyBalanceModule({ periods, onRefresh }: DailyBalanceModulePro
 
       {/* Projections List */}
       {activePeriod && (projectionsLoading ? (
-        <div className="text-xs text-gray-500"></div>
+        <div className="text-xs text-[#f2f2f2]"></div>
       ) : projections.length > 0 ? (
-        <div className="relative z-10">
+        <div className="relative">
         <AnimatedList<DailyProjection>
           items={projections}
           onItemSelect={(item, index) => console.log(item, index)}
@@ -104,16 +97,19 @@ export function DailyBalanceModule({ periods, onRefresh }: DailyBalanceModulePro
           maxHeight="120px"
           gradientColor="#000000"
           renderItem={(proj, index, isSelected) => {
-            const isToday = new Date(proj.date).toDateString() === new Date().toDateString();
+            const projDate = new Date(proj.date + 'T00:00:00');
+            const isToday = projDate.toDateString() === new Date().toDateString();
+            const dayNum = projDate.getDate();
+            const monthNum = projDate.getMonth() + 1;
             return (
               <div 
                 className={`flex justify-between items-center ${
-                  isToday ? 'border px-2 py-1 -mx-2 rounded' : 'py-0.5'
+                  isToday ? 'border px-2 -mx-2 rounded' : 'py-0'
                 }`}
                 style={isToday ? { borderColor: '#FF0000' } : undefined}
               >
                 <span className="text-[10px] sm:text-xs tracking-wide font-medium">
-                  {proj.day_number}/{proj.month_number} {proj.day_name.substring(0, 3).toUpperCase()}
+                  {dayNum}/{monthNum} {proj.day_name.substring(0, 3).toUpperCase()}
                 </span>
                 <span className="text-sm sm:text-base font-semibold tabular-nums">
                   {Math.round(Number(proj.accumulated_balance) || 0).toLocaleString('es-UY', { minimumFractionDigits: 0 })}
