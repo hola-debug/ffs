@@ -21,6 +21,7 @@ export interface Category {
   user_id: string;
   name: string;
   kind: 'income' | 'fixed' | 'variable' | 'random' | 'saving';
+  scope: 'period' | 'outside_period' | 'both';
   created_at: string;
 }
 
@@ -29,16 +30,39 @@ export interface Transaction {
   user_id: string;
   account_id: string;
   category_id: string | null;
+  period_id: string | null;
   type: 'income' | 'expense' | 'transfer';
+  scope: 'period' | 'outside_period';
   amount: number;
   currency: string;
   date: string;
-  notes: string | null;
+  description: string | null;
+  notes?: string | null; // Deprecated, use description
   is_random: boolean;
   is_fixed: boolean;
   is_recurring: boolean;
   metadata: Record<string, any> | null;
   created_at: string;
+  updated_at: string;
+}
+
+export interface Period {
+  id: string;
+  user_id: string;
+  account_id: string;
+  name: string;
+  percentage: number;
+  days: number;
+  allocated_amount: number;
+  spent_amount: number;
+  remaining_amount: number;
+  daily_amount: number;
+  currency: string;
+  starts_at: string;
+  ends_at: string | null;
+  status: 'draft' | 'active' | 'finished' | 'cancelled';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SavingsVault {

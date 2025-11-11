@@ -9,6 +9,7 @@ import {
   SavingsTotal,
   Account,
   Category,
+  Period,
 } from '../lib/types';
 
 export function useDashboardData() {
@@ -22,6 +23,7 @@ export function useDashboardData() {
   const [savingsTotal, setSavingsTotal] = useState<SavingsTotal[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [periods, setPeriods] = useState<Period[]>([]);
 
   const fetchData = async (isRefresh = false) => {
     try {
@@ -40,6 +42,7 @@ export function useDashboardData() {
         savingsRes,
         accountsRes,
         categoriesRes,
+        periodsRes,
       ] = await Promise.all([
         supabase.from('vw_daily_spendable').select('*').maybeSingle(),
         supabase.from('vw_month_summary').select('*').maybeSingle(),
@@ -48,6 +51,7 @@ export function useDashboardData() {
         supabase.from('vw_savings_total').select('*'),
         supabase.from('accounts').select('*').order('is_primary', { ascending: false }),
         supabase.from('categories').select('*').order('name'),
+        supabase.from('periods').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (dailyRes.data) setDailySpendable(dailyRes.data);
@@ -57,6 +61,7 @@ export function useDashboardData() {
       if (savingsRes.data) setSavingsTotal(savingsRes.data);
       if (accountsRes.data) setAccounts(accountsRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
+      if (periodsRes.data) setPeriods(periodsRes.data);
 
     } catch (err: any) {
       setError(err.message);
@@ -114,6 +119,14 @@ export function useDashboardData() {
           fetchData(true);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'periods' },
+        () => {
+          console.log('Period changed, refetching data...');
+          fetchData(true);
+        }
+      )
       .subscribe();
 
     // Cleanup al desmontar
@@ -135,6 +148,7 @@ export function useDashboardData() {
     savingsTotal,
     accounts,
     categories,
+    periods,
     refetch: () => fetchData(true),
   };
 }
