@@ -39,11 +39,36 @@ CREATE TABLE categories (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   kind TEXT NOT NULL CHECK (kind IN ('income', 'fixed', 'variable', 'random', 'saving')),
+  scope TEXT NOT NULL DEFAULT 'both' CHECK (scope IN ('period', 'outside_period', 'both')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, name)
 );
 
 CREATE INDEX idx_categories_user_id ON categories(user_id);
+
+-- Periodos (reservas de saldo con scope "period")
+CREATE TABLE periods (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  percentage NUMERIC(5,2) NOT NULL CHECK (percentage > 0),
+  days INT NOT NULL CHECK (days BETWEEN 1 AND 120),
+  allocated_amount NUMERIC(12,2) NOT NULL CHECK (allocated_amount >= 0),
+  spent_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  remaining_amount NUMERIC(12,2) GENERATED ALWAYS AS (GREATEST(allocated_amount - spent_amount, 0)) STORED,
+  daily_amount NUMERIC(12,2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'UYU',
+  starts_at DATE DEFAULT CURRENT_DATE,
+  ends_at DATE,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'finished', 'cancelled')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_periods_user_id ON periods(user_id);
+CREATE INDEX idx_periods_account_id ON periods(account_id);
+CREATE INDEX idx_periods_status ON periods(status);
 
 -- Transacciones
 CREATE TABLE transactions (
@@ -51,7 +76,9 @@ CREATE TABLE transactions (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  period_id UUID REFERENCES periods(id) ON DELETE SET NULL,
   type TEXT NOT NULL CHECK (type IN ('income', 'expense', 'transfer')),
+  scope TEXT NOT NULL DEFAULT 'outside_period' CHECK (scope IN ('period', 'outside_period')),
   amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
   currency TEXT NOT NULL DEFAULT 'UYU',
   date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -66,6 +93,89 @@ CREATE TABLE transactions (
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_date ON transactions(date);
 CREATE INDEX idx_transactions_user_date ON transactions(user_id, date);
+CREATE INDEX idx_transactions_period_id ON transactions(period_id);
+CREATE INDEX idx_transactions_scope ON transactions(scope);
+
+-- ============================================
+-- FUNCIONES Y TRIGGERS PARA PERIODOS
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.set_periods_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_periods_updated_at
+BEFORE UPDATE ON periods
+FOR EACH ROW EXECUTE FUNCTION public.set_periods_updated_at();
+
+CREATE OR REPLACE FUNCTION public.period_amount_delta(p_scope TEXT, p_type TEXT, p_amount NUMERIC)
+RETURNS NUMERIC AS $$
+BEGIN
+  IF p_scope IS DISTINCT FROM 'period' THEN
+    RETURN 0;
+  END IF;
+
+  IF p_type = 'expense' THEN
+    RETURN p_amount;
+  ELSIF p_type = 'income' THEN
+    RETURN -p_amount;
+  ELSE
+    RETURN 0;
+  END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION public.apply_period_delta(p_period_id UUID, p_delta NUMERIC)
+RETURNS VOID AS $$
+BEGIN
+  IF p_period_id IS NULL OR p_delta = 0 THEN
+    RETURN;
+  END IF;
+
+  UPDATE periods
+  SET spent_amount = GREATEST(0, spent_amount + p_delta),
+      updated_at = NOW()
+  WHERE id = p_period_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.handle_transactions_period()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    PERFORM public.apply_period_delta(
+      NEW.period_id,
+      public.period_amount_delta(NEW.scope, NEW.type, NEW.amount)
+    );
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    PERFORM public.apply_period_delta(
+      OLD.period_id,
+      -public.period_amount_delta(OLD.scope, OLD.type, OLD.amount)
+    );
+
+    PERFORM public.apply_period_delta(
+      NEW.period_id,
+      public.period_amount_delta(NEW.scope, NEW.type, NEW.amount)
+    );
+    RETURN NEW;
+  ELSE
+    PERFORM public.apply_period_delta(
+      OLD.period_id,
+      -public.period_amount_delta(OLD.scope, OLD.type, OLD.amount)
+    );
+    RETURN OLD;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_transactions_period
+AFTER INSERT OR UPDATE OR DELETE ON transactions
+FOR EACH ROW EXECUTE FUNCTION public.handle_transactions_period();
 
 -- Vaults de ahorro
 CREATE TABLE savings_vaults (

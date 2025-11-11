@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import Beams from '../components/Beams';
+import logo from '../assets/logo.svg';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -33,45 +35,58 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-950">
-      <div className="w-full max-w-md p-8 bg-gray-900 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-center mb-6">
-          {isSignup ? 'Crear cuenta' : 'Iniciar sesión'}
-        </h1>
+    <div className="flex items-center justify-center min-h-screen bg-gray-950 relative">
+      <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
+        <Beams
+          beamWidth={2}
+          beamHeight={69}
+          beamNumber={20}
+          lightColor="#f2f2f2"
+          speed={8}
+          noiseIntensity={1.69}
+          scale={0.2}
+          rotation={69}
+        />
+      </div>
+      <div className="w-full max-w-md px-6 py-10 relative z-10">
+        <div className="flex flex-col items-center mb-12">
+          <img src={logo} alt="ffs.finance" className="h-12 mb-4" />
+       
+        </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded text-red-200">
+          <div className="mb-6 p-4 rounded-2xl backdrop-blur-xl bg-red-500/10 text-red-200 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="tu@email.com"
+              className="w-full px-5 py-4 rounded-2xl backdrop-blur-2xl bg-white/10 border-0 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Contraseña</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="••••••••"
+              className="w-full px-5 py-4 rounded-2xl backdrop-blur-2xl bg-white/10 border-0 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-200"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded font-medium disabled:opacity-50"
+            className="w-full py-4 mt-8 rounded-2xl backdrop-blur-2xl bg-white/20 hover:bg-white/30 text-white font-semibold disabled:opacity-50 transition-all duration-200 shadow-lg"
           >
             {loading ? 'Procesando...' : isSignup ? 'Registrarse' : 'Entrar'}
           </button>
@@ -79,7 +94,7 @@ export default function LoginPage() {
 
         <button
           onClick={() => setIsSignup(!isSignup)}
-          className="w-full mt-4 text-sm text-gray-400 hover:text-gray-200"
+          className="w-full mt-6 text-sm text-white/50 hover:text-white/80 transition-colors duration-200"
         >
           {isSignup ? '¿Ya tenés cuenta? Ingresá' : '¿No tenés cuenta? Registrate'}
         </button>
