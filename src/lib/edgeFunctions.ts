@@ -60,6 +60,20 @@ export interface CreatePeriodResponse {
   message: string;
 }
 
+export interface FinishPeriodPayload {
+  period_id: string;
+  create_refund_transaction?: boolean;
+  refund_to_account_id?: string;
+}
+
+export interface FinishPeriodResponse {
+  success: boolean;
+  period: Period;
+  refund_transaction?: Transaction;
+  message: string;
+  warning?: string;
+}
+
 // ============================================
 // HELPER: getAuthHeaders
 // ============================================
@@ -368,4 +382,62 @@ export async function createMonthlyPeriod(
     transfer_from_account_id: sourceAccountId,
     create_transfer_transaction: options?.createTransfer !== false,
   });
+}
+
+// ============================================
+// EDGE FUNCTION: finish-period
+// ============================================
+
+/**
+ * Finaliza un período activo, cambiando su status a 'finished'.
+ * Opcionalmente puede crear una transacción de devolución del remaining_amount.
+ * 
+ * @example
+ * // Finalizar período sin devolución
+ * const result = await finishPeriod({
+ *   period_id: 'uuid-periodo',
+ * });
+ * 
+ * @example
+ * // Finalizar período con devolución del saldo restante
+ * const result = await finishPeriod({
+ *   period_id: 'uuid-periodo',
+ *   create_refund_transaction: true,
+ *   refund_to_account_id: 'uuid-cuenta-principal',
+ * });
+ */
+export async function finishPeriod(
+  payload: FinishPeriodPayload
+): Promise<FinishPeriodResponse | EdgeFunctionResponse<never>> {
+  try {
+    const headers = await getAuthHeaders();
+    
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/finish-period`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      }
+    );
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: result.error || 'Failed to finish period',
+        details: result.details,
+      };
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('finishPeriod error:', error);
+    return {
+      success: false,
+      error: 'Network error or unexpected failure',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
 }

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Account, Category } from '../lib/types';
+import { Account, Category, Period } from '../lib/types';
 import { dispatchDashboardRefresh } from '../lib/dashboardEvents';
 import { 
   Popover, 
@@ -12,6 +12,7 @@ import {
 interface Props {
   accounts: Account[];
   categories: Category[];
+  periods?: Period[];
   isRandom: boolean;
   trigger: React.ReactNode;
   onSuccess: () => void;
@@ -20,6 +21,7 @@ interface Props {
 export default function AddExpensePopover({ 
   accounts, 
   categories, 
+  periods = [],
   isRandom, 
   trigger,
   onSuccess 
@@ -30,17 +32,50 @@ export default function AddExpensePopover({
   const [categoryId, setCategoryId] = useState('');
   const [notes, setNotes] = useState('');
   const [isRandomToggle, setIsRandomToggle] = useState(isRandom);
+  const [belongsToActivePeriod, setBelongsToActivePeriod] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const expenseCategories = categories.filter(
-    (c) => c.kind === 'variable' || c.kind === 'fixed' || c.kind === 'random'
+  // Find active period
+  const activePeriod = useMemo(
+    () => periods.find(p => p.status === 'active'),
+    [periods]
   );
+
+  // Filter categories based on toggle
+  const expenseCategories = useMemo(() => {
+    const baseCategories = categories.filter(
+      (c) => c.kind === 'variable' || c.kind === 'fixed' || c.kind === 'random'
+    );
+
+    if (belongsToActivePeriod) {
+      // Only show categories with scope 'period' or 'both'
+      return baseCategories.filter(c => c.scope === 'period' || c.scope === 'both');
+    }
+
+    return baseCategories;
+  }, [categories, belongsToActivePeriod]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Validations
+    if (belongsToActivePeriod && !activePeriod) {
+      setError('No hay un período activo disponible. Por favor, desactiva la opción o crea un período activo.');
+      setLoading(false);
+      return;
+    }
+
+    if (belongsToActivePeriod && categoryId) {
+      const selectedCategory = categories.find(c => c.id === categoryId);
+      if (selectedCategory && selectedCategory.kind === 'fixed') {
+        setError('No puedes usar una categoría fija dentro de un período.');
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       const { error: insertError } = await supabase.from('transactions').insert({
@@ -54,6 +89,8 @@ export default function AddExpensePopover({
         is_random: isRandomToggle,
         is_fixed: false,
         is_recurring: false,
+        scope: belongsToActivePeriod ? 'period' : 'outside_period',
+        period_id: belongsToActivePeriod ? activePeriod?.id : null,
       });
 
       if (insertError) throw insertError;
@@ -63,6 +100,7 @@ export default function AddExpensePopover({
       setNotes('');
       setCategoryId('');
       setIsRandomToggle(isRandom);
+      setBelongsToActivePeriod(false);
       
       onSuccess();
       dispatchDashboardRefresh();
@@ -141,6 +179,31 @@ export default function AddExpensePopover({
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Descripción opcional"
           />
+
+          <div className="flex items-center space-x-2 pt-1">
+            <input
+              type="checkbox"
+              id="belongsToActivePeriod"
+              checked={belongsToActivePeriod}
+              onChange={(e) => setBelongsToActivePeriod(e.target.checked)}
+              className="w-4 h-4 rounded accent-green-500"
+            />
+            <label htmlFor="belongsToActivePeriod" className="text-xs text-white">
+              ¿Pertenece al periodo activo?
+            </label>
+          </div>
+
+          {belongsToActivePeriod && !activePeriod && (
+            <div className="p-2 bg-yellow-500/20 border border-yellow-500 rounded text-yellow-200 text-xs">
+              ⚠️ No hay un período activo
+            </div>
+          )}
+
+          {belongsToActivePeriod && activePeriod && (
+            <div className="p-2 bg-blue-500/20 border border-blue-500 rounded text-blue-200 text-xs">
+              📅 Período: {activePeriod.name}
+            </div>
+          )}
 
           <div className="flex items-center space-x-2 pt-1">
             <input

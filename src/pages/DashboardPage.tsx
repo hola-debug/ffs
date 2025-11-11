@@ -6,7 +6,9 @@ import {
   MonthlyIncomeModule, 
   DayCounterModule, 
   RandomExpensesModule,
-  AIInputModule
+  AIInputModule,
+  PeriodBalanceModule,
+  AccountsBalanceModule
 } from '../components/modules';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -86,8 +88,27 @@ export default function DashboardPage() {
                 data={data.todayExpenses} 
                 accounts={data.accounts}
                 categories={data.categories}
+                periods={data.periods}
                 onRefresh={data.refetch}
               />
+            </motion.div>
+
+            {/* Módulo de Período */}
+            <motion.div variants={itemVariants}>
+              <PeriodBalanceModule 
+                periods={data.periods}
+                accounts={data.accounts}
+                onRefresh={data.refetch}
+              />
+            </motion.div>
+
+            {/* Módulo de entrada con IA */}
+            <motion.div variants={itemVariants}>
+              <AIInputModule onRefresh={data.refetch} />
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <AccountsBalanceModule accounts={data.accounts} />
             </motion.div>
 
             {/* Módulo de entrada con IA */}

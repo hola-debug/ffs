@@ -14,13 +14,15 @@ interface DailyExpensesModuleProps {
   data: TodayExpenses | null;
   accounts: Account[];
   categories: Category[];
+  periods?: import('../../../lib/types').Period[];
   onRefresh: () => void;
 }
 
 export function DailyExpensesModule({ 
   data, 
   accounts, 
-  categories, 
+  categories,
+  periods,
   onRefresh 
 }: DailyExpensesModuleProps) {
   const { transactions, loading: transactionsLoading, refetch: refetchTransactions } = useTodayTransactions();
@@ -90,6 +92,7 @@ export function DailyExpensesModule({
           <AddExpensePopover
             accounts={accounts}
             categories={categories}
+            periods={periods}
             isRandom={false}
             onSuccess={handleSuccess}
             trigger={

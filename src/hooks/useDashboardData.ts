@@ -16,6 +16,7 @@ export function useDashboardData() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [dailySpendable, setDailySpendable] = useState<DailySpendable | null>(null);
   const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null);
   const [todayExpenses, setTodayExpenses] = useState<TodayExpenses | null>(null);
@@ -34,6 +35,13 @@ export function useDashboardData() {
       }
       setError(null);
 
+      // Obtener el usuario autenticado actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+      setUserId(user.id);
+
       const [
         dailyRes,
         monthRes,
@@ -44,14 +52,14 @@ export function useDashboardData() {
         categoriesRes,
         periodsRes,
       ] = await Promise.all([
-        supabase.from('vw_daily_spendable').select('*').maybeSingle(),
-        supabase.from('vw_month_summary').select('*').maybeSingle(),
-        supabase.from('vw_today_expenses').select('*').maybeSingle(),
-        supabase.from('vw_random_expenses_month').select('*').maybeSingle(),
-        supabase.from('vw_savings_total').select('*'),
-        supabase.from('accounts').select('*').order('is_primary', { ascending: false }),
-        supabase.from('categories').select('*').order('name'),
-        supabase.from('periods').select('*').order('created_at', { ascending: false }),
+        supabase.from('vw_daily_spendable').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('vw_month_summary').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('vw_today_expenses').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('vw_random_expenses_month').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('vw_savings_total').select('*').eq('user_id', user.id),
+        supabase.from('accounts').select('*').eq('user_id', user.id).order('is_primary', { ascending: false }),
+        supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
+        supabase.from('periods').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       ]);
 
       if (dailyRes.data) setDailySpendable(dailyRes.data);
@@ -61,7 +69,14 @@ export function useDashboardData() {
       if (savingsRes.data) setSavingsTotal(savingsRes.data);
       if (accountsRes.data) setAccounts(accountsRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
-      if (periodsRes.data) setPeriods(periodsRes.data);
+      if (periodsRes.data) {
+        console.log('useDashboardData - Periods fetched:', periodsRes.data);
+        console.log('useDashboardData - User ID:', user.id);
+        setPeriods(periodsRes.data);
+      } else {
+        console.log('useDashboardData - No periods data');
+        setPeriods([]);
+      }
 
     } catch (err: any) {
       setError(err.message);

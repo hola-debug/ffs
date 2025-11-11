@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { RandomExpensesMonth, Account, Category } from '../../../lib/types';
 import { BaseCard } from '../BaseCard';
 import AddExpensePopover from '../../AddExpensePopover';
@@ -7,16 +6,17 @@ interface RandomExpensesModuleProps {
   data: RandomExpensesMonth | null;
   accounts: Account[];
   categories: Category[];
+  periods?: import('../../../lib/types').Period[];
   onRefresh: () => void;
 }
 
 export function RandomExpensesModule({ 
   data, 
   accounts, 
-  categories, 
+  categories,
+  periods,
   onRefresh 
 }: RandomExpensesModuleProps) {
-  const [showModal, setShowModal] = useState(false);
 
   return (
     <>
@@ -29,26 +29,19 @@ export function RandomExpensesModule({
           ${(data?.total_random || 0).toLocaleString('es-UY')}
         </div>
 
-        <button
-          onClick={() => setShowModal(true)}
-          className="w-full py-2 sm:py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold uppercase text-xs sm:text-base tracking-wide transition-colors"
-        >
-          Agregar Gasto
-        </button>
-      </BaseCard>
-
-      {showModal && (
         <AddExpensePopover
           accounts={accounts}
           categories={categories}
+          periods={periods}
           isRandom={true}
-          onClose={() => setShowModal(false)}
-          onSuccess={() => {
-            onRefresh();
-            setShowModal(false);
-          }}
+          onSuccess={onRefresh}
+          trigger={
+            <button className="w-full py-2 sm:py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold uppercase text-xs sm:text-base tracking-wide transition-colors">
+              Agregar Gasto
+            </button>
+          }
         />
-      )}
+      </BaseCard>
     </>
   );
 }
