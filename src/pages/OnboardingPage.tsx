@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { STEP_FLOW } from './onboarding/constants';
 import { WelcomeStep } from './onboarding/steps/WelcomeStep';
 import { AccountsStep } from './onboarding/steps/AccountsStep';
@@ -7,6 +8,7 @@ import { PeriodStep } from './onboarding/steps/PeriodStep';
 import { useOnboardingData } from './onboarding/hooks/useOnboardingData';
 
 export default function OnboardingPage() {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentStep = STEP_FLOW[currentIndex];
 
@@ -50,6 +52,9 @@ export default function OnboardingPage() {
       if (!saved) {
         return;
       }
+      // Redirigir al dashboard después de crear el periodo exitosamente
+      navigate('/app');
+      return;
     }
     setCurrentIndex((prev) => Math.min(prev + 1, STEP_FLOW.length - 1));
   };

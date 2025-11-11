@@ -109,8 +109,51 @@ export function useOnboardingData() {
 
     loadData();
 
+    // Suscribirse a cambios en tiempo real
+    const channel = supabase
+      .channel('onboarding-changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'accounts'
+        },
+        (payload) => {
+          console.log('🔄 [Onboarding] Account changed:', payload);
+          const record = payload.new as any;
+          if (record && record.user_id === user.id) {
+            console.log('✅ [Onboarding] Refetching accounts...');
+            loadData();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'categories'
+        },
+        (payload) => {
+          console.log('🔄 [Onboarding] Category changed:', payload);
+          const record = payload.new as any;
+          if (record && record.user_id === user.id) {
+            console.log('✅ [Onboarding] Refetching categories...');
+            loadData();
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [Onboarding] Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [Onboarding] Successfully subscribed to realtime changes');
+        }
+      });
+
     return () => {
       isMounted = false;
+      supabase.removeChannel(channel);
     };
   }, [user]);
 
@@ -303,6 +346,10 @@ export function useOnboardingData() {
     setSavingPeriod(true);
     setPeriodError(null);
 
+    const startsAt = new Date();
+    const endsAt = new Date(startsAt);
+    endsAt.setDate(endsAt.getDate() + periodForm.days - 1);
+
     const { data: newPeriod, error } = await supabase
       .from('periods')
       .insert({
@@ -314,8 +361,9 @@ export function useOnboardingData() {
         allocated_amount: allocatedAmount,
         daily_amount: dailyAmount,
         currency: account.currency,
-        starts_at: new Date().toISOString().slice(0, 10),
-        status: 'draft',
+        starts_at: startsAt.toISOString().slice(0, 10),
+        ends_at: endsAt.toISOString().slice(0, 10),
+        status: 'active',
       })
       .select()
       .single();

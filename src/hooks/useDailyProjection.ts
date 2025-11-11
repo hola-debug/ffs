@@ -10,7 +10,7 @@ interface UseDailyProjectionResult {
   refetch: () => Promise<void>;
 }
 
-export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionResult {
+export function useDailyProjection(daysAhead: number = 4, periodId?: string): UseDailyProjectionResult {
   const [projections, setProjections] = useState<DailyProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,30 +20,74 @@ export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionRes
       setLoading(true);
       setError(null);
 
-      // Obtener el user_id del usuario actual
+      if (!periodId) {
+        setProjections([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('No hay usuario autenticado');
       }
 
-      // Llamar a la función RPC
-      const { data, error: rpcError } = await supabase.rpc('get_daily_projection', {
-        p_user_id: user.id,
-        p_days_ahead: daysAhead,
-      });
+      // Get period data
+      const { data: period, error: periodError } = await supabase
+        .from('periods')
+        .select('*')
+        .eq('id', periodId)
+        .single();
 
-      if (rpcError) throw rpcError;
+      if (periodError) throw periodError;
+      if (!period) {
+        setProjections([]);
+        setLoading(false);
+        return;
+      }
 
-      // Transformar los datos
-      const formattedData: DailyProjection[] = (data || []).map((item: any) => ({
-        date: item.date,
-        day_name: item.day_name,
-        day_number: item.day_number,
-        month_number: item.month_number,
-        accumulated_balance: parseFloat(item.accumulated_balance),
-      }));
+      // Get transactions for this period
+      const { data: transactions, error: txError } = await supabase
+        .from('transactions')
+        .select('amount, date, type')
+        .eq('period_id', periodId)
+        .eq('scope', 'period');
 
-      setProjections(formattedData);
+      if (txError) throw txError;
+
+      // Calculate projections
+      const today = new Date();
+      const startsAt = new Date(period.starts_at);
+      const dailyAmount = Number(period.daily_amount) || 0;
+      const spentAmount = Number(period.spent_amount) || 0;
+      
+      // Calculate current accumulated balance
+      const daysPassed = Math.max(1, Math.ceil((today.getTime() - startsAt.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      const currentAccumulated = (dailyAmount * daysPassed) - spentAmount;
+
+      // Generate projections
+      const projectionsList: DailyProjection[] = [];
+      
+      for (let i = 0; i <= daysAhead; i++) {
+        const projDate = new Date(today);
+        projDate.setDate(today.getDate() + i);
+        
+        const dayNames = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+        const dayName = dayNames[projDate.getDay()];
+        
+        // Accumulated balance = current + (daily_amount * days_ahead)
+        const accumulatedBalance = Number(currentAccumulated) + (Number(dailyAmount) * i);
+        
+        projectionsList.push({
+          date: projDate.toISOString().split('T')[0],
+          day_name: dayName,
+          day_number: projDate.getDate(),
+          month_number: projDate.getMonth() + 1,
+          accumulated_balance: accumulatedBalance,
+        });
+      }
+
+      setProjections(projectionsList);
     } catch (err: any) {
       setError(err.message);
       console.error('Error fetching daily projection:', err);
@@ -57,7 +101,7 @@ export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionRes
     const unsubscribeRefresh = subscribeToDashboardRefresh(() => fetchProjections());
     const intervalId = setInterval(() => fetchProjections(), 15000);
 
-    // Suscribirse a cambios en tiempo real
+    // Subscribe to realtime changes
     const channel = supabase
       .channel('projection-changes')
       .on(
@@ -70,29 +114,21 @@ export function useDailyProjection(daysAhead: number = 4): UseDailyProjectionRes
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'savings_moves' },
+        { event: '*', schema: 'public', table: 'periods' },
         () => {
-          console.log('Savings move changed, refetching projection...');
-          fetchProjections();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'monthly_plan' },
-        () => {
-          console.log('Monthly plan changed, refetching projection...');
+          console.log('Period changed, refetching projection...');
           fetchProjections();
         }
       )
       .subscribe();
 
-    // Cleanup al desmontar
+    // Cleanup
     return () => {
       supabase.removeChannel(channel);
       unsubscribeRefresh();
       clearInterval(intervalId);
     };
-  }, [daysAhead]);
+  }, [daysAhead, periodId]);
 
   return { projections, loading, error, refetch: fetchProjections };
 }

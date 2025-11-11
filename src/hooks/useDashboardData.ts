@@ -12,9 +12,14 @@ import {
   Period,
 } from '../lib/types';
 
+console.log('🔥🔥🔥 useDashboardData.ts FILE LOADED 🔥🔥🔥');
+
 export function useDashboardData() {
+  console.log('🎯 useDashboardData HOOK CALLED');
+  
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [justUpdated, setJustUpdated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [dailySpendable, setDailySpendable] = useState<DailySpendable | null>(null);
@@ -78,6 +83,12 @@ export function useDashboardData() {
         setPeriods([]);
       }
 
+      // Trigger flash animation when data updates from realtime
+      if (isRefresh) {
+        setJustUpdated(true);
+        setTimeout(() => setJustUpdated(false), 600);
+      }
+
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -87,74 +98,166 @@ export function useDashboardData() {
   };
 
   useEffect(() => {
+    console.log('🚀 useDashboardData: useEffect triggered');
+    
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupRealtimeSubscription = async () => {
+      try {
+        console.log('🔍 Getting user for realtime subscription...');
+        // Obtener el usuario actual para filtrar eventos
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error('❌ Error getting user:', userError);
+          return;
+        }
+        
+        if (!user) {
+          console.warn('⚠️ No user found for realtime subscription');
+          return;
+        }
+        
+        console.log('✅ User found:', user.id);
+
+        // Suscribirse a cambios en tiempo real SIN filtro para debugging
+        console.log('🔧 Setting up realtime channels for user:', user.id);
+        channel = supabase
+          .channel('dashboard-changes')
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'transactions'
+            },
+            (payload) => {
+              console.log('🔄 Transaction changed (any user):', payload);
+              // Solo refetch si es del usuario actual
+              const record = payload.new as any;
+              if (record && record.user_id === user.id) {
+                console.log('✅ Transaction belongs to current user, refetching...');
+                fetchData(true);
+              } else {
+                console.log('⚠️ Transaction from different user, ignoring');
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'savings_moves'
+            },
+            (payload) => {
+              console.log('🔄 Savings move changed (any user):', payload);
+              const record = payload.new as any;
+              if (record && record.user_id === user.id) {
+                console.log('✅ Savings move belongs to current user, refetching...');
+                fetchData(true);
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'accounts'
+            },
+            (payload) => {
+              console.log('🔄 Account changed (any user):', payload);
+              const record = payload.new as any;
+              if (record && record.user_id === user.id) {
+                console.log('✅ Account belongs to current user, refetching...');
+                fetchData(true);
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'categories'
+            },
+            (payload) => {
+              console.log('🔄 Category changed (any user):', payload);
+              const record = payload.new as any;
+              if (record && record.user_id === user.id) {
+                console.log('✅ Category belongs to current user, refetching...');
+                fetchData(true);
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'monthly_plan'
+            },
+            (payload) => {
+              console.log('🔄 Monthly plan changed (any user):', payload);
+              const record = payload.new as any;
+              if (record && record.user_id === user.id) {
+                console.log('✅ Monthly plan belongs to current user, refetching...');
+                fetchData(true);
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'periods'
+            },
+            (payload) => {
+              console.log('🔄 Period changed (any user):', payload);
+              const record = payload.new as any;
+              if (record && record.user_id === user.id) {
+                console.log('✅ Period belongs to current user, refetching...');
+                fetchData(true);
+              }
+            }
+          )
+          .subscribe((status) => {
+            console.log('📡 Realtime subscription status:', status);
+            if (status === 'SUBSCRIBED') {
+              console.log('✅ Successfully subscribed to dashboard realtime changes');
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error('❌ Realtime subscription error');
+            } else if (status === 'TIMED_OUT') {
+              console.error('⏱️ Realtime subscription timed out');
+            } else if (status === 'CLOSED') {
+              console.warn('🚪 Realtime subscription closed');
+            }
+          });
+      } catch (err) {
+        console.error('🚫 Error setting up realtime subscription:', err);
+      }
+    };
+
     fetchData();
     const unsubscribeRefresh = subscribeToDashboardRefresh(() => fetchData(true));
-    const intervalId = setInterval(() => fetchData(true), 15000);
-
-    // Suscribirse a cambios en tiempo real
-    const channel = supabase
-      .channel('dashboard-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'transactions' },
-        () => {
-          console.log('Transaction changed, refetching data...');
-          fetchData(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'savings_moves' },
-        () => {
-          console.log('Savings move changed, refetching data...');
-          fetchData(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'accounts' },
-        () => {
-          console.log('Account changed, refetching data...');
-          fetchData(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'categories' },
-        () => {
-          console.log('Category changed, refetching data...');
-          fetchData(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'monthly_plan' },
-        () => {
-          console.log('Monthly plan changed, refetching data...');
-          fetchData(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'periods' },
-        () => {
-          console.log('Period changed, refetching data...');
-          fetchData(true);
-        }
-      )
-      .subscribe();
+    setupRealtimeSubscription();
 
     // Cleanup al desmontar
     return () => {
-      supabase.removeChannel(channel);
+      console.log('🧹 Cleaning up realtime subscription');
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
       unsubscribeRefresh();
-      clearInterval(intervalId);
     };
   }, []);
 
   return {
     loading,
     isRefreshing,
+    justUpdated,
     error,
     dailySpendable,
     monthSummary,
