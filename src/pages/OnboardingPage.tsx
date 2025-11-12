@@ -4,7 +4,7 @@ import { STEP_FLOW } from './onboarding/constants';
 import { WelcomeStep } from './onboarding/steps/WelcomeStep';
 import { AccountsStep } from './onboarding/steps/AccountsStep';
 import { CategoriesStep } from './onboarding/steps/CategoriesStep';
-import { PeriodStep } from './onboarding/steps/PeriodStep';
+// import { PeriodStep } from './onboarding/steps/PeriodStep'; // TODO: Refactorizar para bolsas
 import { useOnboardingData } from './onboarding/hooks/useOnboardingData';
 
 export default function OnboardingPage() {
@@ -48,11 +48,8 @@ export default function OnboardingPage() {
         return;
       }
     } else if (currentStep.id === 'period') {
-      const saved = await createPeriod();
-      if (!saved) {
-        return;
-      }
-      // Redirigir al dashboard después de crear el periodo exitosamente
+      // TODO: Implementar creación de bolsas
+      // Por ahora, simplemente redirigir al dashboard
       navigate('/app');
       return;
     }
@@ -92,15 +89,13 @@ export default function OnboardingPage() {
           />
         );
       case 'period':
+        // TODO: Crear componente PocketStep para reemplazar PeriodStep
         return (
-          <PeriodStep
-            accounts={accounts}
-            periodForm={periodForm}
-            setPeriodForm={setPeriodForm}
-            selectedAccount={selectedAccount}
-            allocatedAmount={allocatedAmount}
-            dailyAmount={dailyAmount}
-          />
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">Configuración de Bolsas</h2>
+            <p className="text-gray-600">Esta sección se actualizará pronto para crear bolsas en lugar de períodos.</p>
+            <p className="text-sm text-gray-500">Por ahora, puedes ir al dashboard y agregar bolsas manualmente.</p>
+          </div>
         );
       default:
         return null;

@@ -1,14 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { subscribeToDashboardRefresh } from '../lib/dashboardEvents';
 import {
   Account,
   Category,
-  Period,
+  ActivePocketSummary,
+  UserMonthlySummary,
 } from '../lib/types';
 
 export function useDashboardData() {
-  
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
@@ -16,7 +15,8 @@ export function useDashboardData() {
   const [userId, setUserId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [periods, setPeriods] = useState<Period[]>([]);
+  const [pockets, setPockets] = useState<ActivePocketSummary[]>([]);
+  const [monthlySummary, setMonthlySummary] = useState<UserMonthlySummary | null>(null);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
@@ -37,25 +37,24 @@ export function useDashboardData() {
       const [
         accountsRes,
         categoriesRes,
-        periodsRes,
+        pocketsRes,
+        summaryRes,
       ] = await Promise.all([
         supabase.from('accounts').select('*').eq('user_id', user.id).order('is_primary', { ascending: false }),
         supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
-        supabase.from('periods').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('active_pockets_summary').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('user_monthly_summary').select('*').eq('user_id', user.id).single(),
       ]);
 
       if (accountsRes.data) setAccounts(accountsRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
-      if (periodsRes.data) {
-        console.log('[Dashboard] Periods updated:', periodsRes.data.map(p => ({
-          name: p.name,
-          spent: p.spent_amount,
-          remaining: p.remaining_amount
-        })));
-        setPeriods(periodsRes.data);
+      if (pocketsRes.data) {
+        console.log('[Dashboard] Pockets updated:', pocketsRes.data.length);
+        setPockets(pocketsRes.data);
       } else {
-        setPeriods([]);
+        setPockets([]);
       }
+      if (summaryRes.data) setMonthlySummary(summaryRes.data);
 
       // Trigger flash animation when data updates from realtime
       if (isRefresh) {
@@ -64,6 +63,7 @@ export function useDashboardData() {
       }
 
     } catch (err: any) {
+      console.error('[Dashboard] Error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -73,15 +73,22 @@ export function useDashboardData() {
 
   useEffect(() => {
     fetchData();
-    
-    // Solo escuchar el evento de refresh global, no crear canales duplicados
-    const unsubscribeRefresh = subscribeToDashboardRefresh(() => {
-      console.log('[Dashboard] Refresh event received');
-      fetchData(true);
-    });
+
+    // Suscribirse a cambios en tiempo real
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pockets' }, () => {
+        console.log('[Dashboard] Pocket changed');
+        fetchData(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'movements' }, () => {
+        console.log('[Dashboard] Movement changed');
+        fetchData(true);
+      })
+      .subscribe();
 
     return () => {
-      unsubscribeRefresh();
+      supabase.removeChannel(channel);
     };
   }, [fetchData]);
 
@@ -92,7 +99,10 @@ export function useDashboardData() {
     error,
     accounts,
     categories,
-    periods,
+    pockets,
+    expensePockets: pockets.filter(p => p.type === 'expense'),
+    savingPockets: pockets.filter(p => p.type === 'saving'),
+    monthlySummary,
     refetch: () => fetchData(true),
   };
 }

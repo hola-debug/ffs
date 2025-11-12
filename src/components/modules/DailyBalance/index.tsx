@@ -1,125 +1,67 @@
-import { Period, DailyProjection } from '../../../lib/types';
-import { useDailyProjection } from '../../../hooks/useDailyProjection';
-import { EyeIcon } from '@heroicons/react/24/outline';
-import AnimatedList from '../../ui/AnimatedList';
+import { UserMonthlySummary } from '../../../lib/types';
 import CountUp from '../../ui/CountUp';
 
 interface DailyBalanceModuleProps {
-  periods: Period[];
-  onRefresh?: () => void;
+  monthlySummary: UserMonthlySummary | null;
 }
 
-export function DailyBalanceModule({ periods, onRefresh }: DailyBalanceModuleProps) {
-  const activePeriod = periods.find(p => p.status === 'active');
-
-  // Calculate days data
-  const today = new Date();
-  const endsAt = activePeriod?.ends_at ? new Date(activePeriod.ends_at) : null;
-  const startsAt = activePeriod?.starts_at ? new Date(activePeriod.starts_at) : today;
-  
-  // Calculate days remaining in period
-  const daysRemaining = endsAt 
-    ? Math.max(0, Math.ceil((endsAt.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
-    : activePeriod?.days || 0;
-
-  // Calculate days passed in period
-  const daysPassed = activePeriod
-    ? Math.max(1, Math.ceil((today.getTime() - startsAt.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-    : 0;
-
-  // Calculate accumulated balance: (daily_amount * days_passed) - spent_amount
-  const dailyAmount = Number(activePeriod?.daily_amount) || 0;
-  const spentAmount = Number(activePeriod?.spent_amount) || 0;
-  const accumulatedBalance = activePeriod
-    ? (dailyAmount * daysPassed) - spentAmount
-    : 0;
-
-  // Calculate total theoretical for the whole period
-  const totalTheoretical = Number(activePeriod?.allocated_amount) || 0;
-  
-  const { projections, loading: projectionsLoading, refetch: refetchProjections } = useDailyProjection(daysRemaining, activePeriod?.id);
-
-  const handleSuccess = () => {
-    if (onRefresh) onRefresh();
-    if (refetchProjections) refetchProjections();
-  };
-
+export function DailyBalanceModule({ monthlySummary }: DailyBalanceModuleProps) {
   return (
-    <div className="bg-black rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-white font-sans relative w-full overflow-x-hidden h-[269px]">
+    <div className="bg-black rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-white font-sans relative w-full overflow-x-hidden min-h-[269px]">
       {/* Header */}
       <div className="flex items-center mb-4 sm:mb-6 justify-center gap-2">
         <h2 className="text-[10px] sm:text-xs uppercase text-[#ffffff] font-regular text-center">
-          {activePeriod ? activePeriod.name.toUpperCase() : 'SALDO DIARIO'}
+          DISPONIBLE
         </h2>
       </div>
 
       {/* Main Amount */}
-      {!activePeriod ? (
+      {!monthlySummary ? (
         <div className="flex flex-col items-center justify-center h-[180px]">
-          <p className="text-xs opacity-70">No hay periodo activo</p>
-          <p className="text-[9px] opacity-50 mt-2">Crea un periodo para ver tu saldo diario</p>
+          <p className="text-xs opacity-70">Cargando...</p>
         </div>
       ) : (
-        <>
-          <div className="mb-4 sm:mb-5">
-            <div className="flex items-baseline justify-between mb-2 sm:mb-3">
-              <div className="flex items-baseline">
-                <span className="text-[19px] font-bold">$</span>
-                <CountUp
-                  from={0}
-                  to={Math.round(accumulatedBalance)}
-                  separator="."
-                  direction="up"
-                  duration={1}
-                  className="text-[39px] font-bold leading-none text-center tracking-tighter"
-                />
-              </div>
-              <EyeIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div className="mb-4 sm:mb-5">
+          <div className="flex items-baseline justify-between mb-2 sm:mb-3">
+            <div className="flex items-baseline">
+              <span className="text-[19px] font-bold">$</span>
+              <CountUp
+                from={0}
+                to={Math.round(monthlySummary.available_balance)}
+                separator="."
+                direction="up"
+                duration={1}
+                className="text-[39px] font-bold leading-none text-center tracking-tighter"
+              />
             </div>
-            
-      
           </div>
-        </>
-      )}
 
-      {/* Projections List */}
-      {activePeriod && (projectionsLoading ? (
-        <div className="text-xs text-[#f2f2f2]"></div>
-      ) : projections.length > 0 ? (
-        <div className="relative">
-        <AnimatedList<DailyProjection>
-          items={projections}
-          onItemSelect={(item, index) => console.log(item, index)}
-          showGradients={true}
-          enableArrowNavigation={true}
-          displayScrollbar={false}
-          className="w-full"
-          maxHeight="120px"
-          gradientColor="#000000"
-          renderItem={(proj, index, isSelected) => {
-            const projDate = new Date(proj.date + 'T00:00:00');
-            const isToday = projDate.toDateString() === new Date().toDateString();
-            const dayNum = projDate.getDate();
-            const monthNum = projDate.getMonth() + 1;
-            return (
-              <div 
-                className={`flex justify-between items-center ${
-                  isToday ? 'border px-2 -mx-2 rounded' : 'py-0'
-                }`}
-                style={isToday ? { borderColor: '#FF0000' } : undefined}
-              >
-                <span className="text-[10px] sm:text-xs tracking-wide font-medium">
-                  {dayNum}/{monthNum} {proj.day_name.substring(0, 3).toUpperCase()}
-                </span>
-                <span className="text-sm sm:text-base font-semibold tabular-nums">
-                  {Math.round(Number(proj.accumulated_balance) || 0).toLocaleString('es-UY', { minimumFractionDigits: 0 })}
-                </span>
-              </div>
-            );
-          }}
-        />
+          {/* Desglose */}
+          <div className="space-y-2 mt-6">
+            <div className="flex justify-between text-sm">
+              <span className="opacity-70">Ingreso mensual</span>
+              <span className="font-semibold">${monthlySummary.monthly_income.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="opacity-70">Gastos fijos</span>
+              <span className="font-semibold text-red-400">-${monthlySummary.fixed_expenses_month.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="opacity-70">Ahorro directo</span>
+              <span className="font-semibold text-blue-400">-${monthlySummary.saving_deposits_month.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="opacity-70">En bolsas</span>
+              <span className="font-semibold text-purple-400">-${monthlySummary.pockets_allocated_month.toLocaleString()}</span>
+            </div>
+            <div className="h-px bg-white/20 my-2"></div>
+            <div className="flex justify-between text-base font-bold">
+              <span>Disponible</span>
+              <span className="text-green-400">${monthlySummary.available_balance.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
-      ) : null)}
+      )}
     </div>
   );
 }

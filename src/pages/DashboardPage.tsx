@@ -2,20 +2,13 @@ import { useDashboardData } from '../hooks/useDashboardData';
 import { 
   DailyBalanceModule, 
   DailyExpensesModule, 
-  SavingsModule, 
-  MonthlyIncomeModule, 
-  DayCounterModule, 
-  RandomExpensesModule,
   AIInputModule,
-  PeriodBalanceModule,
   AccountsBalanceModule,
   FixedExpensesModule
 } from '../components/modules';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import { motion } from 'framer-motion';
-import { useDashboardSync } from '../hooks/useDashboardSync';
 
 // Variantes de animación Tetris (deslizamiento desde abajo)
 const containerVariants = {
@@ -43,9 +36,8 @@ const itemVariants = {
 };
 
 export default function DashboardPage() {
-  const { loading, error, justUpdated, ...data } = useDashboardData();
+  const { loading, error, ...data } = useDashboardData();
   const navigate = useNavigate();
-  useDashboardSync();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -76,31 +68,85 @@ export default function DashboardPage() {
         
         <div className="max-w-4xl mx-auto w-full box-border px-2 sm:px-4 py-2 sm:py-4">
           <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full box-border">
-            <DailyBalanceModule periods={data.periods} onRefresh={data.refetch} />
             
-            <DailyExpensesModule 
-              periods={data.periods}
-              onRefresh={data.refetch}
-            />
+            {/* Módulo de Balance Disponible */}
+            <DailyBalanceModule monthlySummary={data.monthlySummary} />
 
-            {/* Módulo de Período */}
-            <PeriodBalanceModule 
-              periods={data.periods}
-              accounts={data.accounts}
-              onRefresh={data.refetch}
-            />
+            {/* Módulo de Gastos de Hoy */}
+            <DailyExpensesModule onRefresh={data.refetch} />
 
-            {/* Módulo de entrada con IA */}
-            <AIInputModule onRefresh={data.refetch} />
+            {/* Bolsas de Gasto */}
+            <div className="col-span-2 bg-white rounded-lg p-4 shadow">
+              <h3 className="text-lg font-bold mb-3">👛 Bolsas de Gasto</h3>
+              {data.expensePockets.length === 0 ? (
+                <p className="text-gray-500 text-sm">No hay bolsas de gasto activas</p>
+              ) : (
+                <div className="space-y-2">
+                  {data.expensePockets.map((pocket) => (
+                    <div key={pocket.id} className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-bold text-base">{pocket.emoji} {pocket.name}</h4>
+                        <span className="text-sm text-gray-600">
+                          {pocket.days_remaining} días
+                        </span>
+                      </div>
+                      <div className="mt-2 flex justify-between text-sm">
+                        <span>Saldo: <span className="font-semibold">${pocket.current_balance.toLocaleString()}</span></span>
+                        <span>Diario: <span className="font-semibold text-green-600">${pocket.remaining_daily_allowance?.toFixed(0)}</span></span>
+                      </div>
+                      <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
+                          style={{ width: `${(pocket.current_balance / pocket.allocated_amount) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Bolsas de Ahorro */}
+            <div className="col-span-2 bg-white rounded-lg p-4 shadow">
+              <h3 className="text-lg font-bold mb-3">🐷 Bolsas de Ahorro</h3>
+              {data.savingPockets.length === 0 ? (
+                <p className="text-gray-500 text-sm">No hay bolsas de ahorro activas</p>
+              ) : (
+                <div className="space-y-2">
+                  {data.savingPockets.map((pocket) => (
+                    <div key={pocket.id} className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-bold text-base">{pocket.emoji} {pocket.name}</h4>
+                        <span className="text-sm font-bold text-blue-600">
+                          {pocket.progress_percentage}%
+                        </span>
+                      </div>
+                      <div className="mt-2 flex justify-between text-sm">
+                        <span>Ahorrado: <span className="font-semibold">${pocket.current_balance.toLocaleString()}</span></span>
+                        <span>Meta: <span className="font-semibold">${pocket.target_amount?.toLocaleString()}</span></span>
+                      </div>
+                      <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full"
+                          style={{ width: `${pocket.progress_percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <AccountsBalanceModule accounts={data.accounts} />
 
-            {/* Módulo de Gastos Fijos */}
             <FixedExpensesModule 
               accounts={data.accounts}
               categories={data.categories}
               onRefresh={data.refetch}
             />
+
+            {/* Módulo de entrada con IA (texto y voz) */}
+            <AIInputModule onRefresh={data.refetch} />
           </div>
         </div>
       </div>

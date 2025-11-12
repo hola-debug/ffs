@@ -46,21 +46,19 @@ export function FixedExpensesModule({
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
       const { data, error } = await supabase
-        .from('transactions')
+        .from('movements')
         .select(`
           id,
           amount,
           description,
           date,
           category_id,
-          categories!inner (
+          categories (
             name
           )
         `)
         .eq('user_id', user.id)
-        .eq('type', 'expense')
-        .eq('scope', 'outside_period')
-        .eq('is_fixed', true)
+        .eq('type', 'fixed_expense')
         .gte('date', firstDay)
         .lte('date', lastDay)
         .order('date', { ascending: false });
@@ -99,8 +97,8 @@ export function FixedExpensesModule({
         {
           event: '*',
           schema: 'public',
-          table: 'transactions',
-          filter: 'is_fixed=eq.true',
+          table: 'movements',
+          filter: 'type=eq.fixed_expense',
         },
         (payload) => {
           console.log('Fixed expense change detected:', payload);
