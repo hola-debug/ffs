@@ -6,7 +6,9 @@ import {
   AccountsBalanceModule,
   FixedExpensesModule,
   ExpensePocketsModule,
-  SavingPocketsModule
+  SavingPocketsModule,
+  TotalMoneyModule,
+  TotalSavingsModule
 } from '../components/modules';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -80,6 +82,17 @@ export default function DashboardPage() {
 
             {/* Módulo de Gastos de Hoy */}
             <DailyExpensesModule onRefresh={data.refetch} />
+
+            {/* Módulo de Plata Total */}
+            <TotalMoneyModule 
+              accounts={data.accounts} 
+              pockets={[...data.expensePockets, ...data.savingPockets]} 
+            />
+
+            {/* Módulo de Ahorro Total */}
+            <TotalSavingsModule 
+              pockets={[...data.expensePockets, ...data.savingPockets]} 
+            />
 
             {/* Bolsas de Gasto */}
             <ExpensePocketsModule pockets={data.expensePockets} />

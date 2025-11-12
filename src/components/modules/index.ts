@@ -9,3 +9,5 @@ export { AccountsBalanceModule } from './AccountsBalance';
 export { FixedExpensesModule } from './FixedExpenses';
 export { ExpensePocketsModule } from './ExpensePockets';
 export { SavingPocketsModule } from './SavingPockets';
+export { TotalMoneyModule } from './TotalMoney';
+export { TotalSavingsModule } from './TotalSavings';
