@@ -40,24 +40,24 @@ export function DailyBalanceModule({ monthlySummary }: DailyBalanceModuleProps) 
           <div className="space-y-2 mt-6">
             <div className="flex justify-between text-sm">
               <span className="opacity-70">Ingreso mensual</span>
-              <span className="font-semibold">${monthlySummary.monthly_income.toLocaleString()}</span>
+              <span className="font-semibold">${(monthlySummary.monthly_income || 0).toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="opacity-70">Gastos fijos</span>
-              <span className="font-semibold text-red-400">-${monthlySummary.fixed_expenses_month.toLocaleString()}</span>
+              <span className="font-semibold text-red-400">-${(monthlySummary.fixed_expenses_month || 0).toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="opacity-70">Ahorro directo</span>
-              <span className="font-semibold text-blue-400">-${monthlySummary.saving_deposits_month.toLocaleString()}</span>
+              <span className="font-semibold text-blue-400">-${(monthlySummary.saving_deposits_month || 0).toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="opacity-70">En bolsas</span>
-              <span className="font-semibold text-purple-400">-${monthlySummary.pockets_allocated_month.toLocaleString()}</span>
+              <span className="font-semibold text-purple-400">-${(monthlySummary.pockets_allocated_month || 0).toLocaleString()}</span>
             </div>
             <div className="h-px bg-white/20 my-2"></div>
             <div className="flex justify-between text-base font-bold">
               <span>Disponible</span>
-              <span className="text-green-400">${monthlySummary.available_balance.toLocaleString()}</span>
+              <span className="text-green-400">${(monthlySummary.available_balance || 0).toLocaleString()}</span>
             </div>
           </div>
         </div>

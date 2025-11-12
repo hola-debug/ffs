@@ -1,0 +1,575 @@
+{
+  "name": "AI Complete Financial Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "complete-ai-agent",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "webhook-node",
+      "name": "Webhook",
+      "webhookId": "complete-ai-agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "body.type",
+              "value": "={{ $json.body.type }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "body.userId",
+              "value": "={{ $json.body.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "body.message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "audio",
+              "value": "=$binary.audio",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [200, 0],
+      "id": "edit-fields",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "voice",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "voice"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [400, 0],
+      "id": "switch-type",
+      "name": "Switch Type"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "={{ $('Webhook').item.binary.audio }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [600, 100],
+      "id": "transcribe",
+      "name": "Transcribe Audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIALS",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [800, 0],
+      "id": "merge",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Edit Fields').item.json.body.userId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1000, -200],
+      "id": "get-profile",
+      "name": "Get Profile"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "accounts",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Edit Fields').item.json.body.userId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1200, -200],
+      "id": "get-accounts",
+      "name": "Get Accounts"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "categories",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Edit Fields').item.json.body.userId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1400, -200],
+      "id": "get-categories",
+      "name": "Get Categories"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "pockets",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Edit Fields').item.json.body.userId }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "active"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1600, -200],
+      "id": "get-pockets",
+      "name": "Get Active Pockets"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "user_monthly_summary",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Edit Fields').item.json.body.userId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1800, -200],
+      "id": "get-summary",
+      "name": "Get Monthly Summary"
+    },
+    {
+      "parameters": {
+        "jsCode": "const profile = $('Get Profile').all()[0]?.json || {};\nconst accounts = $('Get Accounts').all().map(i => i.json);\nconst categories = $('Get Categories').all().map(i => i.json);\nconst pockets = $('Get Active Pockets').all().map(i => i.json);\nconst summary = $('Get Monthly Summary').all()[0]?.json || {};\nconst message = $('Merge').first().json.text || $('Edit Fields').first().json.body.message;\n\nreturn {\n  json: {\n    user_id: profile.id,\n    message: message,\n    profile: profile,\n    accounts: accounts.map(a => ({\n      id: a.id,\n      name: a.name,\n      type: a.type,\n      balance: a.balance,\n      currency: a.currency,\n      is_primary: a.is_primary\n    })),\n    categories: categories.map(c => ({\n      id: c.id,\n      name: c.name,\n      type: c.type,\n      icon: c.icon,\n      color: c.color\n    })),\n    pockets: pockets.map(p => ({\n      id: p.id,\n      name: p.name,\n      type: p.type,\n      emoji: p.emoji,\n      allocated_amount: p.allocated_amount,\n      current_balance: p.current_balance,\n      currency: p.currency,\n      starts_at: p.starts_at,\n      ends_at: p.ends_at,\n      days_duration: p.days_duration,\n      daily_allowance: p.daily_allowance,\n      target_amount: p.target_amount,\n      status: p.status\n    })),\n    summary: {\n      total_accounts_balance: summary.total_accounts_balance || 0,\n      available_balance: summary.available_balance || 0,\n      fixed_expenses_month: summary.fixed_expenses_month || 0,\n      saving_deposits_month: summary.saving_deposits_month || 0,\n      pockets_allocated_month: summary.pockets_allocated_month || 0,\n      pockets_current_balance: summary.pockets_current_balance || 0,\n      currency: profile.currency || 'UYU'\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 0],
+      "id": "build-context",
+      "name": "Build Complete Context"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [2200, -100],
+      "id": "openai-model",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un asistente financiero completo que gestiona TODA la base de datos financiera del usuario.\n\n## 📊 CONTEXTO ACTUAL DEL USUARIO\n\n**user_id:** {{ $json.user_id }}\n**mensaje:** {{ $json.message }}\n**fecha actual:** {{ $now }}\n**moneda base:** {{ $json.profile.currency }}\n\n### Perfil\n{{ JSON.stringify($json.profile) }}\n\n### Cuentas ({{ $json.accounts.length }})\n{{ JSON.stringify($json.accounts) }}\n// [{ id, name, type, balance, currency, is_primary }]\n\n### Categorías ({{ $json.categories.length }})\n{{ JSON.stringify($json.categories) }}\n// [{ id, name, type, icon, color }]\n// tipos: income | fixed_expense | saving | pocket_expense\n\n### Bolsas Activas ({{ $json.pockets.length }})\n{{ JSON.stringify($json.pockets) }}\n// [{ id, name, type, allocated_amount, current_balance, currency, starts_at, ends_at, daily_allowance, target_amount }]\n\n### Resumen Mensual\n{{ JSON.stringify($json.summary) }}\n\n---\n\n## 🎯 CAPACIDADES COMPLETAS\n\nPuedes realizar CUALQUIERA de estas operaciones:\n\n### 1. GESTIÓN DE INGRESOS\n- Agregar ingresos a cuentas\n- Ver ingresos del mes\n- Proyectar ingresos futuros\n\n### 2. GESTIÓN DE CUENTAS\n- Crear nuevas cuentas\n- Actualizar balance de cuentas\n- Transferir dinero entre cuentas\n- Eliminar cuentas\n\n### 3. GESTIÓN DE CATEGORÍAS\n- Crear categorías personalizadas\n- Actualizar categorías existentes\n- Eliminar categorías sin uso\n\n### 4. GESTIÓN DE BOLSAS (POCKETS)\n- Crear bolsas de gasto (type='expense')\n- Crear bolsas de ahorro (type='saving')\n- Asignar dinero a bolsas existentes\n- Actualizar configuración de bolsas\n- Cerrar/cancelar bolsas\n- Ver progreso de bolsas\n\n### 5. GESTIÓN DE GASTOS\n- Registrar gastos fijos (alquiler, servicios)\n- Registrar gastos desde bolsas\n- Registrar ahorros\n- Ver gastos del mes\n\n### 6. CONSULTAS Y ANÁLISIS\n- Ver disponible por moneda\n- Calcular cuánto puedes gastar\n- Proyectar gastos futuros\n- Sugerir ajustes en bolsas\n\n---\n\n## 🔧 HERRAMIENTAS DISPONIBLES\n\nTienes acceso a estas herramientas de Supabase:\n\n1. **create_account** - Crear nueva cuenta\n2. **update_account** - Actualizar cuenta existente\n3. **create_category** - Crear categoría\n4. **update_category** - Actualizar categoría\n5. **create_pocket** - Crear bolsa nueva\n6. **update_pocket** - Actualizar bolsa existente\n7. **create_movement** - Registrar movimiento (income, expense, allocation, etc.)\n8. **update_movement** - Actualizar movimiento\n9. **delete_movement** - Eliminar movimiento\n\n---\n\n## 💡 EJEMPLOS DE INTERPRETACIÓN\n\n### \"agregué 50000 a mi cuenta banco\"\n```json\n{\n  \"action\": \"create_movement\",\n  \"params\": {\n    \"type\": \"income\",\n    \"account_id\": \"<id_cuenta_banco>\",\n    \"amount\": 50000,\n    \"currency\": \"UYU\",\n    \"date\": \"2025-01-12\",\n    \"description\": \"Ingreso a cuenta banco\"\n  },\n  \"explanation\": \"Registré un ingreso de $50,000 en tu cuenta Banco. Tu disponible aumentó.\"\n}\n```\n\n### \"crea una bolsa de comida de 8000 por 15 días\"\n```json\n{\n  \"action\": \"create_pocket\",\n  \"params\": {\n    \"name\": \"Comida\",\n    \"type\": \"expense\",\n    \"emoji\": \"🍔\",\n    \"allocated_amount\": 8000,\n    \"currency\": \"UYU\",\n    \"starts_at\": \"2025-01-12\",\n    \"ends_at\": \"2025-01-27\",\n    \"auto_return_remaining\": true\n  },\n  \"follow_up\": {\n    \"action\": \"create_movement\",\n    \"params\": {\n      \"type\": \"pocket_allocation\",\n      \"pocket_id\": \"<nuevo_pocket_id>\",\n      \"amount\": 8000,\n      \"currency\": \"UYU\",\n      \"description\": \"Asignación inicial a bolsa Comida\"\n    }\n  },\n  \"explanation\": \"Creé una bolsa de Comida con $8,000 por 15 días. Tendrás $533.33 diarios para gastar.\"\n}\n```\n\n### \"gasté 500 en supermercado\"\n```json\n{\n  \"action\": \"create_movement\",\n  \"params\": {\n    \"type\": \"pocket_expense\",\n    \"pocket_id\": \"<id_bolsa_comida>\",\n    \"category_id\": \"<id_categoria_comida>\",\n    \"amount\": 500,\n    \"currency\": \"UYU\",\n    \"description\": \"Compra en supermercado\"\n  },\n  \"explanation\": \"Registré $500 de gasto en supermercado desde tu bolsa de Comida. Te quedan $7,500.\"\n}\n```\n\n### \"pagué el alquiler de 15000\"\n```json\n{\n  \"action\": \"create_movement\",\n  \"params\": {\n    \"type\": \"fixed_expense\",\n    \"category_id\": \"<id_categoria_alquiler>\",\n    \"amount\": 15000,\n    \"currency\": \"UYU\",\n    \"description\": \"Pago de alquiler\"\n  },\n  \"explanation\": \"Registré el pago de alquiler de $15,000. Es un gasto fijo que se resta de tu ingreso disponible.\"\n}\n```\n\n### \"quiero ahorrar 5000 para emergencias\"\n```json\n{\n  \"action\": \"create_movement\",\n  \"params\": {\n    \"type\": \"saving_deposit\",\n    \"category_id\": \"<id_categoria_emergencias>\",\n    \"amount\": 5000,\n    \"currency\": \"UYU\",\n    \"description\": \"Ahorro para emergencias\"\n  },\n  \"explanation\": \"Guardé $5,000 en ahorro de emergencias. Este dinero se separó de tu disponible.\"\n}\n```\n\n### \"agregar 2000 más a la bolsa de comida\"\n```json\n{\n  \"action\": \"create_movement\",\n  \"params\": {\n    \"type\": \"pocket_allocation\",\n    \"pocket_id\": \"<id_bolsa_comida>\",\n    \"amount\": 2000,\n    \"currency\": \"UYU\",\n    \"description\": \"Recarga de bolsa Comida\"\n  },\n  \"explanation\": \"Agregué $2,000 a tu bolsa de Comida. Ahora tienes $9,500 y puedes gastar $633.33 por día.\"\n}\n```\n\n### \"crear cuenta en dólares\"\n```json\n{\n  \"action\": \"create_account\",\n  \"params\": {\n    \"name\": \"Cuenta USD\",\n    \"type\": \"bank\",\n    \"currency\": \"USD\",\n    \"balance\": 0,\n    \"is_primary\": false\n  },\n  \"explanation\": \"Creé una cuenta en USD. Ya puedes agregar ingresos en dólares y crear bolsas en esa moneda.\"\n}\n```\n\n---\n\n## ✅ FORMATO DE RESPUESTA\n\nDevuelve un objeto JSON con esta estructura:\n\n```json\n{\n  \"actions\": [\n    {\n      \"tool\": \"nombre_de_la_herramienta\",\n      \"params\": { /* parámetros */ }\n    }\n  ],\n  \"explanation\": \"Explicación amigable de lo que hiciste\",\n  \"suggestions\": [\"sugerencia 1\", \"sugerencia 2\"] // opcional\n}\n```\n\n---\n\n## 🚨 REGLAS IMPORTANTES\n\n1. **SIEMPRE valida que el user_id esté presente** en todos los inserts\n2. **Para gastos normales, usa `pocket_expense`** y asigna a la bolsa correcta\n3. **Para gastos fijos (alquiler, servicios), usa `fixed_expense`** sin bolsa\n4. **Al crear bolsas, calcula correctamente `ends_at`** basado en la duración\n5. **Si no existe una categoría adecuada**, primero créala y luego úsala\n6. **Si una bolsa no existe**, pregunta si quiere crearla o sugiérela\n7. **Si el usuario pregunta algo**, responde con información del contexto\n8. **Si no entiendes el comando**, pide clarificación\n\n---\n\n## 💬 TONO Y ESTILO\n\n- Sé conversacional y amigable\n- Usa emojis cuando sea apropiado\n- Da feedback claro de lo que hiciste\n- Ofrece sugerencias proactivas\n- Si detectas problemas (ej: gastar más de lo que tiene), avisa\n\nEjemplos de respuestas:\n- ✅ \"Listo! Registré $500 en comida. Te quedan $7,500 en esa bolsa para 14 días más.\"\n- ✅ \"Agregué $50,000 a tu cuenta Banco. Tu disponible ahora es $87,500.\"\n- ✅ \"Creé la bolsa 'Entretenimiento' con $5,000. Tendrás $333 por día para salidas.\"\n- ⚠️ \"Ojo! Intentas gastar $600 pero tu bolsa de Comida solo tiene $500. ¿Quieres recargarla?\"\n\n---\n\nAhora, procesa el mensaje del usuario y ejecuta las acciones necesarias.",
+        "options": {
+          "systemMessage": "Eres el asistente financiero más completo. Puedes gestionar TODO el sistema:\n\n- Agregar ingresos a cualquier cuenta\n- Crear y gestionar bolsas de gasto y ahorro\n- Registrar todo tipo de gastos\n- Crear cuentas en cualquier moneda\n- Crear categorías personalizadas\n- Consultar balances y proyecciones\n- Dar sugerencias inteligentes\n\nSiempre:\n1. Entiende la intención del usuario\n2. Usa las herramientas disponibles\n3. Da feedback claro\n4. Ofrece sugerencias proactivas\n5. Valida que la operación sea posible\n\nNUNCA:\n- Inventes datos que no están en el contexto\n- Hagas operaciones sin validar balances\n- Ignores las preferencias del usuario\n\nDevuelve SOLO JSON válido sin markdown."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [2400, 0],
+      "id": "main-agent",
+      "name": "Financial AI Agent"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crear una nueva cuenta bancaria, billetera o efectivo",
+        "tableId": "accounts",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Build Complete Context').first().json.user_id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', '', 'string') }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "={{ $fromAI('type', 'cash|bank|wallet|crypto|other', 'string') }}"
+            },
+            {
+              "fieldId": "currency",
+              "fieldValue": "={{ $fromAI('currency', 'UYU|USD|EUR|ARS', 'string') }}"
+            },
+            {
+              "fieldId": "balance",
+              "fieldValue": "={{ $fromAI('balance', '0', 'number') }}"
+            },
+            {
+              "fieldId": "is_primary",
+              "fieldValue": "={{ $fromAI('is_primary', 'false', 'boolean') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [2200, 100],
+      "id": "tool-create-account",
+      "name": "Tool: Create Account"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crear una nueva categoría de ingreso, gasto o ahorro",
+        "tableId": "categories",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Build Complete Context').first().json.user_id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', '', 'string') }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "={{ $fromAI('type', 'income|fixed_expense|saving|pocket_expense', 'string') }}"
+            },
+            {
+              "fieldId": "icon",
+              "fieldValue": "={{ $fromAI('icon', '📦', 'string') }}"
+            },
+            {
+              "fieldId": "color",
+              "fieldValue": "={{ $fromAI('color', '#gray', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [2200, 200],
+      "id": "tool-create-category",
+      "name": "Tool: Create Category"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crear una bolsa de gasto o ahorro",
+        "tableId": "pockets",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Build Complete Context').first().json.user_id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', '', 'string') }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "={{ $fromAI('type', 'expense|saving', 'string') }}"
+            },
+            {
+              "fieldId": "emoji",
+              "fieldValue": "={{ $fromAI('emoji', '💰', 'string') }}"
+            },
+            {
+              "fieldId": "allocated_amount",
+              "fieldValue": "={{ $fromAI('allocated_amount', '0', 'number') }}"
+            },
+            {
+              "fieldId": "currency",
+              "fieldValue": "={{ $fromAI('currency', 'UYU', 'string') }}"
+            },
+            {
+              "fieldId": "starts_at",
+              "fieldValue": "={{ $fromAI('starts_at', $now.format('yyyy-MM-dd'), 'string') }}"
+            },
+            {
+              "fieldId": "ends_at",
+              "fieldValue": "={{ $fromAI('ends_at', '', 'string') }}"
+            },
+            {
+              "fieldId": "target_amount",
+              "fieldValue": "={{ $fromAI('target_amount', '', 'number') }}"
+            },
+            {
+              "fieldId": "auto_return_remaining",
+              "fieldValue": "={{ $fromAI('auto_return_remaining', 'true', 'boolean') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [2200, 300],
+      "id": "tool-create-pocket",
+      "name": "Tool: Create Pocket"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Registrar cualquier movimiento: ingreso, gasto fijo, ahorro, asignación a bolsa, gasto desde bolsa",
+        "tableId": "movements",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Build Complete Context').first().json.user_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "={{ $fromAI('type', 'income|fixed_expense|saving_deposit|pocket_allocation|pocket_expense|pocket_return', 'string') }}"
+            },
+            {
+              "fieldId": "account_id",
+              "fieldValue": "={{ $fromAI('account_id', '', 'string') }}"
+            },
+            {
+              "fieldId": "category_id",
+              "fieldValue": "={{ $fromAI('category_id', '', 'string') }}"
+            },
+            {
+              "fieldId": "pocket_id",
+              "fieldValue": "={{ $fromAI('pocket_id', '', 'string') }}"
+            },
+            {
+              "fieldId": "amount",
+              "fieldValue": "={{ $fromAI('amount', '0', 'number') }}"
+            },
+            {
+              "fieldId": "currency",
+              "fieldValue": "={{ $fromAI('currency', 'UYU', 'string') }}"
+            },
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ $fromAI('date', $now.format('yyyy-MM-dd'), 'string') }}"
+            },
+            {
+              "fieldId": "description",
+              "fieldValue": "={{ $fromAI('description', '', 'string') }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ $fromAI('metadata', '{}', 'object') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [2200, 400],
+      "id": "tool-create-movement",
+      "name": "Tool: Create Movement"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Actualizar una bolsa existente (cambiar nombre, monto, fechas, etc)",
+        "operation": "update",
+        "tableId": "pockets",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id",
+              "fieldValue": "={{ $fromAI('pocket_id', '', 'string') }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', '', 'string') }}"
+            },
+            {
+              "fieldId": "allocated_amount",
+              "fieldValue": "={{ $fromAI('allocated_amount', '', 'number') }}"
+            },
+            {
+              "fieldId": "ends_at",
+              "fieldValue": "={{ $fromAI('ends_at', '', 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $fromAI('status', 'active|finished|cancelled', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [2200, 500],
+      "id": "tool-update-pocket",
+      "name": "Tool: Update Pocket"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.output) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2600, 0],
+      "id": "respond",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Edit Fields", "type": "main", "index": 0 }]]
+    },
+    "Edit Fields": {
+      "main": [[{ "node": "Switch Type", "type": "main", "index": 0 }]]
+    },
+    "Switch Type": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 0 }],
+        [{ "node": "Transcribe Audio", "type": "main", "index": 0 }]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [[{ "node": "Merge", "type": "main", "index": 1 }]]
+    },
+    "Merge": {
+      "main": [[{ "node": "Get Profile", "type": "main", "index": 0 }]]
+    },
+    "Get Profile": {
+      "main": [[{ "node": "Get Accounts", "type": "main", "index": 0 }]]
+    },
+    "Get Accounts": {
+      "main": [[{ "node": "Get Categories", "type": "main", "index": 0 }]]
+    },
+    "Get Categories": {
+      "main": [[{ "node": "Get Active Pockets", "type": "main", "index": 0 }]]
+    },
+    "Get Active Pockets": {
+      "main": [[{ "node": "Get Monthly Summary", "type": "main", "index": 0 }]]
+    },
+    "Get Monthly Summary": {
+      "main": [[{ "node": "Build Complete Context", "type": "main", "index": 0 }]]
+    },
+    "Build Complete Context": {
+      "main": [[{ "node": "Financial AI Agent", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "Financial AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Tool: Create Account": {
+      "ai_tool": [[{ "node": "Financial AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Tool: Create Category": {
+      "ai_tool": [[{ "node": "Financial AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Tool: Create Pocket": {
+      "ai_tool": [[{ "node": "Financial AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Tool: Create Movement": {
+      "ai_tool": [[{ "node": "Financial AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Tool: Update Pocket": {
+      "ai_tool": [[{ "node": "Financial AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Financial AI Agent": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
+  }
+}

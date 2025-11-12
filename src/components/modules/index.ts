@@ -7,3 +7,5 @@ export { DailyExpensesModule } from './DailyExpenses';
 export { AIInputModule } from './AIInput';
 export { AccountsBalanceModule } from './AccountsBalance';
 export { FixedExpensesModule } from './FixedExpenses';
+export { ExpensePocketsModule } from './ExpensePockets';
+export { SavingPocketsModule } from './SavingPockets';
