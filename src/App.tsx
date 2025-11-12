@@ -4,6 +4,7 @@ import { useSupabaseUser } from './hooks/useSupabaseUser';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import OnboardingPage from './pages/OnboardingPage';
+import TransactionsPage from './pages/TransactionsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useSupabaseUser();
@@ -38,6 +39,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <OnboardingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/transactions"
+            element={
+              <ProtectedRoute>
+                <TransactionsPage />
               </ProtectedRoute>
             }
           />

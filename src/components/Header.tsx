@@ -3,6 +3,7 @@ import logoSvg from '../assets/logo.svg';
 
 const menuItems = [
   { label: 'Dashboard', ariaLabel: 'Go to dashboard', link: '/' },
+  { label: 'Planilla de gastos', ariaLabel: 'Go to daily expenses sheet', link: '/transactions' },
   { label: 'Transacciones', ariaLabel: 'View transactions', link: '/transactions' },
   { label: 'Ahorros', ariaLabel: 'View savings', link: '/savings' },
   { label: 'Configuración', ariaLabel: 'Settings', link: '/settings' }

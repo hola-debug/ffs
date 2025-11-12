@@ -11,3 +11,4 @@ export { RandomExpensesModule } from './RandomExpenses';
 export { AIInputModule } from './AIInput';
 export { PeriodBalanceModule } from './PeriodBalance';
 export { AccountsBalanceModule } from './AccountsBalance';
+export { FixedExpensesModule } from './FixedExpenses';

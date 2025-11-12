@@ -8,7 +8,8 @@ import {
   RandomExpensesModule,
   AIInputModule,
   PeriodBalanceModule,
-  AccountsBalanceModule
+  AccountsBalanceModule,
+  FixedExpensesModule
 } from '../components/modules';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -78,9 +79,6 @@ export default function DashboardPage() {
             <DailyBalanceModule periods={data.periods} onRefresh={data.refetch} />
             
             <DailyExpensesModule 
-              data={null} 
-              accounts={data.accounts}
-              categories={data.categories}
               periods={data.periods}
               onRefresh={data.refetch}
             />
@@ -96,6 +94,13 @@ export default function DashboardPage() {
             <AIInputModule onRefresh={data.refetch} />
 
             <AccountsBalanceModule accounts={data.accounts} />
+
+            {/* Módulo de Gastos Fijos */}
+            <FixedExpensesModule 
+              accounts={data.accounts}
+              categories={data.categories}
+              onRefresh={data.refetch}
+            />
           </div>
         </div>
       </div>
