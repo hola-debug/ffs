@@ -40,7 +40,7 @@ export function DailyBalanceModule({ monthlySummary }: DailyBalanceModuleProps) 
           <div className="space-y-2 mt-6">
             <div className="flex justify-between text-sm">
               <span className="opacity-70">Ingreso mensual</span>
-              <span className="font-semibold">${(monthlySummary.monthly_income || 0).toLocaleString()}</span>
+              <span className="font-semibold">${(monthlySummary.income_month || 0).toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="opacity-70">Gastos fijos</span>
@@ -52,7 +52,7 @@ export function DailyBalanceModule({ monthlySummary }: DailyBalanceModuleProps) 
             </div>
             <div className="flex justify-between text-sm">
               <span className="opacity-70">En bolsas</span>
-              <span className="font-semibold text-purple-400">-${(monthlySummary.pockets_allocated_month || 0).toLocaleString()}</span>
+              <span className="font-semibold text-purple-400">${(parseFloat(monthlySummary.pockets_current_balance?.toString() || '0') || 0).toLocaleString()}</span>
             </div>
             <div className="h-px bg-white/20 my-2"></div>
             <div className="flex justify-between text-base font-bold">

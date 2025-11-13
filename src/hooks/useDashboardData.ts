@@ -54,7 +54,10 @@ export function useDashboardData() {
       } else {
         setPockets([]);
       }
-      if (summaryRes.data) setMonthlySummary(summaryRes.data);
+      if (summaryRes.data) {
+        console.log('[Dashboard] Monthly Summary:', summaryRes.data);
+        setMonthlySummary(summaryRes.data);
+      }
 
       // Trigger flash animation when data updates from realtime
       if (isRefresh) {

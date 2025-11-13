@@ -28,13 +28,13 @@ export function DailyExpensesModule({ onRefresh }: DailyExpensesModuleProps) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Get today's pocket expenses
+        // Get today's expenses (all expenses except income, fixed_expense, saving_deposit, pocket_allocation, pocket_return)
         const { data: movements, error } = await supabase
           .from('movements')
           .select(`
             amount,
             pocket_id,
-            pockets!inner(name)
+            pockets(name)
           `)
           .eq('user_id', user.id)
           .eq('type', 'pocket_expense')
@@ -48,11 +48,11 @@ export function DailyExpensesModule({ onRefresh }: DailyExpensesModuleProps) {
 
         // Group by pocket
         const grouped = movements?.reduce((acc: Record<string, ExpenseByPocket>, m) => {
-          const pocketId = m.pocket_id!;
+          const pocketId = m.pocket_id || 'sin_bolsa';
           if (!acc[pocketId]) {
             acc[pocketId] = {
               pocket_id: pocketId,
-              pocket_name: (m.pockets as any)?.name || 'Sin nombre',
+              pocket_name: (m.pockets as any)?.name || 'Sin bolsa',
               total: 0
             };
           }

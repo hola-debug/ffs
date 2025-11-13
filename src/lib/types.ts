@@ -135,12 +135,31 @@ export interface ActivePocketSummary extends Pocket {
 
 export interface UserMonthlySummary {
   user_id: string;
-  monthly_income: number;
-  currency: string;
+  default_currency: string;
+  
+  // Saldo y origen
+  total_in_accounts: number;
+  income_month: number;
+  surplus_from_previous_month: number;
+  
+  // Gastos y asignaciones del mes
   fixed_expenses_month: number;
   saving_deposits_month: number;
   pockets_allocated_month: number;
+  
+  // Bolsas activas (separadas por tipo)
+  expense_pockets_balance: number;      // Solo bolsas de GASTO
+  saving_pockets_balance: number;       // Solo bolsas de AHORRO
+  pockets_current_balance: number;      // TODAS las bolsas (para referencia)
+  
+  // Disponible (cuentas - solo bolsas de GASTO)
   available_balance: number;
+  
+  // Históricos
+  total_income_all_time: number;
+  total_fixed_expenses_all_time: number;
+  total_pockets_allocated_all_time: number;
+  total_pocket_expenses_all_time: number;
 }
 
 // ============================================
