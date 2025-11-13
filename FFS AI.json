@@ -36,10 +36,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -960,
-        160
+        -1520,
+        -176
       ],
-      "id": "a52d78f3-48e8-4207-9b3f-29d2983f9290",
+      "id": "35d7eef8-34e5-49e7-9c3d-deabaf41b86d",
       "name": "Edit Fields"
     },
     {
@@ -81,10 +81,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -768,
-        160
+        -1328,
+        -176
       ],
-      "id": "d4fafceb-5f17-4d86-81c3-ee65df951a54",
+      "id": "a467f26b-28a2-4a2a-a5a8-63e366d39f9f",
       "name": "Switch Type"
     },
     {
@@ -97,10 +97,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
       "position": [
-        -560,
-        256
+        -1120,
+        -80
       ],
-      "id": "469a492a-ebea-4c8f-b9e2-88b9ebcf5500",
+      "id": "5d0f6311-c4fe-445d-be5f-3ea73c0ab011",
       "name": "Transcribe Audio",
       "credentials": {
         "openAiApi": {
@@ -114,10 +114,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        -368,
-        160
+        -928,
+        -176
       ],
-      "id": "0036bf37-630d-43dc-b65f-d4218a4a1d50",
+      "id": "859e4049-4ea8-4d53-9222-ae8a7eb22fcb",
       "name": "Merge"
     },
     {
@@ -138,17 +138,20 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -160,
-        -32
+        -720,
+        -336
       ],
-      "id": "ad5432e4-2dee-438b-a6dc-74e5a20da60b",
+      "id": "09947ee0-a125-4620-8442-4baa0e1eb9af",
       "name": "Get Profile",
+      "executeOnce": true,
+      "alwaysOutputData": true,
       "credentials": {
         "supabaseApi": {
           "id": "DTm1mUTSfKIqIIwV",
           "name": "Supabase FFS"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -168,12 +171,13 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        32,
-        -32
+        -336,
+        -320
       ],
-      "id": "724a7be2-b479-4b5a-a88f-006275f2f1a7",
+      "id": "a07f2162-ade1-462f-b380-74047491e07d",
       "name": "Get Accounts",
       "alwaysOutputData": true,
+      "executeOnce": true,
       "credentials": {
         "supabaseApi": {
           "id": "DTm1mUTSfKIqIIwV",
@@ -200,12 +204,13 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        240,
-        -32
+        -128,
+        -320
       ],
-      "id": "4b666ebd-7b57-4d69-8f7f-51d58c6a93f6",
+      "id": "ef6816da-f463-48c0-8e1e-9b2835b2c8ec",
       "name": "Get Categories",
       "alwaysOutputData": true,
+      "executeOnce": true,
       "credentials": {
         "supabaseApi": {
           "id": "DTm1mUTSfKIqIIwV",
@@ -237,12 +242,13 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        432,
-        -32
+        -544,
+        -336
       ],
-      "id": "643fd821-af25-4cf7-8802-15f9b03d519a",
+      "id": "8a477844-e580-434e-b555-6ca7e5042d09",
       "name": "Get Active Pockets",
       "alwaysOutputData": true,
+      "executeOnce": true,
       "credentials": {
         "supabaseApi": {
           "id": "DTm1mUTSfKIqIIwV",
@@ -253,47 +259,15 @@
     },
     {
       "parameters": {
-        "operation": "getAll",
-        "tableId": "user_monthly_summary",
-        "limit": 1,
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "user_id",
-              "condition": "eq",
-              "keyValue": "={{ $('Edit Fields').item.json.body.userId }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        640,
-        -32
-      ],
-      "id": "52242b12-6cd6-4e6e-a7e8-0484d8626d55",
-      "name": "Get Monthly Summary",
-      "alwaysOutputData": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "DTm1mUTSfKIqIIwV",
-          "name": "Supabase FFS"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "const profile = $('Get Profile').all()[0]?.json || {};\nconst accounts = $('Get Accounts').all().map(i => i.json);\nconst categories = $('Get Categories').all().map(i => i.json);\nconst pockets = $('Get Active Pockets').all().map(i => i.json);\nconst summary = $('Get Monthly Summary').all()[0]?.json || {};\nconst message = $('Merge').first().json.text || $('Edit Fields').first().json.body.message;\n\nreturn {\n  json: {\n    user_id: profile.id,\n    message: message,\n    profile: profile,\n    accounts: accounts.map(a => ({\n      id: a.id,\n      name: a.name,\n      type: a.type,\n      balance: a.balance,\n      currency: a.currency,\n      is_primary: a.is_primary\n    })),\n    categories: categories.map(c => ({\n      id: c.id,\n      name: c.name,\n      type: c.type,\n      icon: c.icon,\n      color: c.color\n    })),\n    pockets: pockets.map(p => ({\n      id: p.id,\n      name: p.name,\n      type: p.type,\n      emoji: p.emoji,\n      allocated_amount: p.allocated_amount,\n      current_balance: p.current_balance,\n      currency: p.currency,\n      starts_at: p.starts_at,\n      ends_at: p.ends_at,\n      days_duration: p.days_duration,\n      daily_allowance: p.daily_allowance,\n      target_amount: p.target_amount,\n      status: p.status\n    })),\n    summary: {\n      total_accounts_balance: summary.total_accounts_balance || 0,\n      available_balance: summary.available_balance || 0,\n      fixed_expenses_month: summary.fixed_expenses_month || 0,\n      saving_deposits_month: summary.saving_deposits_month || 0,\n      pockets_allocated_month: summary.pockets_allocated_month || 0,\n      pockets_current_balance: summary.pockets_current_balance || 0,\n      currency: profile.currency || 'UYU'\n    }\n  }\n};"
+        "jsCode": "const profile = $('Get Profile').all()[0]?.json || {};\nconst accounts = $('Get Accounts').all().map(i => i.json);\nconst categories = $('Get Categories').all().map(i => i.json);\nconst pockets = $('Get Active Pockets').all().map(i => i.json);\n\n// 👉 resumen crudo del nodo Get Monthly Summary\nconst summaryRaw = $('Get Monthly Summary').all()[0]?.json || {};\n\n// Intentamos sacar el mensaje desde Merge o Edit Fields\nconst mergeNode = $('Merge').first();\nconst editNode = $('Edit Fields').first();\nconst message =\n  mergeNode?.json?.text ||\n  editNode?.json?.body?.message ||\n  '';\n\nreturn {\n  json: {\n    user_id: profile.id,\n    message,\n    profile,\n    accounts: accounts.map(a => ({\n      id: a.id,\n      name: a.name,\n      type: a.type,\n      balance: a.balance,\n      currency: a.currency,\n      is_primary: a.is_primary\n    })),\n    categories: categories.map(c => ({\n      id: c.id,\n      name: c.name,\n      type: c.type,\n      icon: c.icon,\n      color: c.color\n    })),\n    pockets: pockets.map(p => ({\n      id: p.id,\n      name: p.name,\n      type: p.type,\n      emoji: p.emoji,\n      allocated_amount: p.allocated_amount,\n      current_balance: p.current_balance,\n      currency: p.currency,\n      starts_at: p.starts_at,\n      ends_at: p.ends_at,\n      days_duration: p.days_duration,\n      daily_allowance: p.daily_allowance,\n      target_amount: p.target_amount,\n      status: p.status\n    })),\n    summary: {\n      // ✅ trae TODO lo que devuelve Get Monthly Summary\n      ...summaryRaw,\n\n      // ✅ alias cómodos / de compatibilidad:\n      currency: summaryRaw.default_currency || profile.currency || 'UYU',\n      // si en algún lado usabas total_accounts_balance, lo mapeamos al campo real\n      total_accounts_balance: summaryRaw.total_in_accounts ?? summaryRaw.total_accounts_balance ?? 0\n    }\n  }\n};\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        848,
-        160
+        288,
+        -176
       ],
-      "id": "73c1695d-6a0e-4b67-b38a-62281d997f01",
+      "id": "7ec142b4-db98-4ebd-b1ae-9b4b726e8005",
       "name": "Build Complete Context",
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -310,10 +284,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        1040,
-        64
+        480,
+        -272
       ],
-      "id": "bcf501cd-b358-480b-a19c-bdd7a3f439f4",
+      "id": "6c5eefac-4413-4da0-ba10-8b6b564d7146",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -327,17 +301,18 @@
         "promptType": "define",
         "text": "=Eres un asistente financiero inteligente que gestiona la base de datos financiera del usuario.\n\n## CONTEXTO ACTUAL\n\n**user_id:** `{{ $json.user_id }}`  \n**mensaje:** `{{ $json.message }}`  \n**fecha:** `{{ $now }}`  \n**moneda base:** `{{ $json.profile.currency }}`\n\n**Perfil:** `{{ JSON.stringify($json.profile) }}`  \n**Cuentas ({{ $json.accounts.length }}):** `{{ JSON.stringify($json.accounts) }}`  \n**Categorías ({{ $json.categories.length }}):** `{{ JSON.stringify($json.categories) }}`  \n**Bolsas ({{ $json.pockets.length }}):** `{{ JSON.stringify($json.pockets) }}`  \n**Resumen:** `{{ JSON.stringify($json.summary) }}`\n\n---\n\n## PRINCIPIOS DE INTERPRETACIÓN\n\n### 1. ENTENDER EL CONTEXTO FINANCIERO\n\nEl resumen (`summary`) contiene:\n- `available_balance` = Dinero disponible REAL ahora\n- `total_accounts_balance` = Suma de balances de cuentas\n- `fixed_expenses_month` = Gastos fijos del mes\n- `pockets_current_balance` = Dinero en bolsas activas\n\n**Cuando el usuario dice:**\n- \"mi ingreso total\" / \"disponible\" / \"lo que tengo\" → `available_balance`\n- \"balance de cuenta X\" → Busca cuenta específica\n- \"cuánto gasté\" → `fixed_expenses_month` + movimientos del mes\n- \"cuánto hay en bolsas\" → `pockets_current_balance`\n\n### 2. CÁLCULOS Y PORCENTAJES\n\nSi menciona **porcentajes**:\n1. Identifica la BASE (¿de qué número?)\n2. Calcula el monto exacto\n3. Úsalo en la operación\n\n**Ejemplos:**\n- \"20% de mi disponible\" → `available_balance * 0.20`\n- \"la mitad de mi cuenta banco\" → `account.balance / 2`\n\n### 3. INFERIR INFORMACIÓN FALTANTE\n\n**Tipo de bolsa:**\n- \"gastos\", \"comida\", \"transporte\" → `type: \"expense\"`\n- \"ahorro\", \"meta\", \"guardar\" → `type: \"saving\"`\n\n**Nombre:** Extrae del contexto o usa uno genérico relevante\n\n**Moneda:** Si no se especifica, usa `profile.currency`\n\n**Fechas:** `starts_at` = hoy, `ends_at` = starts_at + duración\n\n**Emoji:** Comida, Transporte, Ahorro, Servicios (elige apropiado)\n\n**Color:** #ef4444 gastos fijos, #3b82f6 variables, #10b981 ahorro, #8b5cf6 ingresos\n\n---\n\n## HERRAMIENTAS\n\n1. **create_account** - Crear cuenta\n2. **create_category** - Crear categoría  \n3. **create_pocket** - Crear bolsa\n4. **update_pocket** - Actualizar bolsa\n5. **create_movement** - Registrar movimiento\n6. **update_movement** - Actualizar movimiento\n7. **delete_movement** - Eliminar movimiento\n\n---\n\n## DEPENDENCIAS\n\n**ANTES de crear un movimiento, VALIDA y CREA sus dependencias:**\n\n- `income`: Requiere `account_id` (crear si no existe)\n- `pocket_expense`: Requiere `pocket_id` (PREGUNTAR si no existe) y opcionalmente `category_id` (crear si no existe)\n- `fixed_expense`: Requiere `category_id` (crear si no existe, type='fixed_expense')\n- `saving_deposit`: Requiere `category_id` (crear si no existe, type='saving')\n- `pocket_allocation`: Requiere `pocket_id` (crear primero si no existe)\n\n**REGLA:** Si el usuario habla como si existiera, créalo automáticamente (excepto bolsas que requieren más datos).\n\n---\n\n## PROCESO\n\n1. **INTERPRETAR:** ¿Qué quiere hacer?\n2. **IDENTIFICAR:** ¿Qué datos menciona/puedo inferir/calcular?\n3. **VALIDAR:** ¿Qué dependencias necesito? ¿Existen?\n4. **EJECUTAR:** Crea dependencias → movimientos → actualiza\n5. **RESPONDER:** Explica claramente en texto plano\n\n---\n\n## FORMATO DE RESPUESTA\n\nResponde ÚNICAMENTE en texto plano, sin JSON, sin markdown, sin bloques de código.\n\n**Estructura:**\n```\n[UNA SOLA FRASE clara y directa de lo que hiciste]\n```\n\n**Ejemplos:**\n```\nAgregué 20000 UYU a Santander. Balance: 20000 UYU.\n```\n```\nCreé bolsa \"Gastos Diarios\" con 5000 UYU por 31 días.\n```\n```\nGasté 1500 UYU en comida. Quedan 3500 UYU en la bolsa.\n```\n\n**MÁXIMA BREVEDAD - NO incluyas:**\n- Bloques de código (\\`\\`\\`)\n- JSON visible al usuario\n- Explicaciones técnicas\n- Datos internos de las herramientas\n- Emojis\n- Sugerencias (el frontend las manejará)\n- Múltiples frases\n- Información redundante\n\n**SÍ incluye (en UNA sola frase):**\n- Acción realizada\n- Monto relevante\n- Balance resultante (si aplica)\n\n---\n\n## REGLAS\n\n1. **SIEMPRE incluye `user_id`** en inserts\n2. **INTERPRETA lenguaje natural** - No esperes comandos exactos\n3. **CALCULA porcentajes** cuando los mencione\n4. **USA `available_balance`** para \"mi dinero\", \"disponible\"\n5. **CREA automáticamente** cuentas y categorías mencionadas\n6. **PREGUNTA solo datos críticos** (duración de bolsa, tipo)\n7. **INFIERE** nombres, emojis, colores, tipos\n8. **EJECUTA en orden** - Dependencias primero\n9. **RESPONDE en texto plano** - Sin JSON ni markdown\n10. **SÉ ULTRA CONCISO** - UNA SOLA FRASE, máximo 15 palabras\n11. **NO uses emojis** en las respuestas\n12. **NO incluyas sugerencias** - Solo la acción y resultado\n\n---\n\nProcesa el mensaje del usuario y responde en texto plano siguiendo el formato indicado.\n",
         "options": {
-          "systemMessage": "Eres un asistente financiero inteligente con capacidad de razonamiento avanzado.\n\n## PRINCIPIOS CORE:\n\n1. **INTERPRETA lenguaje natural** - No esperes comandos exactos\n2. **CALCULA automáticamente** - Porcentajes, proporciones, fechas\n3. **USA `available_balance`** cuando el usuario dice \"mi dinero/disponible/ingreso total\"\n4. **CREA dependencias automáticamente** - Cuentas y categorías mencionadas\n5. **INFIERE inteligentemente** - Nombres, tipos, emojis, colores, fechas\n\n## CREACIÓN AUTOMÁTICA:\n\n✅ **SÍ crear sin preguntar:**\n- Cuentas mencionadas: \"agregué X a PayPal\" → Crear cuenta\n- Categorías: \"pagué Netflix\" → Crear categoría\n- Datos inferibles: tipo, emoji, color, moneda\n\n❌ **PREGUNTAR si falta:**\n- Duración de bolsas\n- Tipo de bolsa (¿gasto o ahorro?)\n- Montos cuando no están claros\n\n## PROCESO MENTAL:\n\n1. Interpretar intención del usuario\n2. Identificar/calcular datos necesarios\n3. Validar/crear dependencias\n4. Ejecutar en orden correcto\n5. Responder con feedback útil\n\n**SIEMPRE:**\n- Incluye `user_id` en inserts\n- Ejecuta: dependencias → movimientos\n- Explica cálculos realizados\n- Da feedback sobre balances\n\n**NUNCA:**\n- Inventes datos del contexto\n- Hagas operaciones sin validar\n- Crees movimientos sin dependencias\n\nDevuelve SOLO JSON válido sin markdown.\n"
+          "systemMessage": "=Eres un asistente financiero con acceso a herramientas para modificar la base de datos.\\n\\n## REGLA CRITICA: SIEMPRE EJECUTAR HERRAMIENTAS\\n\\nCuando el usuario solicite una operacion (agregar, gastar, crear, registrar, etc), DEBES ejecutar las herramientas correspondientes. NO respondas solo con texto explicativo.\\n\\n## FLUJO OBLIGATORIO:\\n\\n1. Interpretar que quiere hacer el usuario\\n2. Identificar datos del mensaje y del contexto\\n3. Usar Calculator si hay operaciones aritmeticas\\n4. Crear dependencias necesarias (cuentas, categorias)\\n5. EJECUTAR la herramienta principal (create_movement, create_pocket, etc)\\n6. SOLO DESPUES de ejecutar, responder con el resultado\\n\\n## CREACION AUTOMATICA:\\n\\n**SI crear automaticamente:**\\n- Categorias mencionadas: \\\"gaste en supermercado\\\" -> Crear categoria Supermercado (type: fixed_expense)\\n- Cuentas mencionadas: \\\"agregue a PayPal\\\" -> Crear cuenta PayPal\\n\\n**Preguntar si falta:**\\n- Duracion de bolsas\\n- Tipo ambiguo de bolsa\\n- Montos no especificados\\n\\n## INFERENCIA DE DATOS:\\n\\n**Moneda:** Usar profile.currency si no se especifica\\n**Fecha:** Usar fecha actual si no se especifica\\n**## TIPOS DE MOVIMIENTO:\\n\\n- \\\"gaste/compre/pague\\\" sin bolsa -> type: fixed_expense (requiere category_id)\\n- \\\"gaste\\\" con bolsa existente -> type: pocket_expense (requiere pocket_id y category_id opcional)\\n- \\\"ingreso/cobre/recibi\\\" -> type: income (requiere account_id)\\n- \\\"ahorre/guarde\\\" -> type: saving_deposit (requiere category_id)\\n- \\\"asigne a bolsa\\\" -> type: pocket_allocation (requiere pocket_id)\\n\\n## IMPORTANTE:\\n\\n- SIEMPRE incluir user_id en todas las creaciones\\n- Crear dependencias ANTES del movimiento\\n- Ejecutar herramientas en orden correcto\\n- NO responder sin ejecutar herramientas\\n- NO inventar datos que no estan en el contexto\\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3,
       "position": [
-        1344,
-        48
+        784,
+        -288
       ],
-      "id": "0fc892a2-1187-4e05-bf75-36ec5b643538",
-      "name": "Financial AI Agent"
+      "id": "e3f9f653-da98-4553-8fab-ffef9aa7995c",
+      "name": "Financial AI Agent",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -352,7 +327,7 @@
             },
             {
               "fieldId": "name",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
+              "fieldValue": "={{ $fromAI('name', ``, 'string') }}"
             },
             {
               "fieldId": "type",
@@ -361,10 +336,6 @@
             {
               "fieldId": "currency",
               "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', `UYU|USD|EUR|ARS`, 'string') }}"
-            },
-            {
-              "fieldId": "balance",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', `0`, 'string') }}"
             },
             {
               "fieldId": "is_primary",
@@ -376,10 +347,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        1040,
-        256
+        480,
+        -48
       ],
-      "id": "32438f6c-d471-4faf-81d2-1a881146412c",
+      "id": "d4bd3c6c-98f9-42da-b3e8-7a5c661218b6",
       "name": "Tool: Create Account",
       "credentials": {
         "supabaseApi": {
@@ -405,7 +376,7 @@
             },
             {
               "fieldId": "type",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', `income|fixed_expense|saving|pocket_expense`, 'string') }}"
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', `income|fixed_expense|saving|pocket_expense|pocket_saving`, 'string') }}"
             },
             {
               "fieldId": "icon",
@@ -421,10 +392,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        1040,
-        400
+        320,
+        80
       ],
-      "id": "e022c9da-5bc8-4b00-a0d7-2a128b4df2b3",
+      "id": "e9ad63db-4e0f-42be-a213-03417d085fce",
       "name": "Tool: Create Category",
       "credentials": {
         "supabaseApi": {
@@ -446,23 +417,19 @@
             },
             {
               "fieldId": "name",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
+              "fieldValue": "={{ $fromAI('name', ``, 'string') }}"
             },
             {
               "fieldId": "type",
               "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', `expense|saving`, 'string') }}"
             },
             {
-              "fieldId": "emoji",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', `💰`, 'string') }}"
-            },
-            {
               "fieldId": "allocated_amount",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', `0`, 'string') }}"
+              "fieldValue": "={{ $fromAI('allocated_amount', ``, 'number') }}"
             },
             {
               "fieldId": "currency",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', `UYU`, 'string') }}"
+              "fieldValue": "={{ $fromAI('currency', `UYU|USD|EUR|ARS`, 'string') }}"
             },
             {
               "fieldId": "starts_at",
@@ -486,10 +453,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        1040,
-        496
+        480,
+        176
       ],
-      "id": "26811857-6100-4562-abda-36f5d5b9ae85",
+      "id": "40fecd40-fc17-444e-97e2-3b1df7fc3341",
       "name": "Tool: Create Pocket",
       "rewireOutputLogTo": "ai_tool",
       "credentials": {
@@ -512,7 +479,7 @@
             },
             {
               "fieldId": "type",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', `income|fixed_expense|saving_deposit|pocket_allocation|pocket_expense|pocket_return`, 'string') }}"
+              "fieldValue": "={{ $fromAI('type', `income|fixed_expense|saving_deposit|pocket_allocation|pocket_expense|pocket_return`, 'string') }}"
             },
             {
               "fieldId": "account_id",
@@ -552,57 +519,11 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        1168,
-        608
+        576,
+        336
       ],
-      "id": "55c78cb4-8e9f-4695-a554-4ea47ff86e65",
+      "id": "a34f0663-e2b4-49ad-891a-ad9194e1afad",
       "name": "Tool: Create Movement",
-      "credentials": {
-        "supabaseApi": {
-          "id": "DTm1mUTSfKIqIIwV",
-          "name": "Supabase FFS"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "Actualizar una bolsa existente (cambiar nombre, monto, fechas, etc)",
-        "operation": "update",
-        "tableId": "pockets",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "id",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
-            },
-            {
-              "fieldId": "name",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
-            },
-            {
-              "fieldId": "allocated_amount",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
-            },
-            {
-              "fieldId": "ends_at",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
-            },
-            {
-              "fieldId": "status",
-              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', `active|finished|cancelled`, 'string') }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabaseTool",
-      "typeVersion": 1,
-      "position": [
-        1040,
-        704
-      ],
-      "id": "e199e42e-ac41-4d5c-aad8-b632738187fe",
-      "name": "Tool: Update Pocket",
       "credentials": {
         "supabaseApi": {
           "id": "DTm1mUTSfKIqIIwV",
@@ -620,10 +541,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1408,
-        480
+        -1968,
+        144
       ],
-      "id": "491ef862-3caf-4dc2-b7f4-f9da3ce9f634",
+      "id": "f9eb5d26-5b1c-4cf4-a7dd-522eef208c10",
       "name": "Webhook1",
       "webhookId": "9d14f317-70b7-4f91-9272-7794e92a7dda"
     },
@@ -636,10 +557,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1904,
-        48
+        1344,
+        -464
       ],
-      "id": "6557fee4-9650-43b2-bff6-59c7f69be426",
+      "id": "45643c9d-d442-4d84-903e-7058d35c2f5c",
       "name": "Respond to Webhook"
     },
     {
@@ -649,10 +570,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
       "position": [
-        1712,
-        512
+        1152,
+        176
       ],
-      "id": "c454188d-132f-43b0-a545-ba063a2ee28b",
+      "id": "3fdbfbbd-b7be-417d-9890-aaeaeb20ccc6",
       "name": "Think"
     },
     {
@@ -660,56 +581,102 @@
       "type": "@n8n/n8n-nodes-langchain.toolCalculator",
       "typeVersion": 1,
       "position": [
-        1840,
-        512
+        1280,
+        176
       ],
-      "id": "f60e788b-804b-40d3-a739-4ffb2cf9b503",
+      "id": "0b666c07-cf4f-4e82-8534-8b70fc226317",
       "name": "Calculator"
-    }
-  ],
-  "pinData": {
-    "Webhook1": [
-      {
-        "json": {
-          "headers": {
-            "host": "centro-n8n.xqnwvv.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36",
-            "content-length": "248",
-            "accept": "*/*",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.9,es;q=0.8",
-            "content-type": "application/json",
-            "origin": "http://localhost:5173",
-            "priority": "u=1, i",
-            "referer": "http://localhost:5173/",
-            "sec-ch-ua": "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\"",
-            "sec-ch-ua-mobile": "?1",
-            "sec-ch-ua-platform": "\"Android\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "x-forwarded-for": "167.56.135.38",
-            "x-forwarded-host": "centro-n8n.xqnwvv.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "93d58826bca7",
-            "x-real-ip": "167.56.135.38"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "message": "agrega una bolsa de 5000 para ahorrar par un viaje el 1/1/26",
-            "userId": "906597f8-63bc-47b3-bdca-718e9534d572",
-            "type": "text",
-            "sessionId": "session-906597f8-63bc-47b3-bdca-718e9534d572-1762999953066",
-            "timestamp": "2025-11-13T02:12:33.066Z"
-          },
-          "webhookUrl": "https://centro-n8n.xqnwvv.easypanel.host/webhook/9d14f317-70b7-4f91-9272-7794e92a7dda",
-          "executionMode": "production"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Actualizar una bolsa existente (cambiar nombre, monto, fechas, etc)",
+        "operation": "update",
+        "tableId": "pockets",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('id', ``, 'string') }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id",
+              "fieldValue": "={{ $fromAI('id', ``, 'string') }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "allocated_amount",
+              "fieldValue": "={{ $fromAI('allocated_Amount', ``, 'string') }}"
+            },
+            {
+              "fieldId": "ends_at",
+              "fieldValue": "={{ $fromAI('ends_at', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $fromAI('status', `active|finished|cancelled`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        416,
+        400
+      ],
+      "id": "c643c62a-b5fd-4056-9ff3-8bd29b10d3ae",
+      "name": "Tool: Update Pocket",
+      "credentials": {
+        "supabaseApi": {
+          "id": "DTm1mUTSfKIqIIwV",
+          "name": "Supabase FFS"
         }
       }
-    ]
-  },
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "user_monthly_summary",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Edit Fields').item.json.body.userId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -288
+      ],
+      "id": "c3023e04-a2db-4af8-afe8-cbc03d7ee7e8",
+      "name": "Get Monthly Summary",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "DTm1mUTSfKIqIIwV",
+          "name": "Supabase FFS"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
   "connections": {
     "Edit Fields": {
       "main": [
@@ -766,7 +733,7 @@
       "main": [
         [
           {
-            "node": "Get Accounts",
+            "node": "Get Active Pockets",
             "type": "main",
             "index": 0
           }
@@ -788,7 +755,7 @@
       "main": [
         [
           {
-            "node": "Get Active Pockets",
+            "node": "Get Monthly Summary",
             "type": "main",
             "index": 0
           }
@@ -799,18 +766,7 @@
       "main": [
         [
           {
-            "node": "Get Monthly Summary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Monthly Summary": {
-      "main": [
-        [
-          {
-            "node": "Build Complete Context",
+            "node": "Get Accounts",
             "type": "main",
             "index": 0
           }
@@ -894,17 +850,6 @@
         ]
       ]
     },
-    "Tool: Update Pocket": {
-      "ai_tool": [
-        [
-          {
-            "node": "Financial AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Webhook1": {
       "main": [
         [
@@ -937,6 +882,28 @@
           }
         ]
       ]
+    },
+    "Tool: Update Pocket": {
+      "ai_tool": [
+        [
+          {
+            "node": "Financial AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Monthly Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Complete Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -946,7 +913,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "01c297b5-f186-4622-b963-21f5452c9786",
+  "versionId": "8ee06a54-8e07-48dc-b157-e2bdf1329136",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "f9970caab00256920bdb049a5ae2998c33406f33dca00798d3ac5e92c2009533"

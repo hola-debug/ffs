@@ -1,4 +1,5 @@
 import { BaseCard } from '../BaseCard';
+import { useNavigate } from 'react-router-dom';
 
 interface ExpensePocket {
   id: string;
@@ -15,6 +16,7 @@ interface ExpensePocketsModuleProps {
 }
 
 export function ExpensePocketsModule({ pockets }: ExpensePocketsModuleProps) {
+  const navigate = useNavigate();
   if (pockets.length === 0) {
     return (
       <BaseCard className="col-span-2">
@@ -44,7 +46,8 @@ export function ExpensePocketsModule({ pockets }: ExpensePocketsModuleProps) {
         return (
           <BaseCard
             key={pocket.id}
-            className="group relative overflow-hidden hover:shadow-xl transition-all duration-300"
+            className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer"
+            onClick={() => navigate(`/app/pocket/${pocket.id}`)}
           >
             <div className="flex flex-col h-full">
               {/* Emoji y Nombre */}

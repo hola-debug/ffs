@@ -11,3 +11,4 @@ export { ExpensePocketsModule } from './ExpensePockets';
 export { SavingPocketsModule } from './SavingPockets';
 export { TotalMoneyModule } from './TotalMoney';
 export { TotalSavingsModule } from './TotalSavings';
+export { PocketProjectionModule } from './PocketProjection';

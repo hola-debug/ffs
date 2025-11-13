@@ -4,6 +4,7 @@ import { useSupabaseUser } from './hooks/useSupabaseUser';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import OnboardingPage from './pages/OnboardingPage';
+import PocketDetailPage from './pages/PocketDetailPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useSupabaseUser();
@@ -30,6 +31,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/app/pocket/:pocketId"
+            element={
+              <ProtectedRoute>
+                <PocketDetailPage />
               </ProtectedRoute>
             }
           />

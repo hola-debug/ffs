@@ -312,37 +312,101 @@ SELECT
 FROM pockets p
 WHERE p.status = 'active';
 
--- Vista de resumen mensual del usuario
 CREATE OR REPLACE VIEW user_monthly_summary AS
+WITH current_period AS (
+  SELECT 
+    date_trunc('month', CURRENT_DATE)::date AS start_date,
+    (date_trunc('month', CURRENT_DATE) + INTERVAL '1 month')::date AS end_date
+),
+previous_period AS (
+  SELECT 
+    (date_trunc('month', CURRENT_DATE) - INTERVAL '1 month')::date AS start_date,
+    date_trunc('month', CURRENT_DATE)::date AS end_date
+),
+monthly_movements AS (
+  SELECT
+    m.user_id,
+    SUM(m.amount) FILTER (WHERE m.type = 'income')::numeric AS income_month,
+    SUM(m.amount) FILTER (WHERE m.type = 'fixed_expense')::numeric AS fixed_expenses_month,
+    SUM(m.amount) FILTER (WHERE m.type = 'saving_deposit')::numeric AS saving_deposits_month,
+    SUM(m.amount) FILTER (WHERE m.type = 'pocket_allocation')::numeric AS pockets_allocated_month
+  FROM movements m
+  CROSS JOIN current_period cp
+  WHERE m.date >= cp.start_date
+    AND m.date < cp.end_date
+  GROUP BY m.user_id
+),
+previous_month_flows AS (
+  SELECT
+    m.user_id,
+    SUM(m.amount) FILTER (WHERE m.type = 'income')::numeric AS income_prev_month,
+    SUM(m.amount) FILTER (WHERE m.type = 'fixed_expense')::numeric AS fixed_expenses_prev_month,
+    SUM(m.amount) FILTER (WHERE m.type = 'saving_deposit')::numeric AS saving_prev_month,
+    SUM(m.amount) FILTER (WHERE m.type = 'pocket_allocation')::numeric AS allocations_prev_month,
+    SUM(m.amount) FILTER (WHERE m.type = 'pocket_return')::numeric AS pocket_returns_prev_month
+  FROM movements m
+  CROSS JOIN previous_period pp
+  WHERE m.date >= pp.start_date
+    AND m.date < pp.end_date
+  GROUP BY m.user_id
+),
+all_time_movements AS (
+  SELECT
+    m.user_id,
+    SUM(m.amount) FILTER (WHERE m.type = 'income')::numeric AS total_income_all_time,
+    SUM(m.amount) FILTER (WHERE m.type = 'fixed_expense')::numeric AS total_fixed_expenses_all_time,
+    SUM(m.amount) FILTER (WHERE m.type = 'pocket_allocation')::numeric AS total_pockets_allocated_all_time,
+    SUM(m.amount) FILTER (WHERE m.type = 'pocket_expense')::numeric AS total_pocket_expenses_all_time
+  FROM movements m
+  GROUP BY m.user_id
+),
+pocket_balances AS (
+  SELECT
+    p.user_id,
+    SUM(p.current_balance) FILTER (WHERE p.type = 'expense' AND p.status = 'active')::numeric AS expense_pockets_balance,
+    SUM(p.current_balance) FILTER (WHERE p.type = 'saving' AND p.status = 'active')::numeric AS saving_pockets_balance,
+    SUM(p.current_balance) FILTER (WHERE p.status = 'active')::numeric AS pockets_current_balance
+  FROM pockets p
+  WHERE p.status = 'active'
+  GROUP BY p.user_id
+),
+account_balances AS (
+  SELECT
+    a.user_id,
+    SUM(a.balance)::numeric AS total_in_accounts
+  FROM accounts a
+  GROUP BY a.user_id
+)
 SELECT
   pr.id AS user_id,
-  pr.monthly_income,
-  pr.currency,
-  
-  -- Gastos fijos (nivel ingreso)
-  COALESCE(SUM(m.amount) FILTER (WHERE m.type = 'fixed_expense' 
-    AND EXTRACT(MONTH FROM m.date) = EXTRACT(MONTH FROM CURRENT_DATE)
-    AND EXTRACT(YEAR FROM m.date) = EXTRACT(YEAR FROM CURRENT_DATE)), 0) AS fixed_expenses_month,
-  
-  -- Ahorro (nivel ingreso)
-  COALESCE(SUM(m.amount) FILTER (WHERE m.type = 'saving_deposit'
-    AND EXTRACT(MONTH FROM m.date) = EXTRACT(MONTH FROM CURRENT_DATE)
-    AND EXTRACT(YEAR FROM m.date) = EXTRACT(YEAR FROM CURRENT_DATE)), 0) AS saving_deposits_month,
-  
-  -- Total asignado a bolsas
-  COALESCE(SUM(m.amount) FILTER (WHERE m.type = 'pocket_allocation'
-    AND EXTRACT(MONTH FROM m.date) = EXTRACT(MONTH FROM CURRENT_DATE)
-    AND EXTRACT(YEAR FROM m.date) = EXTRACT(YEAR FROM CURRENT_DATE)), 0) AS pockets_allocated_month,
-  
-  -- Dinero disponible sin asignar
-  pr.monthly_income - 
-    COALESCE(SUM(m.amount) FILTER (WHERE m.type IN ('fixed_expense', 'saving_deposit', 'pocket_allocation')
-      AND EXTRACT(MONTH FROM m.date) = EXTRACT(MONTH FROM CURRENT_DATE)
-      AND EXTRACT(YEAR FROM m.date) = EXTRACT(YEAR FROM CURRENT_DATE)), 0) AS available_balance
-
+  pr.currency AS default_currency,
+  COALESCE(ab.total_in_accounts, 0::numeric) AS total_in_accounts,
+  COALESCE(mm.income_month, pr.monthly_income, 0::numeric) AS income_month,
+  COALESCE(
+    COALESCE(pm.income_prev_month, 0::numeric)
+    - COALESCE(pm.fixed_expenses_prev_month, 0::numeric)
+    - COALESCE(pm.saving_prev_month, 0::numeric)
+    - COALESCE(pm.allocations_prev_month, 0::numeric)
+    + COALESCE(pm.pocket_returns_prev_month, 0::numeric),
+    0::numeric
+  ) AS surplus_from_previous_month,
+  COALESCE(mm.fixed_expenses_month, 0::numeric) AS fixed_expenses_month,
+  COALESCE(mm.saving_deposits_month, 0::numeric) AS saving_deposits_month,
+  COALESCE(mm.pockets_allocated_month, 0::numeric) AS pockets_allocated_month,
+  COALESCE(pb.expense_pockets_balance, 0::numeric) AS expense_pockets_balance,
+  COALESCE(pb.saving_pockets_balance, 0::numeric) AS saving_pockets_balance,
+  COALESCE(pb.pockets_current_balance, 0::numeric) AS pockets_current_balance,
+  (COALESCE(ab.total_in_accounts, 0::numeric) - COALESCE(pb.expense_pockets_balance, 0::numeric)) AS available_balance,
+  COALESCE(am.total_income_all_time, 0::numeric) AS total_income_all_time,
+  COALESCE(am.total_fixed_expenses_all_time, 0::numeric) AS total_fixed_expenses_all_time,
+  COALESCE(am.total_pockets_allocated_all_time, 0::numeric) AS total_pockets_allocated_all_time,
+  COALESCE(am.total_pocket_expenses_all_time, 0::numeric) AS total_pocket_expenses_all_time
 FROM profiles pr
-LEFT JOIN movements m ON m.user_id = pr.id
-GROUP BY pr.id, pr.monthly_income, pr.currency;
+LEFT JOIN account_balances ab ON ab.user_id = pr.id
+LEFT JOIN monthly_movements mm ON mm.user_id = pr.id
+LEFT JOIN pocket_balances pb ON pb.user_id = pr.id
+LEFT JOIN all_time_movements am ON am.user_id = pr.id
+LEFT JOIN previous_month_flows pm ON pm.user_id = pr.id;
 
 -- ============================================
 -- PASO 8: RLS POLICIES

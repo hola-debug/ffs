@@ -5,6 +5,7 @@ interface BaseCardProps {
   className?: string;
   children: ReactNode;
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'gradient' | 'solid';
+  onClick?: () => void;
 }
 
 const variantStyles = {
@@ -21,12 +22,16 @@ export function BaseCard({
   title, 
   className = '', 
   children, 
-  variant = 'default' 
+  variant = 'default',
+  onClick
 }: BaseCardProps) {
   const variantClass = variantStyles[variant];
 
   return (
-    <div className={`${variantClass} rounded-lg p-2 sm:p-6 shadow-lg min-w-0 w-full box-border overflow-hidden ${className}`}>
+    <div 
+      onClick={onClick}
+      className={`${variantClass} rounded-lg p-2 sm:p-6 shadow-lg min-w-0 w-full box-border overflow-hidden ${className}`}
+    >
       {title && <h2 className="text-xs sm:text-lg font-semibold mb-1 sm:mb-4 truncate">{title}</h2>}
       {children}
     </div>

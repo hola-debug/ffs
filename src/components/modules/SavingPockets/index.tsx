@@ -1,4 +1,5 @@
 import { BaseCard } from '../BaseCard';
+import { useNavigate } from 'react-router-dom';
 
 interface SavingPocket {
   id: string;
@@ -14,6 +15,7 @@ interface SavingPocketsModuleProps {
 }
 
 export function SavingPocketsModule({ pockets }: SavingPocketsModuleProps) {
+  const navigate = useNavigate();
   if (pockets.length === 0) {
     return (
       <BaseCard className="col-span-2">
@@ -44,9 +46,10 @@ export function SavingPocketsModule({ pockets }: SavingPocketsModuleProps) {
             return (
               <div
                 key={pocket.id}
+                onClick={() => navigate(`/app/pocket/${pocket.id}`)}
                 className="group relative bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 
                           hover:bg-white/8 hover:border-white/20 transition-all duration-300
-                          hover:shadow-lg hover:shadow-black/20"
+                          hover:shadow-lg hover:shadow-black/20 cursor-pointer"
               >
                 {/* Header */}
                 <div className="flex justify-between items-start mb-3">

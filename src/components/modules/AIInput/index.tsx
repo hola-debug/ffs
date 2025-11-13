@@ -3,6 +3,8 @@ import { BaseCard } from '../BaseCard';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AI_CONFIG } from '../../../config/ai.config';
 
+type ProcessingStage = 'sending' | 'processing' | 'finalizing' | null;
+
 // Función para obtener fecha en zona horaria Argentina (UTC-3)
 const getArgentinaTimestamp = (): string => {
   const now = new Date();
@@ -27,6 +29,8 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
   const [feedback, setFeedback] = useState<string>('');
   const [hasMicrophone, setHasMicrophone] = useState(true);
   const [messageQueue, setMessageQueue] = useState<string[]>([]);
+  const [processingStage, setProcessingStage] = useState<ProcessingStage>(null);
+  const [progress, setProgress] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -96,11 +100,20 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
     const userMessage = message.trim();
     setMessage('');
     setIsLoading(true);
+    setProgress(0);
     
-    // Mostrar mensaje de procesamiento
-    showFeedback('🤔 Procesando...', 30000);
+    // Simular progreso mientras se procesa
+    setProcessingStage('sending');
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 15;
+      });
+    }, 300);
 
     try {
+      setProcessingStage('processing');
+      
       const response = await fetch(AI_CONFIG.textWebhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,13 +126,15 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
         }),
       });
 
+      setProcessingStage('finalizing');
+      setProgress(95);
+
       const contentType = response.headers.get('content-type');
       let result;
       
       if (contentType && contentType.includes('application/json')) {
         result = await response.json();
       } else {
-        // Si el servidor devuelve texto plano, construir un objeto de respuesta
         const text = await response.text();
         result = {
           success: response.ok,
@@ -128,22 +143,21 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
         };
       }
       
+      setProgress(100);
+      
       if (result.success) {
-        // Construir mensajes para notificaciones
         const messages: string[] = [];
         
         if (result.message) {
           messages.push(result.message);
         }
         
-        // Sugerencias (máximo 2)
         if (result.suggestions && result.suggestions.length > 0) {
           result.suggestions.slice(0, 2).forEach((suggestion: string) => {
             messages.push(suggestion);
           });
         }
         
-        // Mostrar como notificaciones Toast
         if (showToasts && messages.length > 0) {
           if (messages.length > 1) {
             showToasts([messages[0]], 'success');
@@ -160,20 +174,34 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
 
       setTimeout(() => {
         onRefresh?.();
-      }, 1000);
+      }, 500);
     } catch (error) {
       console.error('Error:', error);
-      showFeedback('❌ Error al procesar');
+      if (showToasts) {
+        showToasts(['Error al procesar el mensaje'], 'error');
+      }
     } finally {
+      clearInterval(progressInterval);
       setIsLoading(false);
+      setProcessingStage(null);
+      setProgress(0);
     }
   };
 
   const sendVoiceMessage = async (audioBlob: Blob) => {
     setIsLoading(true);
-    showFeedback('🎤 Transcribiendo audio...', 30000);
+    setProgress(0);
+    
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 12;
+      });
+    }, 350);
 
     try {
+      setProcessingStage('sending');
+      
       const formData = new FormData();
       formData.append('audio', audioBlob, 'voice.webm');
       formData.append('userId', user?.id || '');
@@ -181,10 +209,15 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
       formData.append('sessionId', `session-${user?.id}-${Date.now()}`);
       formData.append('timestamp', getArgentinaTimestamp());
 
+      setProcessingStage('processing');
+      
       const response = await fetch(AI_CONFIG.voiceWebhook, {
         method: 'POST',
         body: formData,
       });
+
+      setProcessingStage('finalizing');
+      setProgress(95);
 
       const contentType = response.headers.get('content-type');
       let result;
@@ -192,7 +225,6 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
       if (contentType && contentType.includes('application/json')) {
         result = await response.json();
       } else {
-        // Si el servidor devuelve texto plano, construir un objeto de respuesta
         const text = await response.text();
         result = {
           success: response.ok,
@@ -201,22 +233,21 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
         };
       }
       
+      setProgress(100);
+      
       if (result.success) {
-        // Construir mensajes para notificaciones
         const messages: string[] = [];
         
         if (result.message) {
           messages.push(result.message);
         }
         
-        // Sugerencias (máximo 2)
         if (result.suggestions && result.suggestions.length > 0) {
           result.suggestions.slice(0, 2).forEach((suggestion: string) => {
             messages.push(suggestion);
           });
         }
         
-        // Mostrar como notificaciones Toast
         if (showToasts && messages.length > 0) {
           if (messages.length > 1) {
             showToasts([messages[0]], 'success');
@@ -233,12 +264,17 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
 
       setTimeout(() => {
         onRefresh?.();
-      }, 1000);
+      }, 500);
     } catch (error) {
       console.error('Error:', error);
-      showFeedback('❌ Error al procesar audio');
+      if (showToasts) {
+        showToasts(['Error al procesar el audio'], 'error');
+      }
     } finally {
+      clearInterval(progressInterval);
       setIsLoading(false);
+      setProcessingStage(null);
+      setProgress(0);
     }
   };
 
@@ -279,7 +315,6 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
 
       mediaRecorder.start();
       setIsRecording(true);
-      showFeedback('Grabando...', 30000);
     } catch (error: any) {
       console.error('Error al acceder al micrófono:', error);
 
@@ -311,159 +346,158 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
     }
   };
 
+  const getProcessingMessage = () => {
+    if (isRecording) return 'Grabando';
+    if (!processingStage) return null;
+    
+    switch (processingStage) {
+      case 'sending': return 'Enviando';
+      case 'processing': return 'Procesando';
+      case 'finalizing': return 'Finalizando';
+      default: return null;
+    }
+  };
+
   return (
-    <BaseCard
-      variant="solid"
-      className="col-span-2 bg-black rounded-xl sm:rounded-2xl overflow-hidden"
-    >
-      <form onSubmit={handleSubmit} className="relative">
-        {/* Input principal con mejor diseño */}
-        <div className="relative">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              isRecording ? '🎙️ Grabando...' : '✨ ¿Qué quieres hacer?'
-            }
-            className={`
-              bg-black
-              w-full 
-              text-white 
-              px-5 py-5
-              ${hasMicrophone ? 'pr-32' : 'pr-20'}
-              focus:outline-none 
-              border-none
-              placeholder:text-white/40
-              text-base
-              transition-all duration-200
-            `}
-            disabled={isLoading || isRecording}
+    <div className="bg-black rounded-xl sm:rounded-2xl p-3 text-white font-sans relative w-full overflow-hidden h-[70px] flex items-center">
+      {/* Barra de progreso */}
+      {isLoading && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/10">
+          <div 
+            className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-300 ease-out"
+            style={{ width: `${progress}%` }}
           />
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit} className="relative w-full">
+        <div className="relative flex items-center gap-2">
+          {/* Input compacto */}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isRecording ? '🎙️ Grabando...' : (isLoading ? '' : ' Escribe algo...')}
+              className="
+                bg-white/5
+                w-full 
+                text-white 
+                px-3 py-2
+                pr-3
+                focus:outline-none 
+                focus:bg-white/10
+                border border-white/10
+                focus:border-white/20
+                placeholder:text-white/30
+                text-sm
+                rounded-lg
+                transition-all duration-200
+              "
+              disabled={isLoading || isRecording}
+            />
+            
+            {/* Estado de procesamiento */}
+            {(isLoading || isRecording) && getProcessingMessage() && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <div className="flex gap-1">
+                  <span className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1 h-1 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span className="text-[10px] font-medium text-white/60">
+                  {getProcessingMessage()}
+                </span>
+              </div>
+            )}
 
-          {/* Feedback badge negro */}
-          {feedback && (
-            <div
-              className={`
-                absolute top-1/2 -translate-y-1/2 left-5 
-                text-xs font-medium px-3 py-1.5 rounded-full
-                backdrop-blur-xl
-                border
-                animate-in fade-in slide-in-from-left-2 duration-200
-                shadow-lg
-                bg-black/90 border-white/20
-                ${
-                  feedback.includes('Error') || feedback.includes('❌')
-                    ? 'text-red-300'
-                    : 'text-white'
-                }
-              `}
-            >
-              {feedback.replace(/[❌✅🤔🎤]/g, '').trim()}
-            </div>
-          )}
+            {/* Feedback de errores */}
+            {feedback && (
+              <div
+                className={`
+                  absolute left-3 top-1/2 -translate-y-1/2
+                  text-[10px] font-medium px-2 py-1 rounded
+                  backdrop-blur-xl
+                  animate-in fade-in duration-200
+                  bg-black/90 border border-white/10
+                  ${
+                    feedback.includes('Error') || feedback.includes('❌')
+                      ? 'text-red-300'
+                      : 'text-white/90'
+                  }
+                `}
+              >
+                {feedback.replace(/[❌✅🤔🎙]/g, '').trim()}
+              </div>
+            )}
+          </div>
 
-          {/* Botones lado derecho con mejor diseño */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-2">
-            {/* Enviar */}
+          {/* Botones compactos */}
+          <div className="flex gap-1.5 shrink-0">
+            {/* Botón enviar */}
             <button
               type="submit"
               disabled={isLoading || !message.trim() || isRecording}
               className={`
-                w-11 h-11 
-                rounded-xl
+                w-9 h-9 
+                rounded-lg
                 flex items-center justify-center 
-                transition-all duration-200 ease-out
-                disabled:opacity-30 disabled:cursor-not-allowed
+                transition-all duration-200
+                disabled:opacity-20 disabled:cursor-not-allowed
+                relative overflow-hidden
                 ${
                   message.trim() && !isLoading && !isRecording
-                    ? 'bg-white/10 hover:bg-white/15 hover:scale-105 active:scale-95 border border-white/20'
-                    : 'bg-transparent border border-white/5'
+                    ? 'bg-white/10 hover:bg-white/15 border border-white/20 hover:scale-105'
+                    : 'bg-white/5 border border-white/10'
                 }
               `}
-              title="Enviar mensaje"
+              title="Enviar"
             >
               {isLoading ? (
-                <svg
-                  className="animate-spin h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 
-                    1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
+                <div className="relative">
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
               ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-white transition-transform duration-200 group-hover:translate-x-0.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                 </svg>
               )}
             </button>
 
-            {/* Voz mejorado */}
+            {/* Botón voz */}
             {hasMicrophone && (
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isLoading}
                 className={`
-                  w-11 h-11 rounded-xl
+                  w-9 h-9 rounded-lg
                   flex items-center justify-center
-                  transition-all duration-300 ease-out
-                  active:scale-95
-                  disabled:opacity-30 disabled:cursor-not-allowed disabled:scale-100
+                  transition-all duration-200
+                  disabled:opacity-20 disabled:cursor-not-allowed
+                  relative overflow-hidden
                   ${
                     isRecording
-                      ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-[0_0_30px_rgba(248,113,113,0.6)] hover:scale-105 animate-pulse border border-red-400/50'
-                      : 'bg-white/10 border border-white/20 hover:bg-white/15 hover:scale-105 hover:border-white/30'
+                      ? 'bg-red-500/90 border border-red-400/50 scale-105'
+                      : 'bg-white/10 border border-white/20 hover:bg-white/15 hover:scale-105'
                   }
                 `}
                 title={isRecording ? 'Detener grabación' : 'Grabar mensaje de voz'}
               >
+                {isRecording && (
+                  <span className="absolute inset-0 bg-red-400/30 animate-ping" />
+                )}
                 {isRecording ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-white"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
-                      clipRule="evenodd"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white relative z-10" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
                   </svg>
                 ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-white"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 
-                      0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
-                      clipRule="evenodd"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
                   </svg>
                 )}
               </button>
@@ -471,6 +505,6 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
           </div>
         </div>
       </form>
-    </BaseCard>
+    </div>
   );
 }

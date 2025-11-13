@@ -1,50 +1,21 @@
-import { useDashboardData } from '../hooks/useDashboardData';
-import { 
-  DailyBalanceModule, 
-  DailyExpensesModule, 
-  AIInputModule,
-  AccountsBalanceModule,
-  FixedExpensesModule,
-  ExpensePocketsModule,
-  SavingPocketsModule,
-  TotalMoneyModule,
-  TotalSavingsModule
-} from '../components/modules';
-import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
+import { useDashboardData } from '../hooks/useDashboardData';
+import { PocketProjectionModule, AIInputModule } from '../components/modules';
 import { useToast } from '../hooks/useToast';
 import { ToastContainer } from '../components/ui/Toast';
-
-// Variantes de animación Tetris (deslizamiento desde abajo)
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-// Animación tipo Tetris: entrada desde abajo
-const itemVariants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.34, 1.56, 0.64, 1], // cubic-bezier para efecto de rebote suave
-    },
-  },
-};
+import { useModuleSync } from '../hooks/useModuleSync';
+import { moduleRegistry } from '../lib/moduleRegistry';
+import FadeContent from '../components/ui/FadeContent';
 
 export default function DashboardPage() {
-  const { loading, error, ...data } = useDashboardData();
   const navigate = useNavigate();
+  const { loading, error, pockets, refetch } = useDashboardData();
   const { toasts, removeToast, showToasts } = useToast();
+  
+  // Sincronizar bolsas con módulos dinámicos
+  useModuleSync(pockets);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -72,44 +43,45 @@ export default function DashboardPage() {
     <>
       <Header />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+      
       <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20">
-        
-        <div className="max-w-4xl mx-auto w-full box-border px-2 sm:px-4 py-2 sm:py-4">
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full box-border">
-            
-            {/* Módulo de Balance Disponible */}
-            <DailyBalanceModule monthlySummary={data.monthlySummary} />
+        <div className="max-w-4xl mx-auto w-full px-1 py-2 sm:py-4">
+          {/* Módulo de Input AI */}
+          <div className="mb-1">
+            <FadeContent
+              blur={true}
+              duration={1000}
+              easing="ease-out"
+              initialOpacity={0}
+              threshold={0.3}
+              delay={0}
+            >
+              <AIInputModule onRefresh={refetch} showToasts={showToasts} />
+            </FadeContent>
+          </div>
 
-            {/* Módulo de Gastos de Hoy */}
-            <DailyExpensesModule onRefresh={data.refetch} />
-
-            {/* Módulo de Plata Total */}
-            <TotalMoneyModule 
-              accounts={data.accounts} 
-              pockets={[...data.expensePockets, ...data.savingPockets]} 
-            />
-
-            {/* Módulo de Ahorro Total */}
-            <TotalSavingsModule 
-              pockets={[...data.expensePockets, ...data.savingPockets]} 
-            />
-
-            {/* Bolsas de Gasto */}
-            <ExpensePocketsModule pockets={data.expensePockets} />
-
-            {/* Bolsas de Ahorro */}
-            <SavingPocketsModule pockets={data.savingPockets} />
-
-            <AccountsBalanceModule accounts={data.accounts} />
-
-            <FixedExpensesModule 
-              accounts={data.accounts}
-              categories={data.categories}
-              onRefresh={data.refetch}
-            />
-
-            {/* Módulo de entrada con IA (texto y voz) */}
-            <AIInputModule onRefresh={data.refetch} showToasts={showToasts} />
+          {/* Módulos Dinámicos Registrados - uno por fila completa */}
+          <div className="space-y-1">
+            {moduleRegistry.getAllModules().map((module, index) => {
+              const pocket = pockets.find(p => p.id === module.pocketId);
+              if (!pocket) return null;
+              
+              const Component = module.component;
+              return (
+                <div key={module.id} className="w-full">
+                  <FadeContent
+                    blur={false}
+                    duration={600}
+                    easing="ease-out"
+                    initialOpacity={0}
+                    threshold={0.3}
+                    delay={100 + (index * 80)}
+                  >
+                    <Component pocket={pocket} onRefresh={refetch} />
+                  </FadeContent>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
