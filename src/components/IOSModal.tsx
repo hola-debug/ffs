@@ -1,4 +1,5 @@
 import { ReactNode, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import GlassSurface from './GlassSurface';
 
@@ -12,7 +13,6 @@ interface IOSModalProps {
 export default function IOSModal({ isOpen, onClose, title, children }: IOSModalProps) {
   useEffect(() => {
     if (isOpen) {
-      // Prevenir scroll del body cuando el modal está abierto
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -23,54 +23,74 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* Backdrop con blur gaussiano puro sin oscurecer */}
-      <div 
-        className="fixed inset-0 z-[9998] animate-backdrop-fade"
-        style={{
-          backdropFilter: 'blur(4px) saturate(1.2)',
-          WebkitBackdropFilter: 'blur(40px) saturate(1.2)',
-        }}
-        onClick={onClose}
-      />
-      
-      {/* SVG Filter overlay para blur gaussiano extra */}
-      <svg className="fixed inset-0 w-full h-full pointer-events-none z-[9998]" style={{ opacity: 0.6 }}>
-        <defs>
-          <filter id="ios-backdrop-blur" colorInterpolationFilters="sRGB">
-            {/* Triple blur gaussiano para efecto profundo */}
-            <feGaussianBlur in="BackgroundImage" stdDeviation="60" result="blur1" />
-            <feGaussianBlur in="blur1" stdDeviation="40" result="blur2" />
-            <feGaussianBlur in="blur2" stdDeviation="20" result="finalBlur" />
-          </filter>
-        </defs>
-        <rect 
-          x="0" 
-          y="0" 
-          width="100%" 
-          height="100%" 
-          fill="transparent"
-          filter="url(#ios-backdrop-blur)"
-        />
-      </svg>
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop con blur simple de 10px */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ 
+              duration: 0.5,
+              ease: [0.22, 1, 0.36, 1]
+            }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9998,
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}
+            onClick={onClose}
+          />
 
-      {/* Modal Content */}
-      <div 
-        className="fixed inset-0 flex items-center justify-center p-4 z-[9999] pointer-events-none"
-        onClick={onClose}
-      >
-        <div 
-          className="relative w-full max-w-md pointer-events-auto animate-modal-appear"
-          style={{
-            maxHeight: 'calc(100vh - 2rem)',
-            animation: 'modalAppear 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Glass Surface Container */}
+          {/* Modal Content */}
+          <div 
+            className="fixed inset-0 flex items-center justify-center p-4 z-[9999] pointer-events-none"
+            onClick={onClose}
+          >
+            <motion.div
+              initial={{ 
+                opacity: 0, 
+                scale: 0.9,
+                y: 60
+              }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                y: 0
+              }}
+              exit={{ 
+                opacity: 0, 
+                scale: 0.95,
+                y: 20
+              }}
+              transition={{
+                duration: 0.6,
+                ease: [0.22, 1, 0.36, 1],
+                opacity: { duration: 0.5 },
+                when: 'afterChildren'
+              }}
+              className="relative w-full max-w-md pointer-events-auto"
+              style={{
+                maxHeight: 'calc(100vh - 2rem)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+          {/* Glass Surface Container con animación progresiva */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: 0.4,
+              delay: 0.2,
+              ease: [0.22, 1, 0.36, 1],
+              exit: { delay: 0.3, duration: 0.3 }
+            }}
+          >
           <GlassSurface
             width="100%"
             height="auto"
@@ -100,14 +120,34 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
               `,
             }}
           >
-            <div 
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{
+                duration: 0.5,
+                delay: 0.35,
+                ease: [0.22, 1, 0.36, 1],
+                exit: { delay: 0.2, duration: 0.3 }
+              }}
               className="w-full overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
               style={{
                 maxHeight: 'calc(100vh - 4rem)',
               }}
             >
               {/* Header */}
-              <div className="relative px-6 pt-6 pb-4 border-b border-white/10">
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{
+                  duration: 0.5,
+                  delay: 0.45,
+                  ease: [0.22, 1, 0.36, 1],
+                  exit: { delay: 0.1, duration: 0.25 }
+                }}
+                className="relative px-6 pt-6 pb-4 border-b border-white/10"
+              >
                 <h2 
                   className="text-2xl font-semibold text-white pr-10"
                   style={{
@@ -151,45 +191,30 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
                     }}
                   />
                 </button>
-              </div>
+              </motion.div>
               
               {/* Content */}
-              <div className="px-6 py-6">
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{
+                  duration: 0.5,
+                  delay: 0.5,
+                  ease: [0.22, 1, 0.36, 1],
+                  exit: { delay: 0, duration: 0.2 }
+                }}
+                className="px-6 py-6"
+              >
                 {children}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </GlassSurface>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes modalAppear {
-          from {
-            opacity: 0;
-            transform: scale(0.94) translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-
-        @keyframes backdrop-fade {
-          from {
-            opacity: 0;
-            backdrop-filter: blur(0px) saturate(1);
-          }
-          to {
-            opacity: 1;
-            backdrop-filter: blur(40px) saturate(1.2);
-          }
-        }
-
-        .animate-backdrop-fade {
-          animation: backdrop-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        /* Estilos personalizados para inputs y selects estilo iOS */
+          </motion.div>
+            </motion.div>
+          </div>
+          <style>{`
+            /* Estilos personalizados para inputs y selects estilo iOS */
         .ios-input,
         .ios-select {
           background: rgba(120, 120, 128, 0.16) !important;
@@ -316,7 +341,9 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
         .scrollbar-thin::-webkit-scrollbar-thumb:hover {
           background: rgba(255, 255, 255, 0.3);
         }
-      `}</style>
-    </>
+          `}</style>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
