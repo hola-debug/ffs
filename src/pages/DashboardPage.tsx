@@ -57,25 +57,13 @@ export default function DashboardPage() {
               threshold={0.3}
               delay={0}
             >
-              <div className=" relative h-[150px]">
-                <CircularGallery bend={-0.5} textColor="#333333" borderRadius={0.05} scrollEase={0.02} />
+              <div className=" relative sm:h-[100px] md:h-[250px] ">
+                <CircularGallery bend={-0.5} textColor="#333333" borderRadius={0.05} scrollEase={0.02} scrollSpeed={10}/>
               </div>
             </FadeContent>
           </div>
 
-          {/* Módulo de Input AI */}
-          <div className="mb-1 px-1">
-            <FadeContent
-              blur={true}
-              duration={1000}
-              easing="ease-out"
-              initialOpacity={0}
-              threshold={0.3}
-              delay={0}
-            >
-              <AIInputModule onRefresh={refetch} showToasts={showToasts} />
-            </FadeContent>
-          </div>
+  
 
           {/* Módulos Dinámicos Registrados - uno por fila completa */}
           <div className="space-y-1">
