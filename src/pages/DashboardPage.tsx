@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
@@ -8,15 +9,36 @@ import { ToastContainer } from '../components/ui/Toast';
 import { useModuleSync } from '../hooks/useModuleSync';
 import { moduleRegistry } from '../lib/moduleRegistry';
 import FadeContent from '../components/ui/FadeContent';
-import CircularGallery from '../components/CircularGallery';
+import CircularGalleryWithModals from '../components/CircularGalleryWithModals';
+import {
+  AddIncomeModal,
+  AddAccountModal,
+  CreatePocketModal,
+  AddExpenseModal,
+  HelpModal
+} from '../components/modals';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { loading, error, pockets, refetch } = useDashboardData();
   const { toasts, removeToast, showToasts } = useToast();
+  const [activeModal, setActiveModal] = useState<string | null>(null);
   
   // Sincronizar bolsas con módulos dinámicos
   useModuleSync(pockets);
+
+  const handleCardClick = useCallback((modalId: string) => {
+    setActiveModal(modalId);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setActiveModal(null);
+  }, []);
+
+  const handleModalSuccess = useCallback(() => {
+    setActiveModal(null);
+    refetch();
+  }, [refetch]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -58,7 +80,14 @@ export default function DashboardPage() {
               delay={0}
             >
               <div className=" relative sm:h-[100px] md:h-[250px] ">
-                <CircularGallery bend={-0.5} textColor="#333333" borderRadius={0.05} scrollEase={0.02} scrollSpeed={10}/>
+                <CircularGalleryWithModals 
+                  bend={-0.5} 
+                  textColor="#333333" 
+                  borderRadius={0.05} 
+                  scrollEase={0.02} 
+                  scrollSpeed={10}
+                  onCardClick={handleCardClick}
+                />
               </div>
             </FadeContent>
           </div>
@@ -90,6 +119,36 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Modales a nivel raíz - pantalla completa */}
+      <AddIncomeModal
+        isOpen={activeModal === 'agregar-ingreso'}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+      />
+      
+      <AddAccountModal
+        isOpen={activeModal === 'agregar-cuentas'}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+      />
+      
+      <CreatePocketModal
+        isOpen={activeModal === 'crear-bolsas'}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+      />
+      
+      <AddExpenseModal
+        isOpen={activeModal === 'nuevo-gasto'}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+      />
+      
+      <HelpModal
+        isOpen={activeModal === 'ayuda'}
+        onClose={handleModalClose}
+      />
     </>
   );
 }

@@ -15,6 +15,58 @@ function lerp(p1: number, p2: number, t: number): number {
   return p1 + (p2 - p1) * t;
 }
 
+/**
+ * Convert screen coordinates to normalized device coordinates (NDC)
+ */
+function screenToNDC(x: number, y: number, width: number, height: number): { x: number; y: number } {
+  return {
+    x: (x / width) * 2 - 1,
+    y: -(y / height) * 2 + 1
+  };
+}
+
+/**
+ * Check if a point intersects with a plane (simplified AABB check)
+ * Returns true if the click is within the plane's bounds
+ */
+function checkPlaneIntersection(
+  mesh: Mesh,
+  mouseNDC: { x: number; y: number },
+  camera: Camera,
+  viewport: { width: number; height: number }
+): boolean {
+  // Get mesh world position
+  mesh.updateMatrixWorld();
+  const worldMatrix = mesh.worldMatrix;
+  const position = [worldMatrix[12], worldMatrix[13], worldMatrix[14]];
+  
+  // Get scale from matrix
+  const scaleX = mesh.scale.x;
+  const scaleY = mesh.scale.y;
+  
+  // Project to screen space
+  const fov = (camera.fov * Math.PI) / 180;
+  const distance = camera.position.z - position[2];
+  const height = 2 * Math.tan(fov / 2) * distance;
+  const width = height * camera.aspect;
+  
+  // Calculate normalized screen position
+  const screenX = (position[0] / (width / 2));
+  const screenY = (position[1] / (height / 2));
+  
+  // Calculate bounds in NDC space
+  const halfWidth = (scaleX / (width / 2));
+  const halfHeight = (scaleY / (height / 2));
+  
+  // Check if mouse is within bounds
+  return (
+    mouseNDC.x >= screenX - halfWidth &&
+    mouseNDC.x <= screenX + halfWidth &&
+    mouseNDC.y >= screenY - halfHeight &&
+    mouseNDC.y <= screenY + halfHeight
+  );
+}
+
 function autoBind(instance: any): void {
   const proto = Object.getPrototypeOf(instance);
   Object.getOwnPropertyNames(proto).forEach(key => {
@@ -396,7 +448,7 @@ class App {
   boundOnWheel!: (e: Event) => void;
   boundOnTouchDown!: (e: MouseEvent | TouchEvent) => void;
   boundOnTouchMove!: (e: MouseEvent | TouchEvent) => void;
-  boundOnTouchUp!: () => void;
+  boundOnTouchUp!: (e: MouseEvent | TouchEvent) => void;
   boundOnClick!: (e: MouseEvent) => void;
 
   isDown: boolean = false;
@@ -528,29 +580,64 @@ class App {
     this.scroll.target = (this.scroll.position ?? 0) + distance;
   }
 
-  onTouchUp() {
+  onTouchUp(e: MouseEvent | TouchEvent) {
     this.isDown = false;
     this.onCheck();
+    
+    // Handle touch end as a click if no movement occurred
+    if (!this.hasMoved && 'changedTouches' in e) {
+      const touch = e.changedTouches[0];
+      this.handleCardClick(touch.clientX, touch.clientY);
+    }
+  }
+
+  /**
+   * Performs raycasting to detect which card was clicked at given screen coordinates
+   * @param clientX - X coordinate from mouse/touch event
+   * @param clientY - Y coordinate from mouse/touch event
+   */
+  handleCardClick(clientX: number, clientY: number) {
+    // Get click position relative to container
+    const rect = this.container.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    // Convert to NDC (Normalized Device Coordinates)
+    const mouseNDC = screenToNDC(x, y, rect.width, rect.height);
+    
+    // Raycast: find which card was clicked
+    // We check from front to back (by z-position) to get the topmost card
+    let clickedMedia: Media | null = null;
+    let closestZ = -Infinity;
+    
+    this.medias.forEach(media => {
+      // Check if click intersects with this card's bounds
+      if (checkPlaneIntersection(media.plane, mouseNDC, this.camera, this.viewport)) {
+        // Get z-position (depth) to determine which card is in front
+        const worldMatrix = media.plane.worldMatrix;
+        const zPos = worldMatrix[14];
+        
+        // Keep the card closest to camera (highest z in our coordinate system)
+        if (zPos > closestZ) {
+          closestZ = zPos;
+          clickedMedia = media;
+        }
+      }
+    });
+    
+    // Only emit event if a card was actually clicked
+    if (clickedMedia && clickedMedia.link) {
+      const event = new CustomEvent('gallery-card-click', {
+        detail: { link: clickedMedia.link },
+        bubbles: true
+      });
+      this.container.dispatchEvent(event);
+    }
   }
 
   onClick(e: MouseEvent) {
     if (this.hasMoved) return;
-    
-    // Find the media closest to center
-    let closestMedia: Media | null = null;
-    let minDistance = Infinity;
-    
-    this.medias.forEach(media => {
-      const distance = Math.abs(media.plane.position.x);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestMedia = media;
-      }
-    });
-    
-    if (closestMedia && closestMedia.link) {
-      window.location.href = closestMedia.link;
-    }
+    this.handleCardClick(e.clientX, e.clientY);
   }
 
   onWheel(e: Event) {
@@ -604,30 +691,39 @@ class App {
     this.boundOnTouchMove = this.onTouchMove.bind(this);
     this.boundOnTouchUp = this.onTouchUp.bind(this);
     this.boundOnClick = this.onClick.bind(this);
+    
+    // Window events
     window.addEventListener('resize', this.boundOnResize);
-    window.addEventListener('mousewheel', this.boundOnWheel);
-    window.addEventListener('wheel', this.boundOnWheel);
-    window.addEventListener('mousedown', this.boundOnTouchDown);
-    window.addEventListener('mousemove', this.boundOnTouchMove);
-    window.addEventListener('mouseup', this.boundOnTouchUp);
-    window.addEventListener('click', this.boundOnClick);
-    window.addEventListener('touchstart', this.boundOnTouchDown);
-    window.addEventListener('touchmove', this.boundOnTouchMove);
-    window.addEventListener('touchend', this.boundOnTouchUp);
+    
+    // Container events only
+    this.container.addEventListener('mousewheel', this.boundOnWheel);
+    this.container.addEventListener('wheel', this.boundOnWheel);
+    this.container.addEventListener('mousedown', this.boundOnTouchDown);
+    this.container.addEventListener('mousemove', this.boundOnTouchMove);
+    this.container.addEventListener('mouseup', this.boundOnTouchUp);
+    this.container.addEventListener('click', this.boundOnClick);
+    this.container.addEventListener('touchstart', this.boundOnTouchDown);
+    this.container.addEventListener('touchmove', this.boundOnTouchMove);
+    this.container.addEventListener('touchend', this.boundOnTouchUp);
   }
 
   destroy() {
     window.cancelAnimationFrame(this.raf);
+    
+    // Window events
     window.removeEventListener('resize', this.boundOnResize);
-    window.removeEventListener('mousewheel', this.boundOnWheel);
-    window.removeEventListener('wheel', this.boundOnWheel);
-    window.removeEventListener('mousedown', this.boundOnTouchDown);
-    window.removeEventListener('mousemove', this.boundOnTouchMove);
-    window.removeEventListener('mouseup', this.boundOnTouchUp);
-    window.removeEventListener('click', this.boundOnClick);
-    window.removeEventListener('touchstart', this.boundOnTouchDown);
-    window.removeEventListener('touchmove', this.boundOnTouchMove);
-    window.removeEventListener('touchend', this.boundOnTouchUp);
+    
+    // Container events
+    this.container.removeEventListener('mousewheel', this.boundOnWheel);
+    this.container.removeEventListener('wheel', this.boundOnWheel);
+    this.container.removeEventListener('mousedown', this.boundOnTouchDown);
+    this.container.removeEventListener('mousemove', this.boundOnTouchMove);
+    this.container.removeEventListener('mouseup', this.boundOnTouchUp);
+    this.container.removeEventListener('click', this.boundOnClick);
+    this.container.removeEventListener('touchstart', this.boundOnTouchDown);
+    this.container.removeEventListener('touchmove', this.boundOnTouchMove);
+    this.container.removeEventListener('touchend', this.boundOnTouchUp);
+    
     if (this.renderer && this.renderer.gl && this.renderer.gl.canvas.parentNode) {
       this.renderer.gl.canvas.parentNode.removeChild(this.renderer.gl.canvas as HTMLCanvasElement);
     }
@@ -642,6 +738,7 @@ interface CircularGalleryProps {
   font?: string;
   scrollSpeed?: number;
   scrollEase?: number;
+  onCardClick?: (link: string) => void;
 }
 
 export default function CircularGallery({
@@ -651,11 +748,14 @@ export default function CircularGallery({
   borderRadius = 0.05,
   font = 'bold 30px Figtree',
   scrollSpeed = 2,
-  scrollEase = 0.05
+  scrollEase = 0.05,
+  onCardClick
 }: CircularGalleryProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     if (!containerRef.current) return;
+    
     const app = new App(containerRef.current, {
       items,
       bend,
@@ -665,10 +765,22 @@ export default function CircularGallery({
       scrollSpeed,
       scrollEase
     });
+    
+    // Listen for card click events
+    const handleCardClick = (e: Event) => {
+      const customEvent = e as CustomEvent<{ link: string }>;
+      if (onCardClick && customEvent.detail.link) {
+        onCardClick(customEvent.detail.link);
+      }
+    };
+    
+    containerRef.current.addEventListener('gallery-card-click', handleCardClick);
+    
     return () => {
+      containerRef.current?.removeEventListener('gallery-card-click', handleCardClick);
       app.destroy();
     };
-  }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase]);
+  }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase, onCardClick]);
   return (
     <div 
       className="w-full h-full overflow-hidden cursor-pointer" 
