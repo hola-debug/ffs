@@ -57,7 +57,7 @@ export default function DashboardPage() {
               threshold={0.3}
               delay={0}
             >
-              <div className=" relative h-[250px]">
+              <div className=" relative h-[150px]">
                 <CircularGallery bend={-0.5} textColor="#333333" borderRadius={0.05} scrollEase={0.02} />
               </div>
             </FadeContent>
