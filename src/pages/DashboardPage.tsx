@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import { useDashboardData } from '../hooks/useDashboardData';
-import { PocketProjectionModule, AIInputModule } from '../components/modules';
 import { useToast } from '../hooks/useToast';
 import { ToastContainer } from '../components/ui/Toast';
 import { useModuleSync } from '../hooks/useModuleSync';
@@ -21,7 +20,7 @@ import {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { loading, error, pockets, refetch } = useDashboardData();
-  const { toasts, removeToast, showToasts } = useToast();
+  const { toasts, removeToast } = useToast();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   
   // Sincronizar bolsas con módulos dinámicos

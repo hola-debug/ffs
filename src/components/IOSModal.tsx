@@ -27,7 +27,7 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop con blur simple de 10px */}
+          {/* Backdrop con blur y oscuridad */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -40,8 +40,9 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
               position: 'fixed',
               inset: 0,
               zIndex: 9998,
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              backdropFilter: 'blur(2px)',
+              WebkitBackdropFilter: 'blur(2px)',
             }}
             onClick={onClose}
           />
