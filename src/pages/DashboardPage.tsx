@@ -8,6 +8,7 @@ import { ToastContainer } from '../components/ui/Toast';
 import { useModuleSync } from '../hooks/useModuleSync';
 import { moduleRegistry } from '../lib/moduleRegistry';
 import FadeContent from '../components/ui/FadeContent';
+import CircularGallery from '../components/CircularGallery';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -46,6 +47,22 @@ export default function DashboardPage() {
       
       <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20">
         <div className="max-w-4xl mx-auto w-full px-1 py-2 sm:py-4">
+          {/* Galería Circular de Formularios */}
+          <div className="mb-4">
+            <FadeContent
+              blur={true}
+              duration={1000}
+              easing="ease-out"
+              initialOpacity={0}
+              threshold={0.3}
+              delay={0}
+            >
+              <div className="h-[400px] sm:h-[450px] relative">
+                <CircularGallery bend={3} textColor="#333333" borderRadius={0.05} scrollEase={0.02} />
+              </div>
+            </FadeContent>
+          </div>
+
           {/* Módulo de Input AI */}
           <div className="mb-1">
             <FadeContent
