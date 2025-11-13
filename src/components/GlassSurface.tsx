@@ -192,21 +192,31 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   }, [width, height]);
 
   const supportsSVGFilters = () => {
+    // Safari/iOS y Firefox no soportan backdropFilter con url()
     const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
     const isFirefox = /Firefox/.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-    if (isWebkit || isFirefox) {
+    if (isWebkit || isFirefox || isIOS) {
       return false;
     }
 
-    const div = document.createElement('div');
-    div.style.backdropFilter = `url(#${filterId})`;
-    return div.style.backdropFilter !== '';
+    try {
+      const div = document.createElement('div');
+      div.style.backdropFilter = `url(#${filterId})`;
+      return div.style.backdropFilter !== '';
+    } catch {
+      return false;
+    }
   };
 
   const supportsBackdropFilter = () => {
     if (typeof window === 'undefined') return false;
-    return CSS.supports('backdrop-filter', 'blur(10px)');
+    // Revisar soporte de backdrop-filter y -webkit-backdrop-filter
+    return (
+      CSS.supports('backdrop-filter', 'blur(10px)') ||
+      CSS.supports('-webkit-backdrop-filter', 'blur(10px)')
+    );
   };
 
   const getContainerStyles = (): React.CSSProperties => {
@@ -258,12 +268,13 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
         } else {
           return {
             ...baseStyles,
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(12px) saturate(1.8) brightness(1.2)',
-            WebkitBackdropFilter: 'blur(12px) saturate(1.8) brightness(1.2)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: `inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-                        inset 0 -1px 0 0 rgba(255, 255, 255, 0.1)`
+            background: 'rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(20px) saturate(1.8) brightness(1.2)',
+            WebkitBackdropFilter: 'blur(20px) saturate(1.8) brightness(1.2)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: `inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
+                        inset 0 -1px 0 0 rgba(255, 255, 255, 0.15),
+                        0 8px 32px 0 rgba(0, 0, 0, 0.1)`
           };
         }
       } else {
@@ -278,14 +289,14 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
         } else {
           return {
             ...baseStyles,
-            background: 'rgba(255, 255, 255, 0.25)',
-            backdropFilter: 'blur(12px) saturate(1.8) brightness(1.1)',
-            WebkitBackdropFilter: 'blur(12px) saturate(1.8) brightness(1.1)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            boxShadow: `0 8px 32px 0 rgba(31, 38, 135, 0.2),
+            background: 'rgba(255, 255, 255, 0.3)',
+            backdropFilter: 'blur(20px) saturate(1.8) brightness(1.1)',
+            WebkitBackdropFilter: 'blur(20px) saturate(1.8) brightness(1.1)',
+            border: '1px solid rgba(255, 255, 255, 0.35)',
+            boxShadow: `0 8px 32px 0 rgba(31, 38, 135, 0.15),
                         0 2px 16px 0 rgba(31, 38, 135, 0.1),
-                        inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
-                        inset 0 -1px 0 0 rgba(255, 255, 255, 0.2)`
+                        inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+                        inset 0 -1px 0 0 rgba(255, 255, 255, 0.25)`
           };
         }
       }

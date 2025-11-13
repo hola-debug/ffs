@@ -130,7 +130,7 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
                 ease: [0.22, 1, 0.36, 1],
                 exit: { delay: 0.2, duration: 0.3 }
               }}
-              className="w-full overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+              className="w-full overflow-y-auto scrollbar-hide"
               style={{
                 maxHeight: 'calc(100vh - 4rem)',
               }}

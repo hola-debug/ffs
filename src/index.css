@@ -19,6 +19,7 @@ html, body {
 body {
   position: relative;
   overflow-x: hidden;
+  background-color: #D5D5D5;
 }
 
 #root {
