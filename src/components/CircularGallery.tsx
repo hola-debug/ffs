@@ -146,7 +146,7 @@ interface MediaProps {
   renderer: Renderer;
   scene: Transform;
   screen: ScreenSize;
-  text: string;
+  link?: string;
   viewport: Viewport;
   bend: number;
   textColor: string;
@@ -164,7 +164,7 @@ class Media {
   renderer: Renderer;
   scene: Transform;
   screen: ScreenSize;
-  text: string;
+  link?: string;
   viewport: Viewport;
   bend: number;
   textColor: string;
@@ -172,7 +172,6 @@ class Media {
   font?: string;
   program!: Program;
   plane!: Mesh;
-  title!: Title;
   scale!: number;
   padding!: number;
   width!: number;
@@ -191,7 +190,7 @@ class Media {
     renderer,
     scene,
     screen,
-    text,
+    link,
     viewport,
     bend,
     textColor,
@@ -206,7 +205,7 @@ class Media {
     this.renderer = renderer;
     this.scene = scene;
     this.screen = screen;
-    this.text = text;
+    this.link = link;
     this.viewport = viewport;
     this.bend = bend;
     this.textColor = textColor;
@@ -214,7 +213,6 @@ class Media {
     this.font = font;
     this.createShader();
     this.createMesh();
-    this.createTitle();
     this.onResize();
   }
 
@@ -301,17 +299,6 @@ class Media {
     this.plane.setParent(this.scene);
   }
 
-  createTitle() {
-    this.title = new Title({
-      gl: this.gl,
-      plane: this.plane,
-      renderer: this.renderer,
-      text: this.text,
-      textColor: this.textColor,
-      font: this.font
-    });
-  }
-
   update(scroll: { current: number; last: number }, direction: 'right' | 'left') {
     this.plane.position.x = this.x - scroll.current - this.extra;
 
@@ -366,7 +353,7 @@ class Media {
     this.plane.scale.y = (this.viewport.height * (900 * this.scale)) / this.screen.height;
     this.plane.scale.x = (this.viewport.width * (700 * this.scale)) / this.screen.width;
     this.plane.program.uniforms.uPlaneSizes.value = [this.plane.scale.x, this.plane.scale.y];
-    this.padding = 2;
+    this.padding = 0.8;
     this.width = this.plane.scale.x + this.padding;
     this.widthTotal = this.width * this.length;
     this.x = this.width * this.index;
@@ -374,7 +361,7 @@ class Media {
 }
 
 interface AppConfig {
-  items?: { image: string; text: string }[];
+  items?: { image: string; link?: string }[];
   bend?: number;
   textColor?: string;
   borderRadius?: number;
@@ -400,7 +387,7 @@ class App {
   scene!: Transform;
   planeGeometry!: Plane;
   medias: Media[] = [];
-  mediasImages: { image: string; text: string }[] = [];
+  mediasImages: { image: string; link?: string }[] = [];
   screen!: { width: number; height: number };
   viewport!: { width: number; height: number };
   raf: number = 0;
@@ -410,9 +397,11 @@ class App {
   boundOnTouchDown!: (e: MouseEvent | TouchEvent) => void;
   boundOnTouchMove!: (e: MouseEvent | TouchEvent) => void;
   boundOnTouchUp!: () => void;
+  boundOnClick!: (e: MouseEvent) => void;
 
   isDown: boolean = false;
   start: number = 0;
+  hasMoved: boolean = false;
 
   constructor(
     container: HTMLElement,
@@ -470,7 +459,7 @@ class App {
   }
 
   createMedias(
-    items: { image: string; text: string }[] | undefined,
+    items: { image: string; link?: string }[] | undefined,
     bend: number = 1,
     textColor: string,
     borderRadius: number,
@@ -478,52 +467,24 @@ class App {
   ) {
     const defaultItems = [
       {
-        image: `https://picsum.photos/seed/1/800/600?grayscale`,
-        text: 'Bridge'
+        image: '/AGGREGAR INGRESO.png',
+        link: '#agregar-ingreso'
       },
       {
-        image: `https://picsum.photos/seed/2/800/600?grayscale`,
-        text: 'Desk Setup'
+        image: '/AGRREGAR CUENTAS.png',
+        link: '#agregar-cuentas'
       },
       {
-        image: `https://picsum.photos/seed/3/800/600?grayscale`,
-        text: 'Waterfall'
+        image: '/AYUDA.png',
+        link: '#ayuda'
       },
       {
-        image: `https://picsum.photos/seed/4/800/600?grayscale`,
-        text: 'Strawberries'
+        image: '/CREAR BOLSAS.png',
+        link: '#crear-bolsas'
       },
       {
-        image: `https://picsum.photos/seed/5/800/600?grayscale`,
-        text: 'Deep Diving'
-      },
-      {
-        image: `https://picsum.photos/seed/16/800/600?grayscale`,
-        text: 'Train Track'
-      },
-      {
-        image: `https://picsum.photos/seed/17/800/600?grayscale`,
-        text: 'Santorini'
-      },
-      {
-        image: `https://picsum.photos/seed/8/800/600?grayscale`,
-        text: 'Blurry Lights'
-      },
-      {
-        image: `https://picsum.photos/seed/9/800/600?grayscale`,
-        text: 'New York'
-      },
-      {
-        image: `https://picsum.photos/seed/10/800/600?grayscale`,
-        text: 'Good Boy'
-      },
-      {
-        image: `https://picsum.photos/seed/21/800/600?grayscale`,
-        text: 'Coastline'
-      },
-      {
-        image: `https://picsum.photos/seed/12/800/600?grayscale`,
-        text: 'Palm Trees'
+        image: '/NUEVO GASTO.png',
+        link: '#nuevo-gasto'
       }
     ];
     const galleryItems = items && items.length ? items : defaultItems;
@@ -538,7 +499,7 @@ class App {
         renderer: this.renderer,
         scene: this.scene,
         screen: this.screen,
-        text: data.text,
+        link: data.link,
         viewport: this.viewport,
         bend,
         textColor,
@@ -550,20 +511,46 @@ class App {
 
   onTouchDown(e: MouseEvent | TouchEvent) {
     this.isDown = true;
+    this.hasMoved = false;
     this.scroll.position = this.scroll.current;
     this.start = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    e.preventDefault();
   }
 
   onTouchMove(e: MouseEvent | TouchEvent) {
     if (!this.isDown) return;
+    e.preventDefault();
     const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const distance = (this.start - x) * (this.scrollSpeed * 0.025);
+    if (Math.abs(distance) > 2) {
+      this.hasMoved = true;
+    }
     this.scroll.target = (this.scroll.position ?? 0) + distance;
   }
 
   onTouchUp() {
     this.isDown = false;
     this.onCheck();
+  }
+
+  onClick(e: MouseEvent) {
+    if (this.hasMoved) return;
+    
+    // Find the media closest to center
+    let closestMedia: Media | null = null;
+    let minDistance = Infinity;
+    
+    this.medias.forEach(media => {
+      const distance = Math.abs(media.plane.position.x);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestMedia = media;
+      }
+    });
+    
+    if (closestMedia && closestMedia.link) {
+      window.location.href = closestMedia.link;
+    }
   }
 
   onWheel(e: Event) {
@@ -616,12 +603,14 @@ class App {
     this.boundOnTouchDown = this.onTouchDown.bind(this);
     this.boundOnTouchMove = this.onTouchMove.bind(this);
     this.boundOnTouchUp = this.onTouchUp.bind(this);
+    this.boundOnClick = this.onClick.bind(this);
     window.addEventListener('resize', this.boundOnResize);
     window.addEventListener('mousewheel', this.boundOnWheel);
     window.addEventListener('wheel', this.boundOnWheel);
     window.addEventListener('mousedown', this.boundOnTouchDown);
     window.addEventListener('mousemove', this.boundOnTouchMove);
     window.addEventListener('mouseup', this.boundOnTouchUp);
+    window.addEventListener('click', this.boundOnClick);
     window.addEventListener('touchstart', this.boundOnTouchDown);
     window.addEventListener('touchmove', this.boundOnTouchMove);
     window.addEventListener('touchend', this.boundOnTouchUp);
@@ -635,6 +624,7 @@ class App {
     window.removeEventListener('mousedown', this.boundOnTouchDown);
     window.removeEventListener('mousemove', this.boundOnTouchMove);
     window.removeEventListener('mouseup', this.boundOnTouchUp);
+    window.removeEventListener('click', this.boundOnClick);
     window.removeEventListener('touchstart', this.boundOnTouchDown);
     window.removeEventListener('touchmove', this.boundOnTouchMove);
     window.removeEventListener('touchend', this.boundOnTouchUp);
@@ -645,7 +635,7 @@ class App {
 }
 
 interface CircularGalleryProps {
-  items?: { image: string; text: string }[];
+  items?: { image: string; link?: string }[];
   bend?: number;
   textColor?: string;
   borderRadius?: number;
@@ -679,5 +669,12 @@ export default function CircularGallery({
       app.destroy();
     };
   }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase]);
-  return <div className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing" ref={containerRef} />;
+  return (
+    <div 
+      className="w-full h-full overflow-hidden cursor-pointer" 
+      ref={containerRef}
+      style={{ touchAction: 'none', userSelect: 'none' }}
+      draggable={false}
+    />
+  );
 }

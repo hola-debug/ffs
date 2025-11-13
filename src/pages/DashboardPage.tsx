@@ -35,7 +35,7 @@ export default function DashboardPage() {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20" />
+        <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border " />
       </>
     );
   }
@@ -45,10 +45,10 @@ export default function DashboardPage() {
       <Header />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       
-      <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20">
-        <div className="max-w-4xl mx-auto w-full px-1 py-2 sm:py-4">
+      <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20 " >
+        <div className="max-w-4xl mx-auto w-full ">
           {/* Galería Circular de Formularios */}
-          <div className="mb-4">
+          <div className="">
             <FadeContent
               blur={true}
               duration={1000}
@@ -57,14 +57,14 @@ export default function DashboardPage() {
               threshold={0.3}
               delay={0}
             >
-              <div className="h-[400px] sm:h-[450px] relative">
-                <CircularGallery bend={3} textColor="#333333" borderRadius={0.05} scrollEase={0.02} />
+              <div className=" relative h-[250px]">
+                <CircularGallery bend={-0.5} textColor="#333333" borderRadius={0.05} scrollEase={0.02} />
               </div>
             </FadeContent>
           </div>
 
           {/* Módulo de Input AI */}
-          <div className="mb-1">
+          <div className="mb-1 px-1">
             <FadeContent
               blur={true}
               duration={1000}
