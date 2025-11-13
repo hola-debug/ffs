@@ -566,16 +566,21 @@ class App {
     this.hasMoved = false;
     this.scroll.position = this.scroll.current;
     this.start = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    e.preventDefault();
+    // Only prevent default for mouse events, not touch events
+    if (!('touches' in e)) {
+      e.preventDefault();
+    }
   }
 
   onTouchMove(e: MouseEvent | TouchEvent) {
     if (!this.isDown) return;
-    e.preventDefault();
     const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const distance = (this.start - x) * (this.scrollSpeed * 0.025);
-    if (Math.abs(distance) > 2) {
+    // Lower threshold for touch to be more lenient
+    if (Math.abs(distance) > 5) {
       this.hasMoved = true;
+      // Only prevent default when we're actually scrolling
+      e.preventDefault();
     }
     this.scroll.target = (this.scroll.position ?? 0) + distance;
   }
@@ -702,9 +707,10 @@ class App {
     this.container.addEventListener('mousemove', this.boundOnTouchMove);
     this.container.addEventListener('mouseup', this.boundOnTouchUp);
     this.container.addEventListener('click', this.boundOnClick);
-    this.container.addEventListener('touchstart', this.boundOnTouchDown);
-    this.container.addEventListener('touchmove', this.boundOnTouchMove);
-    this.container.addEventListener('touchend', this.boundOnTouchUp);
+    // Use passive: false to allow preventDefault when needed
+    this.container.addEventListener('touchstart', this.boundOnTouchDown, { passive: false });
+    this.container.addEventListener('touchmove', this.boundOnTouchMove, { passive: false });
+    this.container.addEventListener('touchend', this.boundOnTouchUp, { passive: false });
   }
 
   destroy() {
@@ -720,9 +726,9 @@ class App {
     this.container.removeEventListener('mousemove', this.boundOnTouchMove);
     this.container.removeEventListener('mouseup', this.boundOnTouchUp);
     this.container.removeEventListener('click', this.boundOnClick);
-    this.container.removeEventListener('touchstart', this.boundOnTouchDown);
-    this.container.removeEventListener('touchmove', this.boundOnTouchMove);
-    this.container.removeEventListener('touchend', this.boundOnTouchUp);
+    this.container.removeEventListener('touchstart', this.boundOnTouchDown as EventListener);
+    this.container.removeEventListener('touchmove', this.boundOnTouchMove as EventListener);
+    this.container.removeEventListener('touchend', this.boundOnTouchUp as EventListener);
     
     if (this.renderer && this.renderer.gl && this.renderer.gl.canvas.parentNode) {
       this.renderer.gl.canvas.parentNode.removeChild(this.renderer.gl.canvas as HTMLCanvasElement);
