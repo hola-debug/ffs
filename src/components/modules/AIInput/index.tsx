@@ -113,7 +113,20 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
         }),
       });
 
-      const result = await response.json();
+      const contentType = response.headers.get('content-type');
+      let result;
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        // Si el servidor devuelve texto plano, construir un objeto de respuesta
+        const text = await response.text();
+        result = {
+          success: response.ok,
+          message: text,
+          suggestions: []
+        };
+      }
       
       if (result.success) {
         // Construir mensajes para notificaciones
@@ -173,7 +186,20 @@ export function AIInputModule({ onRefresh, showToasts }: AIInputModuleProps) {
         body: formData,
       });
 
-      const result = await response.json();
+      const contentType = response.headers.get('content-type');
+      let result;
+      
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        // Si el servidor devuelve texto plano, construir un objeto de respuesta
+        const text = await response.text();
+        result = {
+          success: response.ok,
+          message: text,
+          suggestions: []
+        };
+      }
       
       if (result.success) {
         // Construir mensajes para notificaciones

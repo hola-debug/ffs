@@ -1,5 +1,5 @@
 {
-  "name": "AI Complete Financial Agent",
+  "name": "AI Complete Financial Agent v2",
   "nodes": [
     {
       "parameters": {
@@ -36,10 +36,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -3376,
-        -144
+        -960,
+        160
       ],
-      "id": "a3c9dfe0-2bf9-4b05-a206-751184a28d35",
+      "id": "a52d78f3-48e8-4207-9b3f-29d2983f9290",
       "name": "Edit Fields"
     },
     {
@@ -81,10 +81,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -3184,
-        -144
+        -768,
+        160
       ],
-      "id": "bec75511-ba43-40b0-8aa5-9c1b37e5cc50",
+      "id": "d4fafceb-5f17-4d86-81c3-ee65df951a54",
       "name": "Switch Type"
     },
     {
@@ -97,10 +97,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
       "position": [
-        -2976,
-        -48
+        -560,
+        256
       ],
-      "id": "339e2517-fb43-45b6-aafe-26a3c89f0247",
+      "id": "469a492a-ebea-4c8f-b9e2-88b9ebcf5500",
       "name": "Transcribe Audio",
       "credentials": {
         "openAiApi": {
@@ -114,10 +114,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        -2784,
-        -144
+        -368,
+        160
       ],
-      "id": "714ef6e4-fe8d-4a24-afb9-9ee44c2bf26e",
+      "id": "0036bf37-630d-43dc-b65f-d4218a4a1d50",
       "name": "Merge"
     },
     {
@@ -138,10 +138,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -2576,
-        -336
+        -160,
+        -32
       ],
-      "id": "ad762e16-fd02-4e21-b3ad-3f3321075ce2",
+      "id": "ad5432e4-2dee-438b-a6dc-74e5a20da60b",
       "name": "Get Profile",
       "credentials": {
         "supabaseApi": {
@@ -168,10 +168,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -2384,
-        -336
+        32,
+        -32
       ],
-      "id": "e5735028-a055-4091-a56d-0b0c2e87f705",
+      "id": "724a7be2-b479-4b5a-a88f-006275f2f1a7",
       "name": "Get Accounts",
       "alwaysOutputData": true,
       "credentials": {
@@ -200,10 +200,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -2176,
-        -336
+        240,
+        -32
       ],
-      "id": "9f04149f-ebc2-4d55-91e4-d2636c9fcd89",
+      "id": "4b666ebd-7b57-4d69-8f7f-51d58c6a93f6",
       "name": "Get Categories",
       "alwaysOutputData": true,
       "credentials": {
@@ -237,10 +237,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -1984,
-        -336
+        432,
+        -32
       ],
-      "id": "2412fee7-f63a-4488-bec9-1481c488c57f",
+      "id": "643fd821-af25-4cf7-8802-15f9b03d519a",
       "name": "Get Active Pockets",
       "alwaysOutputData": true,
       "credentials": {
@@ -269,10 +269,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -1776,
-        -336
+        640,
+        -32
       ],
-      "id": "499df645-eaae-490e-af57-dabbb251dfd9",
+      "id": "52242b12-6cd6-4e6e-a7e8-0484d8626d55",
       "name": "Get Monthly Summary",
       "alwaysOutputData": true,
       "credentials": {
@@ -290,10 +290,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1568,
-        -144
+        848,
+        160
       ],
-      "id": "75566677-082e-448a-b96b-f8abfe5efadd",
+      "id": "73c1695d-6a0e-4b67-b38a-62281d997f01",
       "name": "Build Complete Context",
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -310,10 +310,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        -1376,
-        -240
+        1040,
+        64
       ],
-      "id": "0352bb9a-0400-49d7-a3a5-209bfb935d99",
+      "id": "bcf501cd-b358-480b-a19c-bdd7a3f439f4",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -333,10 +333,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3,
       "position": [
-        -1072,
-        -256
+        1344,
+        48
       ],
-      "id": "239019b8-9c00-44c5-b798-917aec8394ef",
+      "id": "0fc892a2-1187-4e05-bf75-36ec5b643538",
       "name": "Financial AI Agent"
     },
     {
@@ -376,10 +376,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        -1376,
-        -48
+        1040,
+        256
       ],
-      "id": "f84d9822-ba6a-42da-ba69-c5e7044f94e0",
+      "id": "32438f6c-d471-4faf-81d2-1a881146412c",
       "name": "Tool: Create Account",
       "credentials": {
         "supabaseApi": {
@@ -421,10 +421,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        -1376,
-        80
+        1040,
+        400
       ],
-      "id": "fbf1b4a7-a572-4c2c-a941-781d797e24a9",
+      "id": "e022c9da-5bc8-4b00-a0d7-2a128b4df2b3",
       "name": "Tool: Create Category",
       "credentials": {
         "supabaseApi": {
@@ -486,11 +486,12 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        -1376,
-        176
+        1040,
+        496
       ],
-      "id": "b093ff4b-71d4-4af0-8385-eb6585033b76",
+      "id": "26811857-6100-4562-abda-36f5d5b9ae85",
       "name": "Tool: Create Pocket",
+      "rewireOutputLogTo": "ai_tool",
       "credentials": {
         "supabaseApi": {
           "id": "DTm1mUTSfKIqIIwV",
@@ -551,10 +552,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        -1248,
-        288
+        1168,
+        608
       ],
-      "id": "1f7c33a1-db58-4f06-9787-10a2debbdbae",
+      "id": "55c78cb4-8e9f-4695-a554-4ea47ff86e65",
       "name": "Tool: Create Movement",
       "credentials": {
         "supabaseApi": {
@@ -597,10 +598,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        -1376,
-        384
+        1040,
+        704
       ],
-      "id": "b9497bd3-d52b-43d2-9a64-13d58e98e31c",
+      "id": "e199e42e-ac41-4d5c-aad8-b632738187fe",
       "name": "Tool: Update Pocket",
       "credentials": {
         "supabaseApi": {
@@ -619,10 +620,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3824,
-        160
+        -1408,
+        480
       ],
-      "id": "6a68d7a1-b8ae-4540-91f1-1079545de8e9",
+      "id": "491ef862-3caf-4dc2-b7f4-f9da3ce9f634",
       "name": "Webhook1",
       "webhookId": "9d14f317-70b7-4f91-9272-7794e92a7dda"
     },
@@ -635,10 +636,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -512,
-        -256
+        1904,
+        48
       ],
-      "id": "6196de2e-a28a-433c-86b9-49c78566dcbb",
+      "id": "6557fee4-9650-43b2-bff6-59c7f69be426",
       "name": "Respond to Webhook"
     },
     {
@@ -648,14 +649,67 @@
       "type": "@n8n/n8n-nodes-langchain.toolThink",
       "typeVersion": 1.1,
       "position": [
-        -704,
-        192
+        1712,
+        512
       ],
-      "id": "0ae4f2fc-b12c-49ca-b8f4-55e135a39374",
+      "id": "c454188d-132f-43b0-a545-ba063a2ee28b",
       "name": "Think"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        512
+      ],
+      "id": "f60e788b-804b-40d3-a739-4ffb2cf9b503",
+      "name": "Calculator"
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "Webhook1": [
+      {
+        "json": {
+          "headers": {
+            "host": "centro-n8n.xqnwvv.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36",
+            "content-length": "248",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9,es;q=0.8",
+            "content-type": "application/json",
+            "origin": "http://localhost:5173",
+            "priority": "u=1, i",
+            "referer": "http://localhost:5173/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\"",
+            "sec-ch-ua-mobile": "?1",
+            "sec-ch-ua-platform": "\"Android\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "167.56.135.38",
+            "x-forwarded-host": "centro-n8n.xqnwvv.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "93d58826bca7",
+            "x-real-ip": "167.56.135.38"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": "agrega una bolsa de 5000 para ahorrar par un viaje el 1/1/26",
+            "userId": "906597f8-63bc-47b3-bdca-718e9534d572",
+            "type": "text",
+            "sessionId": "session-906597f8-63bc-47b3-bdca-718e9534d572-1762999953066",
+            "timestamp": "2025-11-13T02:12:33.066Z"
+          },
+          "webhookUrl": "https://centro-n8n.xqnwvv.easypanel.host/webhook/9d14f317-70b7-4f91-9272-7794e92a7dda",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
   "connections": {
     "Edit Fields": {
       "main": [
@@ -785,6 +839,17 @@
         ]
       ]
     },
+    "Financial AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Tool: Create Account": {
       "ai_tool": [
         [
@@ -840,17 +905,6 @@
         ]
       ]
     },
-    "Financial AI Agent": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Webhook1": {
       "main": [
         [
@@ -872,6 +926,17 @@
           }
         ]
       ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "Financial AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -881,7 +946,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "421917d4-e08b-4e72-ab40-5a2dc5d88c52",
+  "versionId": "01c297b5-f186-4622-b963-21f5452c9786",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "f9970caab00256920bdb049a5ae2998c33406f33dca00798d3ac5e92c2009533"
