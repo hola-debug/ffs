@@ -216,32 +216,47 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
           </div>
           <style>{`
             /* Estilos personalizados para inputs y selects estilo iOS */
-        .ios-input,
-        .ios-select {
-          background: rgba(120, 120, 128, 0.16) !important;
-          border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        .glass-control {
+          width: 100% !important;
+          border: none !important;
+          background: transparent !important;
           color: white !important;
-          border-radius: 12px !important;
-          padding: 12px 16px !important;
           font-size: 16px !important;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-          backdrop-filter: blur(20px) !important;
-          -webkit-backdrop-filter: blur(20px) !important;
-          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
+          line-height: 1.4 !important;
+          font-family: 'SF Pro Display', 'Albert Sans', sans-serif !important;
+          transition: color 0.2s ease, filter 0.2s ease !important;
         }
 
-        .ios-input:focus,
-        .ios-select:focus {
-          background: rgba(120, 120, 128, 0.24) !important;
-          border-color: rgba(10, 132, 255, 0.6) !important;
+        .glass-control:focus {
           outline: none !important;
-          box-shadow: 
-            0 0 0 3px rgba(10, 132, 255, 0.15),
-            inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+          color: rgba(255, 255, 255, 0.95) !important;
         }
 
-        .ios-input::placeholder {
-          color: rgba(255, 255, 255, 0.4) !important;
+        .glass-control::placeholder {
+          color: rgba(255, 255, 255, 0.45) !important;
+        }
+
+        .glass-control:disabled {
+          opacity: 0.45 !important;
+          cursor: not-allowed !important;
+        }
+
+        .glass-control--select {
+          appearance: none;
+          -webkit-appearance: none;
+          cursor: pointer;
+          padding-right: 48px !important;
+          background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10L12 15L17 10' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+          background-repeat: no-repeat !important;
+          background-position: right 12px center !important;
+          background-size: 18px !important;
+        }
+
+        .glass-control[type="date"] {
+          color-scheme: dark;
+          padding-right: 12px !important;
         }
 
         /* Botones estilo iOS */

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal from '../IOSModal';
 import { Account } from '../../lib/types';
+import GlassField from '../ui/GlassField';
 
 interface AddIncomeModalProps {
   isOpen: boolean;
@@ -90,53 +91,61 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="ios-label">Monto</label>
-          <input
-            type="number"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            placeholder="0.00"
-            className="w-full ios-input"
-          />
+          <GlassField>
+            <input
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              placeholder="0.00"
+              className="glass-control"
+            />
+          </GlassField>
         </div>
 
         <div>
           <label className="ios-label">Cuenta</label>
-          <select
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            required
-            className="w-full ios-select"
-          >
-            {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name} ({acc.currency})
-              </option>
-            ))}
-          </select>
+          <GlassField>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              required
+              className="glass-control glass-control--select"
+            >
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name} ({acc.currency})
+                </option>
+              ))}
+            </select>
+          </GlassField>
         </div>
 
         <div>
           <label className="ios-label">Fecha</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="w-full ios-input"
-          />
+          <GlassField>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              className="glass-control"
+            />
+          </GlassField>
         </div>
 
         <div>
           <label className="ios-label">Descripción (opcional)</label>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ej: Salario, Freelance..."
-            className="w-full ios-input"
-          />
+          <GlassField>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ej: Salario, Freelance..."
+              className="glass-control"
+            />
+          </GlassField>
         </div>
 
         <div className="flex space-x-3 pt-4">
