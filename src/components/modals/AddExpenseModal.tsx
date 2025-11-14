@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import IOSModal from '../IOSModal';
+import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
 import { Pocket } from '../../lib/types';
 
 interface AddExpenseModalProps {
@@ -110,58 +110,46 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="ios-label">Monto</label>
-          <input
-            type="number"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            placeholder="0.00"
-            className="w-full ios-input"
-          />
-        </div>
+        <GlassField
+          label="Monto"
+          type="number"
+          step="0.01"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          required
+          placeholder="0.00"
+        />
 
-        <div>
-          <label className="ios-label">Bolsa de gasto</label>
-          <select
-            value={pocketId}
-            onChange={(e) => setPocketId(e.target.value)}
-            required
-            disabled={pockets.length === 0}
-            className="w-full ios-select"
-          >
-            {pockets.map((pocket) => (
-              <option key={pocket.id} value={pocket.id}>
-                {pocket.emoji} {pocket.name} - Disponible: ${pocket.current_balance.toFixed(2)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <GlassSelect
+          label="Bolsa de gasto"
+          value={pocketId}
+          onChange={(e) => setPocketId(e.target.value)}
+          required
+          disabled={pockets.length === 0}
+        >
+          {pockets.map((pocket) => (
+            <option key={pocket.id} value={pocket.id}>
+              {pocket.emoji} {pocket.name} - Disponible: ${pocket.current_balance.toFixed(2)}
+            </option>
+          ))}
+        </GlassSelect>
 
-        <div>
-          <label className="ios-label">Fecha</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="w-full ios-input"
-          />
-        </div>
+        <GlassField
+          label="Fecha"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
 
-        <div>
-          <label className="ios-label">Descripción</label>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            placeholder="Ej: Supermercado, Almuerzo..."
-            className="w-full ios-input"
-          />
-        </div>
+        <GlassField
+          label="Descripción"
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+          placeholder="Ej: Supermercado, Almuerzo..."
+        />
 
         <div className="flex space-x-3 pt-4">
           <button

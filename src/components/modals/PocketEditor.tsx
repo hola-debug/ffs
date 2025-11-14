@@ -1,1 +1,688 @@
-import { useState, useEffect } from 'react';\nimport { supabase } from '../../lib/supabaseClient';\nimport IOSModal from '../IOSModal';\nimport {\n  Pocket,\n  PocketType,\n  PocketSubtype,\n  Account,\n  CreatePocketInput,\n  UpdatePocketInput,\n  isSavingPocket,\n  isExpenseVariablePocket,\n  isExpenseFixedPocket,\n  isExpensePeriodPocket,\n  isExpenseSharedPocket,\n  isDebtPocket,\n} from '../../lib/types-new';\n\ninterface PocketEditorProps {\n  isOpen: boolean;\n  onClose: () => void;\n  onSuccess?: () => void;\n  mode: 'create' | 'edit';\n  pocket?: Pocket;\n}\n\nconst POCKET_TYPES: Array<{ value: PocketType; label: string; description: string }> = [\n  { value: 'saving', label: 'Ahorro', description: 'Juntar dinero para una meta' },\n  { value: 'expense', label: 'Gasto', description: 'Controlar gastos con límite' },\n  { value: 'debt', label: 'Deuda', description: 'Gestionar préstamos y cuotas' },\n];\n\nconst EXPENSE_SUBTYPES: Array<{ value: PocketSubtype; label: string; description: string }> = [\n  { value: 'variable', label: 'Gasto Diario', description: 'Gasto variable con límite de días' },\n  { value: 'fixed', label: 'Gasto Fijo', description: 'Gasto mensual recurrente' },\n  { value: 'period', label: 'Período', description: 'Gasto en período personalizado' },\n  // { value: 'shared', label: 'Compartida', description: 'Compartir con otros usuarios' },\n];\n\nconst EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉', '🍔', '⚡', '📱', '🎬', '🏋️'];\n\nexport default function PocketEditor({\n  isOpen,\n  onClose,\n  onSuccess,\n  mode,\n  pocket,\n}: PocketEditorProps) {\n  const [accounts, setAccounts] = useState<Account[]>([]);\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState<string | null>(null);\n  const [currentStep, setCurrentStep] = useState<'type' | 'config' | 'review'>(mode === 'create' ? 'type' : 'config');\n\n  // Campos comunes\n  const [name, setName] = useState(pocket?.name || '');\n  const [pocketType, setPocketType] = useState<PocketType>(pocket?.type || 'saving');\n  const [pocketSubtype, setPocketSubtype] = useState<PocketSubtype>(pocket?.subtype || null);\n  const [emoji, setEmoji] = useState(pocket?.emoji || '💰');\n  const [accountId, setAccountId] = useState(pocket?.account_id || '');\n  const [linkedAccountId, setLinkedAccountId] = useState(pocket?.linked_account_id || '');\n\n  // SAVING\n  const [targetAmount, setTargetAmount] = useState(pocket && isSavingPocket(pocket) ? pocket.target_amount : '');\n  const [frequency, setFrequency] = useState(pocket && isSavingPocket(pocket) ? pocket.frequency : 'monthly');\n  const [allowWithdrawals, setAllowWithdrawals] = useState(\n    pocket && isSavingPocket(pocket) ? pocket.allow_withdrawals !== false : true\n  );\n  const [startsAt, setStartsAt] = useState(pocket?.starts_at?.split('T')[0] || new Date().toISOString().split('T')[0]);\n  const [endsAt, setEndsAt] = useState(pocket?.ends_at?.split('T')[0] || '');\n\n  // EXPENSE.VARIABLE\n  const [allocatedAmount, setAllocatedAmount] = useState(\n    pocket && (isExpenseVariablePocket(pocket) || isExpensePeriodPocket(pocket)) ? pocket.allocated_amount : ''\n  );\n  const [resetMode, setResetMode] = useState(\n    pocket && isExpenseVariablePocket(pocket) ? pocket.reset_mode : 'once'\n  );\n\n  // EXPENSE.FIXED\n  const [monthlyAmount, setMonthlyAmount] = useState(\n    pocket && isExpenseFixedPocket(pocket) ? pocket.monthly_amount : ''\n  );\n  const [dueDay, setDueDay] = useState(\n    pocket && isExpenseFixedPocket(pocket) ? pocket.due_day : 15\n  );\n  const [autoRegister, setAutoRegister] = useState(\n    pocket && isExpenseFixedPocket(pocket) ? pocket.auto_register : false\n  );\n\n  // DEBT\n  const [originalAmount, setOriginalAmount] = useState(\n    pocket && isDebtPocket(pocket) ? pocket.original_amount : ''\n  );\n  const [installmentsTotal, setInstallmentsTotal] = useState(\n    pocket && isDebtPocket(pocket) ? pocket.installments_total : ''\n  );\n  const [installmentAmount, setInstallmentAmount] = useState(\n    pocket && isDebtPocket(pocket) ? pocket.installment_amount : ''\n  );\n  const [interestRate, setInterestRate] = useState(\n    pocket && isDebtPocket(pocket) ? pocket.interest_rate : ''\n  );\n  const [automaticPayment, setAutomaticPayment] = useState(\n    pocket && isDebtPocket(pocket) ? pocket.automatic_payment : false\n  );\n  const [debtDueDay, setDebtDueDay] = useState(\n    pocket && isDebtPocket(pocket) ? pocket.due_day : 15\n  );\n\n  useEffect(() => {\n    if (isOpen) {\n      fetchAccounts();\n    }\n  }, [isOpen]);\n\n  const fetchAccounts = async () => {\n    const { data, error } = await supabase\n      .from('accounts')\n      .select('*')\n      .order('is_primary', { ascending: false });\n\n    if (data) {\n      setAccounts(data);\n      if (!accountId && data.length > 0) {\n        setAccountId(data[0].id);\n      }\n    }\n    if (error) console.error('Error fetching accounts:', error);\n  };\n\n  const handleSubmit = async (e: React.FormEvent) => {\n    e.preventDefault();\n    setLoading(true);\n    setError(null);\n\n    try {\n      const { data: { user } } = await supabase.auth.getUser();\n      if (!user) throw new Error('Usuario no autenticado');\n\n      const selectedAccount = accounts.find(a => a.id === accountId);\n      if (!selectedAccount) throw new Error('Selecciona una cuenta válida');\n\n      // Construir payload según tipo\n      const pocketData: any = {\n        user_id: user.id,\n        name,\n        type: pocketType,\n        emoji,\n        account_id: accountId,\n        currency: selectedAccount.currency || 'ARS',\n        status: 'active',\n      };\n\n      // Agregar subtype si es expense\n      if (pocketType === 'expense') {\n        pocketData.subtype = pocketSubtype;\n      }\n\n      if (linkedAccountId) {\n        pocketData.linked_account_id = linkedAccountId;\n      }\n\n      // Campos según tipo\n      if (pocketType === 'saving') {\n        if (!targetAmount) throw new Error('Ingresa el monto objetivo');\n        pocketData.target_amount = parseFloat(targetAmount as string);\n        pocketData.amount_saved = 0;\n        pocketData.frequency = frequency;\n        pocketData.allow_withdrawals = allowWithdrawals;\n        if (endsAt) pocketData.ends_at = endsAt;\n        pocketData.starts_at = startsAt;\n      }\n\n      if (pocketType === 'expense' && pocketSubtype === 'variable') {\n        if (!allocatedAmount || !endsAt) throw new Error('Completa monto y fechas');\n        pocketData.allocated_amount = parseFloat(allocatedAmount as string);\n        pocketData.spent_amount = 0;\n        pocketData.starts_at = startsAt;\n        pocketData.ends_at = endsAt;\n        pocketData.reset_mode = resetMode;\n      }\n\n      if (pocketType === 'expense' && pocketSubtype === 'fixed') {\n        if (!monthlyAmount || !dueDay) throw new Error('Completa monto y día de vencimiento');\n        pocketData.monthly_amount = parseFloat(monthlyAmount as string);\n        pocketData.due_day = dueDay;\n        pocketData.auto_register = autoRegister;\n      }\n\n      if (pocketType === 'expense' && pocketSubtype === 'period') {\n        if (!allocatedAmount || !endsAt) throw new Error('Completa monto y período');\n        pocketData.allocated_amount = parseFloat(allocatedAmount as string);\n        pocketData.spent_amount = 0;\n        pocketData.starts_at = startsAt;\n        pocketData.ends_at = endsAt;\n      }\n\n      if (pocketType === 'debt') {\n        if (!originalAmount || !installmentsTotal) throw new Error('Completa monto e instalaciones');\n        pocketData.original_amount = parseFloat(originalAmount as string);\n        pocketData.remaining_amount = parseFloat(originalAmount as string);\n        pocketData.installments_total = parseInt(installmentsTotal as string);\n        pocketData.installment_current = 0;\n        pocketData.installment_amount = installmentAmount ? parseFloat(installmentAmount as string) : undefined;\n        if (interestRate) pocketData.interest_rate = parseFloat(interestRate as string);\n        pocketData.due_day = debtDueDay;\n        pocketData.automatic_payment = automaticPayment;\n      }\n\n      if (mode === 'create') {\n        const { error: insertError } = await supabase\n          .from('pockets')\n          .insert(pocketData);\n\n        if (insertError) throw insertError;\n      } else if (mode === 'edit' && pocket) {\n        const { error: updateError } = await supabase\n          .from('pockets')\n          .update(pocketData)\n          .eq('id', pocket.id);\n\n        if (updateError) throw updateError;\n      }\n\n      setName('');\n      setTargetAmount('');\n      setPocketType('saving');\n      setPocketSubtype(null);\n      setEmoji('💰');\n      setCurrentStep('type');\n      onSuccess?.();\n      onClose();\n    } catch (err: any) {\n      setError(err.message);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  // Step 1: Seleccionar tipo\n  const renderTypeSelection = () => (\n    <div className=\"space-y-3\">\n      <h3 className=\"font-semibold text-white mb-4\">Tipo de bolsa</h3>\n      {POCKET_TYPES.map((type) => (\n        <label\n          key={type.value}\n          className=\"block p-4 rounded-2xl cursor-pointer transition-all\"\n          style={{\n            background: pocketType === type.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',\n            border: pocketType === type.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',\n            backdropFilter: 'blur(20px)',\n            WebkitBackdropFilter: 'blur(20px)',\n          }}\n        >\n          <div className=\"flex items-start\">\n            <input\n              type=\"radio\"\n              name=\"type\"\n              value={type.value}\n              checked={pocketType === type.value}\n              onChange={(e) => {\n                setPocketType(e.target.value as PocketType);\n                if (e.target.value === 'expense') {\n                  setPocketSubtype('variable');\n                }\n              }}\n              className=\"mt-1 mr-3\"\n              style={{ accentColor: '#0A84FF' }}\n            />\n            <div>\n              <div className=\"font-medium text-white\">{type.label}</div>\n              <div className=\"text-sm mt-1\" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>\n                {type.description}\n              </div>\n            </div>\n          </div>\n        </label>\n      ))}\n    </div>\n  );\n\n  // Step 1b: Seleccionar subtype para gastos\n  const renderSubtypeSelection = () => (\n    <div className=\"space-y-3\">\n      <h3 className=\"font-semibold text-white mb-4\">Tipo de gasto</h3>\n      {EXPENSE_SUBTYPES.map((subtype) => (\n        <label\n          key={subtype.value}\n          className=\"block p-4 rounded-2xl cursor-pointer transition-all\"\n          style={{\n            background: pocketSubtype === subtype.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',\n            border: pocketSubtype === subtype.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',\n            backdropFilter: 'blur(20px)',\n            WebkitBackdropFilter: 'blur(20px)',\n          }}\n        >\n          <div className=\"flex items-start\">\n            <input\n              type=\"radio\"\n              name=\"subtype\"\n              value={subtype.value || ''}\n              checked={pocketSubtype === subtype.value}\n              onChange={(e) => setPocketSubtype((e.target.value as PocketSubtype) || null)}\n              className=\"mt-1 mr-3\"\n              style={{ accentColor: '#0A84FF' }}\n            />\n            <div>\n              <div className=\"font-medium text-white\">{subtype.label}</div>\n              <div className=\"text-sm mt-1\" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>\n                {subtype.description}\n              </div>\n            </div>\n          </div>\n        </label>\n      ))}\n    </div>\n  );\n\n  // Step 2: Campos comunes\n  const renderCommonFields = () => (\n    <div className=\"space-y-5\">\n      <div>\n        <label className=\"ios-label\">Nombre</label>\n        <input\n          type=\"text\"\n          value={name}\n          onChange={(e) => setName(e.target.value)}\n          required\n          placeholder=\"Ej: Supermercado, Ahorro, Netflix...\"\n          className=\"w-full ios-input\"\n        />\n      </div>\n\n      <div>\n        <label className=\"ios-label\">Emoji</label>\n        <div className=\"flex flex-wrap gap-2\">\n          {EMOJIS.map((e) => (\n            <button\n              key={e}\n              type=\"button\"\n              onClick={() => setEmoji(e)}\n              className=\"text-2xl p-2 rounded transition-all\"\n              style={{\n                background: emoji === e ? 'rgba(10, 132, 255, 0.9)' : 'rgba(120, 120, 128, 0.16)',\n                border: emoji === e ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',\n                transform: emoji === e ? 'scale(1.1)' : 'scale(1)',\n                backdropFilter: 'blur(20px)',\n                WebkitBackdropFilter: 'blur(20px)',\n              }}\n            >\n              {e}\n            </button>\n          ))}\n        </div>\n      </div>\n\n      <div>\n        <label className=\"ios-label\">Cuenta</label>\n        <select\n          value={accountId}\n          onChange={(e) => setAccountId(e.target.value)}\n          required\n          className=\"w-full ios-select\"\n        >\n          <option value=\"\">Selecciona una cuenta</option>\n          {accounts.map((acc) => (\n            <option key={acc.id} value={acc.id}>\n              {acc.name}\n            </option>\n          ))}\n        </select>\n      </div>\n\n      {(pocketType === 'expense' || pocketType === 'debt') && (\n        <div>\n          <label className=\"ios-label\">Cuenta de pago (opcional)</label>\n          <select\n            value={linkedAccountId}\n            onChange={(e) => setLinkedAccountId(e.target.value)}\n            className=\"w-full ios-select\"\n          >\n            <option value=\"\">No especificar</option>\n            {accounts.map((acc) => (\n              <option key={acc.id} value={acc.id}>\n                {acc.name}\n              </option>\n            ))}\n          </select>\n        </div>\n      )}\n    </div>\n  );\n\n  // Campos específicos por tipo\n  const renderTypeSpecificFields = () => {\n    if (pocketType === 'saving') {\n      return (\n        <div className=\"space-y-5\">\n          <div>\n            <label className=\"ios-label\">Monto objetivo</label>\n            <input\n              type=\"number\"\n              step=\"0.01\"\n              value={targetAmount}\n              onChange={(e) => setTargetAmount(e.target.value)}\n              required\n              placeholder=\"0.00\"\n              className=\"w-full ios-input\"\n            />\n          </div>\n\n          <div>\n            <label className=\"ios-label\">Frecuencia de aporte</label>\n            <select value={frequency} onChange={(e) => setFrequency(e.target.value as any)} className=\"w-full ios-select\">\n              <option value=\"monthly\">Mensual</option>\n              <option value=\"weekly\">Semanal</option>\n              <option value=\"none\">Sin frecuencia</option>\n            </select>\n          </div>\n\n          <div className=\"grid grid-cols-2 gap-4\">\n            <div>\n              <label className=\"ios-label\">Fecha inicio</label>\n              <input\n                type=\"date\"\n                value={startsAt}\n                onChange={(e) => setStartsAt(e.target.value)}\n                className=\"w-full ios-input\"\n              />\n            </div>\n            <div>\n              <label className=\"ios-label\">Fecha fin (opcional)</label>\n              <input\n                type=\"date\"\n                value={endsAt}\n                onChange={(e) => setEndsAt(e.target.value)}\n                className=\"w-full ios-input\"\n              />\n            </div>\n          </div>\n\n          <div className=\"flex items-center space-x-3\">\n            <input\n              type=\"checkbox\"\n              id=\"allowWithdrawals\"\n              checked={allowWithdrawals}\n              onChange={(e) => setAllowWithdrawals(e.target.checked)}\n              className=\"w-5 h-5 rounded\"\n              style={{ accentColor: '#0A84FF' }}\n            />\n            <label htmlFor=\"allowWithdrawals\" className=\"ios-label\" style={{ marginBottom: 0 }}>\n              Permitir retiros antes de completar\n            </label>\n          </div>\n        </div>\n      );\n    }\n\n    if (pocketType === 'expense' && pocketSubtype === 'variable') {\n      return (\n        <div className=\"space-y-5\">\n          <div>\n            <label className=\"ios-label\">Monto asignado</label>\n            <input\n              type=\"number\"\n              step=\"0.01\"\n              value={allocatedAmount}\n              onChange={(e) => setAllocatedAmount(e.target.value)}\n              required\n              placeholder=\"0.00\"\n              className=\"w-full ios-input\"\n            />\n          </div>\n\n          <div className=\"grid grid-cols-2 gap-4\">\n            <div>\n              <label className=\"ios-label\">Desde</label>\n              <input\n                type=\"date\"\n                value={startsAt}\n                onChange={(e) => setStartsAt(e.target.value)}\n                required\n                className=\"w-full ios-input\"\n              />\n            </div>\n            <div>\n              <label className=\"ios-label\">Hasta</label>\n              <input\n                type=\"date\"\n                value={endsAt}\n                onChange={(e) => setEndsAt(e.target.value)}\n                required\n                className=\"w-full ios-input\"\n              />\n            </div>\n          </div>\n\n          <div>\n            <label className=\"ios-label\">Renovación</label>\n            <select value={resetMode} onChange={(e) => setResetMode(e.target.value as any)} className=\"w-full ios-select\">\n              <option value=\"once\">Una sola vez</option>\n              <option value=\"monthly\">Mensualmente</option>\n            </select>\n          </div>\n        </div>\n      );\n    }\n\n    if (pocketType === 'expense' && pocketSubtype === 'fixed') {\n      return (\n        <div className=\"space-y-5\">\n          <div>\n            <label className=\"ios-label\">Monto mensual</label>\n            <input\n              type=\"number\"\n              step=\"0.01\"\n              value={monthlyAmount}\n              onChange={(e) => setMonthlyAmount(e.target.value)}\n              required\n              placeholder=\"0.00\"\n              className=\"w-full ios-input\"\n            />\n          </div>\n\n          <div>\n            <label className=\"ios-label\">Día de vencimiento</label>\n            <select value={dueDay} onChange={(e) => setDueDay(parseInt(e.target.value))} className=\"w-full ios-select\">\n              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (\n                <option key={day} value={day}>\n                  {day}\n                </option>\n              ))}\n            </select>\n          </div>\n\n          <div className=\"flex items-center space-x-3\">\n            <input\n              type=\"checkbox\"\n              id=\"autoRegister\"\n              checked={autoRegister}\n              onChange={(e) => setAutoRegister(e.target.checked)}\n              className=\"w-5 h-5 rounded\"\n              style={{ accentColor: '#0A84FF' }}\n            />\n            <label htmlFor=\"autoRegister\" className=\"ios-label\" style={{ marginBottom: 0 }}>\n              Registrar automáticamente cada mes\n            </label>\n          </div>\n        </div>\n      );\n    }\n\n    if (pocketType === 'expense' && pocketSubtype === 'period') {\n      return (\n        <div className=\"space-y-5\">\n          <div>\n            <label className=\"ios-label\">Monto asignado</label>\n            <input\n              type=\"number\"\n              step=\"0.01\"\n              value={allocatedAmount}\n              onChange={(e) => setAllocatedAmount(e.target.value)}\n              required\n              placeholder=\"0.00\"\n              className=\"w-full ios-input\"\n            />\n          </div>\n\n          <div className=\"grid grid-cols-2 gap-4\">\n            <div>\n              <label className=\"ios-label\">Desde</label>\n              <input\n                type=\"date\"\n                value={startsAt}\n                onChange={(e) => setStartsAt(e.target.value)}\n                required\n                className=\"w-full ios-input\"\n              />\n            </div>\n            <div>\n              <label className=\"ios-label\">Hasta</label>\n              <input\n                type=\"date\"\n                value={endsAt}\n                onChange={(e) => setEndsAt(e.target.value)}\n                required\n                className=\"w-full ios-input\"\n              />\n            </div>\n          </div>\n        </div>\n      );\n    }\n\n    if (pocketType === 'debt') {\n      return (\n        <div className=\"space-y-5\">\n          <div>\n            <label className=\"ios-label\">Monto total de la deuda</label>\n            <input\n              type=\"number\"\n              step=\"0.01\"\n              value={originalAmount}\n              onChange={(e) => setOriginalAmount(e.target.value)}\n              required\n              placeholder=\"0.00\"\n              className=\"w-full ios-input\"\n            />\n          </div>\n\n          <div className=\"grid grid-cols-2 gap-4\">\n            <div>\n              <label className=\"ios-label\">Total de cuotas</label>\n              <input\n                type=\"number\"\n                value={installmentsTotal}\n                onChange={(e) => setInstallmentsTotal(e.target.value)}\n                required\n                placeholder=\"12\"\n                className=\"w-full ios-input\"\n              />\n            </div>\n            <div>\n              <label className=\"ios-label\">Monto por cuota</label>\n              <input\n                type=\"number\"\n                step=\"0.01\"\n                value={installmentAmount}\n                onChange={(e) => setInstallmentAmount(e.target.value)}\n                placeholder=\"Calculado\"\n                className=\"w-full ios-input\"\n              />\n            </div>\n          </div>\n\n          <div className=\"grid grid-cols-2 gap-4\">\n            <div>\n              <label className=\"ios-label\">Día de vencimiento</label>\n              <select value={debtDueDay} onChange={(e) => setDebtDueDay(parseInt(e.target.value))} className=\"w-full ios-select\">\n                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (\n                  <option key={day} value={day}>\n                    {day}\n                  </option>\n                ))}\n              </select>\n            </div>\n            <div>\n              <label className=\"ios-label\">Tasa de interés (%)</label>\n              <input\n                type=\"number\"\n                step=\"0.01\"\n                value={interestRate}\n                onChange={(e) => setInterestRate(e.target.value)}\n                placeholder=\"0.00\"\n                className=\"w-full ios-input\"\n              />\n            </div>\n          </div>\n\n          <div className=\"flex items-center space-x-3\">\n            <input\n              type=\"checkbox\"\n              id=\"automaticPayment\"\n              checked={automaticPayment}\n              onChange={(e) => setAutomaticPayment(e.target.checked)}\n              className=\"w-5 h-5 rounded\"\n              style={{ accentColor: '#0A84FF' }}\n            />\n            <label htmlFor=\"automaticPayment\" className=\"ios-label\" style={{ marginBottom: 0 }}>\n              Pago automático\n            </label>\n          </div>\n        </div>\n      );\n    }\n\n    return null;\n  };\n\n  const title = mode === 'create' ? 'Nueva Bolsa' : `Editar ${pocket?.name || 'Bolsa'}`;\n\n  return (\n    <IOSModal isOpen={isOpen} onClose={onClose} title={title}>\n      {error && <div className=\"mb-4 ios-error\">{error}</div>}\n\n      <form onSubmit={handleSubmit} className=\"space-y-5\">\n        {/* PASO 1: Tipo de bolsa */}\n        {currentStep === 'type' && mode === 'create' && (\n          <>\n            {renderTypeSelection()}\n            {pocketType === 'expense' && renderSubtypeSelection()}\n            <div className=\"flex space-x-3 pt-4\">\n              <button type=\"button\" onClick={onClose} className=\"flex-1 ios-button-secondary\">\n                Cancelar\n              </button>\n              <button\n                type=\"button\"\n                onClick={() => setCurrentStep('config')}\n                className=\"flex-1 ios-button\"\n              >\n                Siguiente\n              </button>\n            </div>\n          </>\n        )}\n\n        {/* PASO 2: Configuración */}\n        {currentStep === 'config' && (\n          <>\n            {renderCommonFields()}\n            {renderTypeSpecificFields()}\n            <div className=\"flex space-x-3 pt-4\">\n              {mode === 'create' && (\n                <button\n                  type=\"button\"\n                  onClick={() => setCurrentStep('type')}\n                  className=\"flex-1 ios-button-secondary\"\n                >\n                  Atrás\n                </button>\n              )}\n              <button type=\"button\" onClick={onClose} className=\"flex-1 ios-button-secondary\">\n                Cancelar\n              </button>\n              <button type=\"submit\" disabled={loading} className=\"flex-1 ios-button\">\n                {loading ? 'Guardando...' : mode === 'create' ? 'Crear' : 'Guardar'}\n              </button>\n            </div>\n          </>\n        )}\n      </form>\n    </IOSModal>\n  );\n}\n"
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
+import {
+  Pocket,
+  PocketType,
+  PocketSubtype,
+  Account,
+  CreatePocketInput,
+  UpdatePocketInput,
+  isSavingPocket,
+  isExpenseVariablePocket,
+  isExpenseFixedPocket,
+  isExpensePeriodPocket,
+  isExpenseSharedPocket,
+  isDebtPocket,
+} from '../../lib/types-new';
+
+interface PocketEditorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+  mode: 'create' | 'edit';
+  pocket?: Pocket;
+}
+
+const POCKET_TYPES: Array<{ value: PocketType; label: string; description: string }> = [
+  { value: 'saving', label: 'Ahorro', description: 'Juntar dinero para una meta' },
+  { value: 'expense', label: 'Gasto', description: 'Controlar gastos con límite' },
+  { value: 'debt', label: 'Deuda', description: 'Gestionar préstamos y cuotas' },
+];
+
+const EXPENSE_SUBTYPES: Array<{ value: PocketSubtype; label: string; description: string }> = [
+  { value: 'variable', label: 'Gasto Diario', description: 'Gasto variable con límite de días' },
+  { value: 'fixed', label: 'Gasto Fijo', description: 'Gasto mensual recurrente' },
+  { value: 'period', label: 'Período', description: 'Gasto en período personalizado' },
+  // { value: 'shared', label: 'Compartida', description: 'Compartir con otros usuarios' },
+];
+
+const EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉', '🍔', '⚡', '📱', '🎬', '🏋️'];
+
+export default function PocketEditor({
+  isOpen,
+  onClose,
+  onSuccess,
+  mode,
+  pocket,
+}: PocketEditorProps) {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<'type' | 'config' | 'review'>(mode === 'create' ? 'type' : 'config');
+
+  // Campos comunes
+  const [name, setName] = useState(pocket?.name || '');
+  const [pocketType, setPocketType] = useState<PocketType>(pocket?.type || 'saving');
+  const [pocketSubtype, setPocketSubtype] = useState<PocketSubtype>(pocket?.subtype || null);
+  const [emoji, setEmoji] = useState(pocket?.emoji || '💰');
+  const [accountId, setAccountId] = useState(pocket?.account_id || '');
+  const [linkedAccountId, setLinkedAccountId] = useState(pocket?.linked_account_id || '');
+
+  // SAVING
+  const [targetAmount, setTargetAmount] = useState(pocket && isSavingPocket(pocket) ? pocket.target_amount : '');
+  const [frequency, setFrequency] = useState(pocket && isSavingPocket(pocket) ? pocket.frequency : 'monthly');
+  const [allowWithdrawals, setAllowWithdrawals] = useState(
+    pocket && isSavingPocket(pocket) ? pocket.allow_withdrawals !== false : true
+  );
+  const [startsAt, setStartsAt] = useState(pocket?.starts_at?.split('T')[0] || new Date().toISOString().split('T')[0]);
+  const [endsAt, setEndsAt] = useState(pocket?.ends_at?.split('T')[0] || '');
+
+  // EXPENSE.VARIABLE
+  const [allocatedAmount, setAllocatedAmount] = useState(
+    pocket && (isExpenseVariablePocket(pocket) || isExpensePeriodPocket(pocket)) ? pocket.allocated_amount : ''
+  );
+  const [resetMode, setResetMode] = useState(
+    pocket && isExpenseVariablePocket(pocket) ? pocket.reset_mode : 'once'
+  );
+
+  // EXPENSE.FIXED
+  const [monthlyAmount, setMonthlyAmount] = useState(
+    pocket && isExpenseFixedPocket(pocket) ? pocket.monthly_amount : ''
+  );
+  const [dueDay, setDueDay] = useState(
+    pocket && isExpenseFixedPocket(pocket) ? pocket.due_day : 15
+  );
+  const [autoRegister, setAutoRegister] = useState(
+    pocket && isExpenseFixedPocket(pocket) ? pocket.auto_register : false
+  );
+
+  // DEBT
+  const [originalAmount, setOriginalAmount] = useState(
+    pocket && isDebtPocket(pocket) ? pocket.original_amount : ''
+  );
+  const [installmentsTotal, setInstallmentsTotal] = useState(
+    pocket && isDebtPocket(pocket) ? pocket.installments_total : ''
+  );
+  const [installmentAmount, setInstallmentAmount] = useState(
+    pocket && isDebtPocket(pocket) ? pocket.installment_amount : ''
+  );
+  const [interestRate, setInterestRate] = useState(
+    pocket && isDebtPocket(pocket) ? pocket.interest_rate : ''
+  );
+  const [automaticPayment, setAutomaticPayment] = useState(
+    pocket && isDebtPocket(pocket) ? pocket.automatic_payment : false
+  );
+  const [debtDueDay, setDebtDueDay] = useState(
+    pocket && isDebtPocket(pocket) ? pocket.due_day : 15
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAccounts();
+    }
+  }, [isOpen]);
+
+  const fetchAccounts = async () => {
+    const { data, error } = await supabase
+      .from('accounts')
+      .select('*')
+      .order('is_primary', { ascending: false });
+
+    if (data) {
+      setAccounts(data);
+      if (!accountId && data.length > 0) {
+        setAccountId(data[0].id);
+      }
+    }
+    if (error) console.error('Error fetching accounts:', error);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      const selectedAccount = accounts.find(a => a.id === accountId);
+      if (!selectedAccount) throw new Error('Selecciona una cuenta válida');
+
+      // Construir payload según tipo
+      const pocketData: any = {
+        user_id: user.id,
+        name,
+        type: pocketType,
+        emoji,
+        account_id: accountId,
+        currency: selectedAccount.currency || 'ARS',
+        status: 'active',
+      };
+
+      // Agregar subtype si es expense
+      if (pocketType === 'expense') {
+        pocketData.subtype = pocketSubtype;
+      }
+
+      if (linkedAccountId) {
+        pocketData.linked_account_id = linkedAccountId;
+      }
+
+      // Campos según tipo
+      if (pocketType === 'saving') {
+        if (!targetAmount) throw new Error('Ingresa el monto objetivo');
+        pocketData.target_amount = parseFloat(targetAmount as string);
+        pocketData.amount_saved = 0;
+        pocketData.frequency = frequency;
+        pocketData.allow_withdrawals = allowWithdrawals;
+        if (endsAt) pocketData.ends_at = endsAt;
+        pocketData.starts_at = startsAt;
+      }
+
+      if (pocketType === 'expense' && pocketSubtype === 'variable') {
+        if (!allocatedAmount || !endsAt) throw new Error('Completa monto y fechas');
+        pocketData.allocated_amount = parseFloat(allocatedAmount as string);
+        pocketData.spent_amount = 0;
+        pocketData.starts_at = startsAt;
+        pocketData.ends_at = endsAt;
+        pocketData.reset_mode = resetMode;
+      }
+
+      if (pocketType === 'expense' && pocketSubtype === 'fixed') {
+        if (!monthlyAmount || !dueDay) throw new Error('Completa monto y día de vencimiento');
+        pocketData.monthly_amount = parseFloat(monthlyAmount as string);
+        pocketData.due_day = dueDay;
+        pocketData.auto_register = autoRegister;
+      }
+
+      if (pocketType === 'expense' && pocketSubtype === 'period') {
+        if (!allocatedAmount || !endsAt) throw new Error('Completa monto y período');
+        pocketData.allocated_amount = parseFloat(allocatedAmount as string);
+        pocketData.spent_amount = 0;
+        pocketData.starts_at = startsAt;
+        pocketData.ends_at = endsAt;
+      }
+
+      if (pocketType === 'debt') {
+        if (!originalAmount || !installmentsTotal) throw new Error('Completa monto e instalaciones');
+        pocketData.original_amount = parseFloat(originalAmount as string);
+        pocketData.remaining_amount = parseFloat(originalAmount as string);
+        pocketData.installments_total = parseInt(installmentsTotal as string);
+        pocketData.installment_current = 0;
+        pocketData.installment_amount = installmentAmount ? parseFloat(installmentAmount as string) : undefined;
+        if (interestRate) pocketData.interest_rate = parseFloat(interestRate as string);
+        pocketData.due_day = debtDueDay;
+        pocketData.automatic_payment = automaticPayment;
+      }
+
+      if (mode === 'create') {
+        const { error: insertError } = await supabase
+          .from('pockets')
+          .insert(pocketData);
+
+        if (insertError) throw insertError;
+      } else if (mode === 'edit' && pocket) {
+        const { error: updateError } = await supabase
+          .from('pockets')
+          .update(pocketData)
+          .eq('id', pocket.id);
+
+        if (updateError) throw updateError;
+      }
+
+      setName('');
+      setTargetAmount('');
+      setPocketType('saving');
+      setPocketSubtype(null);
+      setEmoji('💰');
+      setCurrentStep('type');
+      onSuccess?.();
+      onClose();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 1: Seleccionar tipo
+  const renderTypeSelection = () => (
+    <div className=\"space-y-3\">
+      <h3 className=\"font-semibold text-white mb-4\">Tipo de bolsa</h3>
+      {POCKET_TYPES.map((type) => (
+        <label
+          key={type.value}
+          className=\"block p-4 rounded-2xl cursor-pointer transition-all\"
+          style={{
+            background: pocketType === type.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',
+            border: pocketType === type.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
+          <div className=\"flex items-start\">
+            <input
+              type=\"radio\"
+              name=\"type\"
+              value={type.value}
+              checked={pocketType === type.value}
+              onChange={(e) => {
+                setPocketType(e.target.value as PocketType);
+                if (e.target.value === 'expense') {
+                  setPocketSubtype('variable');
+                }
+              }}
+              className=\"mt-1 mr-3\"
+              style={{ accentColor: '#0A84FF' }}
+            />
+            <div>
+              <div className=\"font-medium text-white\">{type.label}</div>
+              <div className=\"text-sm mt-1\" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                {type.description}
+              </div>
+            </div>
+          </div>
+        </label>
+      ))}
+    </div>
+  );
+
+  // Step 1b: Seleccionar subtype para gastos
+  const renderSubtypeSelection = () => (
+    <div className=\"space-y-3\">
+      <h3 className=\"font-semibold text-white mb-4\">Tipo de gasto</h3>
+      {EXPENSE_SUBTYPES.map((subtype) => (
+        <label
+          key={subtype.value}
+          className=\"block p-4 rounded-2xl cursor-pointer transition-all\"
+          style={{
+            background: pocketSubtype === subtype.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',
+            border: pocketSubtype === subtype.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
+          <div className=\"flex items-start\">
+            <input
+              type=\"radio\"
+              name=\"subtype\"
+              value={subtype.value || ''}
+              checked={pocketSubtype === subtype.value}
+              onChange={(e) => setPocketSubtype((e.target.value as PocketSubtype) || null)}
+              className=\"mt-1 mr-3\"
+              style={{ accentColor: '#0A84FF' }}
+            />
+            <div>
+              <div className=\"font-medium text-white\">{subtype.label}</div>
+              <div className=\"text-sm mt-1\" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                {subtype.description}
+              </div>
+            </div>
+          </div>
+        </label>
+      ))}
+    </div>
+  );
+
+  // Step 2: Campos comunes
+  const renderCommonFields = () => (
+    <div className=\"space-y-5\">
+      <GlassField
+        label="Nombre"
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        required
+        placeholder="Ej: Supermercado, Ahorro, Netflix..."
+      />
+
+      <div>
+        <label className=\"ios-label\">Emoji</label>
+        <div className=\"flex flex-wrap gap-2\">
+          {EMOJIS.map((e) => (
+            <button
+              key={e}
+              type=\"button\"
+              onClick={() => setEmoji(e)}
+              className=\"text-2xl p-2 rounded transition-all\"
+              style={{
+                background: emoji === e ? 'rgba(10, 132, 255, 0.9)' : 'rgba(120, 120, 128, 0.16)',
+                border: emoji === e ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
+                transform: emoji === e ? 'scale(1.1)' : 'scale(1)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+              }}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <GlassSelect
+        label="Cuenta"
+        value={accountId}
+        onChange={(e) => setAccountId(e.target.value)}
+        required
+      >
+        <option value="">Selecciona una cuenta</option>
+        {accounts.map((acc) => (
+          <option key={acc.id} value={acc.id}>
+            {acc.name}
+          </option>
+        ))}
+      </GlassSelect>
+
+      {(pocketType === 'expense' || pocketType === 'debt') && (
+        <GlassSelect
+          label="Cuenta de pago (opcional)"
+          value={linkedAccountId}
+          onChange={(e) => setLinkedAccountId(e.target.value)}
+        >
+          <option value="">No especificar</option>
+          {accounts.map((acc) => (
+            <option key={acc.id} value={acc.id}>
+              {acc.name}
+            </option>
+          ))}
+        </GlassSelect>
+      )}
+    </div>
+  );
+
+  // Campos específicos por tipo
+  const renderTypeSpecificFields = () => {
+    if (pocketType === 'saving') {
+      return (
+        <div className=\"space-y-5\">
+          <GlassField
+            label="Monto objetivo"
+            type="number"
+            step="0.01"
+            value={targetAmount}
+            onChange={(e) => setTargetAmount(e.target.value)}
+            required
+            placeholder="0.00"
+          />
+
+          <GlassSelect
+            label="Frecuencia de aporte"
+            value={frequency}
+            onChange={(e) => setFrequency(e.target.value as any)}
+          >
+            <option value="monthly">Mensual</option>
+            <option value="weekly">Semanal</option>
+            <option value="none">Sin frecuencia</option>
+          </GlassSelect>
+
+          <div className=\"grid grid-cols-2 gap-4\">
+            <GlassField
+              label="Fecha inicio"
+              type="date"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+            />
+            <GlassField
+              label="Fecha fin (opcional)"
+              type="date"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+            />
+          </div>
+
+          <div className=\"flex items-center space-x-3\">
+            <input
+              type=\"checkbox\"
+              id=\"allowWithdrawals\"
+              checked={allowWithdrawals}
+              onChange={(e) => setAllowWithdrawals(e.target.checked)}
+              className=\"w-5 h-5 rounded\"
+              style={{ accentColor: '#0A84FF' }}
+            />
+            <label htmlFor=\"allowWithdrawals\" className=\"ios-label\" style={{ marginBottom: 0 }}>
+              Permitir retiros antes de completar
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    if (pocketType === 'expense' && pocketSubtype === 'variable') {
+      return (
+        <div className=\"space-y-5\">
+          <GlassField
+            label="Monto asignado"
+            type="number"
+            step="0.01"
+            value={allocatedAmount}
+            onChange={(e) => setAllocatedAmount(e.target.value)}
+            required
+            placeholder="0.00"
+          />
+
+          <div className=\"grid grid-cols-2 gap-4\">
+            <GlassField
+              label="Desde"
+              type="date"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+              required
+            />
+            <GlassField
+              label="Hasta"
+              type="date"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+              required
+            />
+          </div>
+
+          <GlassSelect
+            label="Renovación"
+            value={resetMode}
+            onChange={(e) => setResetMode(e.target.value as any)}
+          >
+            <option value="once">Una sola vez</option>
+            <option value="monthly">Mensualmente</option>
+          </GlassSelect>
+        </div>
+      );
+    }
+
+    if (pocketType === 'expense' && pocketSubtype === 'fixed') {
+      return (
+        <div className=\"space-y-5\">
+          <GlassField
+            label="Monto mensual"
+            type="number"
+            step="0.01"
+            value={monthlyAmount}
+            onChange={(e) => setMonthlyAmount(e.target.value)}
+            required
+            placeholder="0.00"
+          />
+
+          <GlassSelect
+            label="Día de vencimiento"
+            value={dueDay}
+            onChange={(e) => setDueDay(parseInt(e.target.value))}
+          >
+            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+              <option key={day} value={day}>
+                {day}
+              </option>
+            ))}
+          </GlassSelect>
+
+          <div className=\"flex items-center space-x-3\">
+            <input
+              type=\"checkbox\"
+              id=\"autoRegister\"
+              checked={autoRegister}
+              onChange={(e) => setAutoRegister(e.target.checked)}
+              className=\"w-5 h-5 rounded\"
+              style={{ accentColor: '#0A84FF' }}
+            />
+            <label htmlFor=\"autoRegister\" className=\"ios-label\" style={{ marginBottom: 0 }}>
+              Registrar automáticamente cada mes
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    if (pocketType === 'expense' && pocketSubtype === 'period') {
+      return (
+        <div className=\"space-y-5\">
+          <GlassField
+            label="Monto asignado"
+            type="number"
+            step="0.01"
+            value={allocatedAmount}
+            onChange={(e) => setAllocatedAmount(e.target.value)}
+            required
+            placeholder="0.00"
+          />
+
+          <div className=\"grid grid-cols-2 gap-4\">
+            <GlassField
+              label="Desde"
+              type="date"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+              required
+            />
+            <GlassField
+              label="Hasta"
+              type="date"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (pocketType === 'debt') {
+      return (
+        <div className=\"space-y-5\">
+          <GlassField
+            label="Monto total de la deuda"
+            type="number"
+            step="0.01"
+            value={originalAmount}
+            onChange={(e) => setOriginalAmount(e.target.value)}
+            required
+            placeholder="0.00"
+          />
+
+          <div className=\"grid grid-cols-2 gap-4\">
+            <GlassField
+              label="Total de cuotas"
+              type="number"
+              value={installmentsTotal}
+              onChange={(e) => setInstallmentsTotal(e.target.value)}
+              required
+              placeholder="12"
+            />
+            <GlassField
+              label="Monto por cuota"
+              type="number"
+              step="0.01"
+              value={installmentAmount}
+              onChange={(e) => setInstallmentAmount(e.target.value)}
+              placeholder="Calculado"
+            />
+          </div>
+
+          <div className=\"grid grid-cols-2 gap-4\">
+            <GlassSelect
+              label="Día de vencimiento"
+              value={debtDueDay}
+              onChange={(e) => setDebtDueDay(parseInt(e.target.value))}
+            >
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </GlassSelect>
+            <GlassField
+              label="Tasa de interés (%)"
+              type="number"
+              step="0.01"
+              value={interestRate}
+              onChange={(e) => setInterestRate(e.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className=\"flex items-center space-x-3\">
+            <input
+              type=\"checkbox\"
+              id=\"automaticPayment\"
+              checked={automaticPayment}
+              onChange={(e) => setAutomaticPayment(e.target.checked)}
+              className=\"w-5 h-5 rounded\"
+              style={{ accentColor: '#0A84FF' }}
+            />
+            <label htmlFor=\"automaticPayment\" className=\"ios-label\" style={{ marginBottom: 0 }}>
+              Pago automático
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const title = mode === 'create' ? 'Nueva Bolsa' : `Editar ${pocket?.name || 'Bolsa'}`;
+
+  return (
+    <IOSModal isOpen={isOpen} onClose={onClose} title={title}>
+      {error && <div className=\"mb-4 ios-error\">{error}</div>}
+
+      <form onSubmit={handleSubmit} className=\"space-y-5\">
+        {/* PASO 1: Tipo de bolsa */}
+        {currentStep === 'type' && mode === 'create' && (
+          <>
+            {renderTypeSelection()}
+            {pocketType === 'expense' && renderSubtypeSelection()}
+            <div className=\"flex space-x-3 pt-4\">
+              <button type=\"button\" onClick={onClose} className=\"flex-1 ios-button-secondary\">
+                Cancelar
+              </button>
+              <button
+                type=\"button\"
+                onClick={() => setCurrentStep('config')}
+                className=\"flex-1 ios-button\"
+              >
+                Siguiente
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* PASO 2: Configuración */}
+        {currentStep === 'config' && (
+          <>
+            {renderCommonFields()}
+            {renderTypeSpecificFields()}
+            <div className=\"flex space-x-3 pt-4\">
+              {mode === 'create' && (
+                <button
+                  type=\"button\"
+                  onClick={() => setCurrentStep('type')}
+                  className=\"flex-1 ios-button-secondary\"
+                >
+                  Atrás
+                </button>
+              )}
+              <button type=\"button\" onClick={onClose} className=\"flex-1 ios-button-secondary\">
+                Cancelar
+              </button>
+              <button type=\"submit\" disabled={loading} className=\"flex-1 ios-button\">
+                {loading ? 'Guardando...' : mode === 'create' ? 'Crear' : 'Guardar'}
+              </button>
+            </div>
+          </>
+        )}
+      </form>
+    </IOSModal>
+  );
+}
+"
