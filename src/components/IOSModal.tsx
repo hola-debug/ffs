@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState, memo } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import GlassSurface from './GlassSurface';
 import GlassField, { GlassSelect } from './GlassField';
@@ -51,7 +51,7 @@ interface IOSModalProps {
   children: ReactNode;
 }
 
-export default function IOSModal({ isOpen, onClose, title, children }: IOSModalProps) {
+function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -92,15 +92,17 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
 
   return (
     <>
-      {/* Backdrop con blur y oscuridad */}
+      {/* Backdrop con blur y oscuridad - Optimized */}
       <div
         className={isClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'}
         style={{
           position: 'fixed',
           inset: 0,
           zIndex: 9998,
-          backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(4px)',
+          willChange: 'opacity',
+          transform: 'translateZ(0)',
         }}
         onClick={handleClose}
       />
@@ -114,7 +116,7 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
           className={`relative w-full max-w-md pointer-events-auto ${isClosing ? 'modal-content-exit' : 'modal-content-enter'}`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Glass Surface Container */}
+          {/* Glass Surface Container - Optimized */}
           <div>
            <GlassSurface
             width="100%"
@@ -123,25 +125,26 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
             borderWidth={0.011}
             brightness={11}
             opacity={0.95}
-            blur={20}
-            displace={1.2}
+            blur={15}
+            displace={0.8}
             backgroundOpacity={0.25}
-            saturation={1.2}
-            distortionScale={-200}
+            saturation={1.1}
+            distortionScale={-150}
             redOffset={0}
-            greenOffset={8}
-            blueOffset={16}
+            greenOffset={6}
+            blueOffset={12}
             xChannel="R"
             yChannel="G"
             mixBlendMode="screen"
-            className="shadow-2xl backdrop-blur-3xl"
+            className="shadow-2xl backdrop-blur-2xl"
             style={{
+              willChange: 'transform',
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden',
               boxShadow: `
-                0 25px 80px rgba(0, 0, 0, 0.35),
-                0 10px 40px rgba(0, 0, 0, 0.25),
-                0 5px 20px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2)
+                0 20px 60px rgba(0, 0, 0, 0.3),
+                0 8px 30px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15)
               `,
             }}
           >
@@ -215,3 +218,5 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
     </>
   );
 }
+
+export default memo(IOSModalComponent);

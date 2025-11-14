@@ -17,6 +17,7 @@ export function useEditForm(pocket: Pocket | undefined) {
     emoji: '💰',
     accountId: '',
     linkedAccountId: '',
+    currency: '',
     
     // SAVING
     targetAmount: '',
@@ -71,6 +72,7 @@ export function useEditForm(pocket: Pocket | undefined) {
         emoji: pocket.emoji || '💰',
         accountId: pocket.account_id || '',
         linkedAccountId: pocket.linked_account_id || '',
+        currency: pocket.currency || '',
 
         // SAVING
         targetAmount: isSavingPocket(pocket) ? pocket.target_amount : '',

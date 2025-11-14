@@ -10,6 +10,7 @@ const initialState: PocketFormState = {
   emoji: '💰',
   accountId: '',
   linkedAccountId: '',
+  currency: '',
   
   // SAVING
   targetAmount: '',

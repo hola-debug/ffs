@@ -8,6 +8,12 @@ interface AddAccountModalProps {
   onSuccess?: () => void;
 }
 
+interface CurrencyBalance {
+  currency: string;
+  balance: string;
+  isPrimary: boolean;
+}
+
 const ACCOUNT_TYPES = [
   { value: 'bank', label: 'Banco' },
   { value: 'fintech', label: 'Fintech / Billetera Digital' },
@@ -24,18 +30,65 @@ const CURRENCIES = [
   { value: 'UYU', label: 'UYU - Peso Uruguayo' },
   { value: 'BRL', label: 'BRL - Real Brasileño' },
   { value: 'CLP', label: 'CLP - Peso Chileno' },
+  { value: 'PEN', label: 'PEN - Sol Peruano' },
+  { value: 'COP', label: 'COP - Peso Colombiano' },
+  { value: 'MXN', label: 'MXN - Peso Mexicano' },
   { value: 'BTC', label: 'BTC - Bitcoin' },
-  { value: 'ETH', label: 'ETH - Ethereum' },
 ] as const;
 
 export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccountModalProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState<'cash' | 'bank' | 'fintech' | 'crypto' | 'investment' | 'other'>('bank');
-  const [currency, setCurrency] = useState('ARS');
-  const [balance, setBalance] = useState('');
-  const [isPrimary, setIsPrimary] = useState(false);
+  const [currencyBalances, setCurrencyBalances] = useState<CurrencyBalance[]>([
+    { currency: 'ARS', balance: '', isPrimary: true },
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleAddCurrency = () => {
+    const newCurrency = currencyBalances[0].currency === 'ARS' ? 'USD' : 'ARS';
+    const alreadyExists = currencyBalances.some(cb => cb.currency === newCurrency);
+    
+    if (!alreadyExists) {
+      setCurrencyBalances([
+        ...currencyBalances,
+        { currency: newCurrency, balance: '', isPrimary: false },
+      ]);
+    }
+  };
+
+  const handleRemoveCurrency = (index: number) => {
+    if (currencyBalances.length > 1) {
+      const newBalances = currencyBalances.filter((_, i) => i !== index);
+      
+      // Si removemos la primaria, marcar la primera como primaria
+      if (currencyBalances[index].isPrimary && newBalances.length > 0) {
+        newBalances[0].isPrimary = true;
+      }
+      
+      setCurrencyBalances(newBalances);
+    }
+  };
+
+  const handleCurrencyChange = (index: number, newCurrency: string) => {
+    const newBalances = [...currencyBalances];
+    newBalances[index].currency = newCurrency;
+    setCurrencyBalances(newBalances);
+  };
+
+  const handleBalanceChange = (index: number, newBalance: string) => {
+    const newBalances = [...currencyBalances];
+    newBalances[index].balance = newBalance;
+    setCurrencyBalances(newBalances);
+  };
+
+  const handlePrimaryChange = (index: number) => {
+    const newBalances = currencyBalances.map((cb, i) => ({
+      ...cb,
+      isPrimary: i === index,
+    }));
+    setCurrencyBalances(newBalances);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,25 +99,99 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      const { error: insertError } = await supabase
+      // Validar que hay al menos una divisa con balance
+      if (currencyBalances.length === 0) {
+        throw new Error('Debes agregar al menos una divisa');
+      }
+
+      // 1. Insertar la cuenta
+      const { data: accountsData, error: insertError } = await supabase
         .from('accounts')
         .insert({
           user_id: user.id,
           name,
           type,
-          currency,
-          balance: parseFloat(balance) || 0,
-          is_primary: isPrimary,
-        });
+        })
+        .select('id')
+        .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error insertando cuenta:', insertError);
+        throw new Error(`Error al crear cuenta: ${insertError.message}`);
+      }
+      
+      if (!accountsData?.id) throw new Error('No se pudo crear la cuenta');
+      
+      const newAccountId = accountsData.id;
+
+      // 2. Insertar todas las divisas en account_currencies con sus balances
+      const currencyRecords = currencyBalances.map(cb => ({
+        account_id: newAccountId,
+        currency: cb.currency,
+        is_primary: cb.isPrimary,
+        balance: parseFloat(cb.balance) || 0, // Guardar el balance aquí
+      }));
+
+      let currenciesError = null;
+      
+      console.log('Insertando divisas para account_id:', newAccountId);
+      console.log('Registros a insertar:', currencyRecords);
+      
+      // Insertar una por una para mejor diagnostico
+      for (const record of currencyRecords) {
+        console.log('Insertando record:', record);
+        const result = await supabase
+          .from('account_currencies')
+          .insert([record]);
+        
+        console.log('Resultado del insert:', result);
+        
+        if (result.error) {
+          console.error('Error insertando divisa', record.currency, ':', result.error);
+          console.error('Error details:', {
+            code: result.error.code,
+            message: result.error.message,
+            details: result.error.details,
+            hint: result.error.hint,
+          });
+          currenciesError = result.error;
+          break;
+        }
+      }
+
+      if (currenciesError) {
+        console.error('Error final:', currenciesError);
+        throw new Error(`Error al guardar divisas: ${currenciesError.message || 'Error desconocido'}`);
+      }
+
+      // 3. Si hay saldos iniciales, crear movimientos de income (opcional)
+      // NOTA: El balance ya se guardó en account_currencies, pero podemos registrar
+      // un movimiento de "saldo inicial" para tener historial
+      const balancesWithAmount = currencyBalances.filter(cb => parseFloat(cb.balance) > 0);
+      if (balancesWithAmount.length > 0) {
+        const movementRecords = balancesWithAmount.map(cb => ({
+          user_id: user.id,
+          account_id: newAccountId,
+          type: 'income',
+          amount: parseFloat(cb.balance) || 0,
+          currency: cb.currency,
+          description: `Saldo inicial en ${cb.currency}`,
+          date: new Date().toISOString().split('T')[0],
+        }));
+
+        const { error: movementError } = await supabase
+          .from('movements')
+          .insert(movementRecords);
+
+        if (movementError) {
+          console.warn('Cuenta creada pero no se pudieron registrar los movimientos iniciales:', movementError);
+        }
+      }
 
       // Reset form
       setName('');
       setType('bank');
-      setCurrency('ARS');
-      setBalance('');
-      setIsPrimary(false);
+      setCurrencyBalances([{ currency: 'ARS', balance: '', isPrimary: true }]);
       
       onSuccess?.();
       onClose();
@@ -106,42 +233,75 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
           ))}
         </GlassSelect>
 
-        <GlassSelect
-          label="Moneda"
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-          required
-        >
-          {CURRENCIES.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
+        {/* Sección de divisas */}
+        <div className="bg-white/5 rounded-lg p-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <label className="ios-label font-semibold">Divisas</label>
+            <button
+              type="button"
+              onClick={handleAddCurrency}
+              className="text-sm text-blue-500 hover:text-blue-600"
+              disabled={currencyBalances.length >= CURRENCIES.length}
+            >
+              + Agregar divisa
+            </button>
+          </div>
+
+          {currencyBalances.map((cb, index) => (
+            <div key={index} className="space-y-2 p-3 bg-white/5 rounded">
+              <div className="flex items-center justify-between gap-2">
+                <GlassSelect
+                  label={`Divisa ${index + 1}`}
+                  value={cb.currency}
+                  onChange={(e) => handleCurrencyChange(index, e.target.value)}
+                  required
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </GlassSelect>
+
+                {currencyBalances.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCurrency(index)}
+                    className="text-red-500 hover:text-red-600 font-bold mt-6"
+                    title="Eliminar esta divisa"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <GlassField
+                label={`Saldo inicial en ${cb.currency} (opcional)`}
+                type="number"
+                step="0.01"
+                value={cb.balance}
+                onChange={(e) => handleBalanceChange(index, e.target.value)}
+                placeholder="0.00"
+              />
+
+              <div className="flex items-center space-x-3">
+                <input
+                  type="radio"
+                  id={`isPrimary-${index}`}
+                  name="primary-currency"
+                  checked={cb.isPrimary}
+                  onChange={() => handlePrimaryChange(index)}
+                  className="w-5 h-5 accent-blue-500"
+                  style={{
+                    accentColor: '#0A84FF'
+                  }}
+                />
+                <label htmlFor={`isPrimary-${index}`} className="ios-label" style={{ marginBottom: 0 }}>
+                  Divisa principal
+                </label>
+              </div>
+            </div>
           ))}
-        </GlassSelect>
-
-        <GlassField
-          label="Saldo inicial (opcional)"
-          type="number"
-          step="0.01"
-          value={balance}
-          onChange={(e) => setBalance(e.target.value)}
-          placeholder="0.00"
-        />
-
-        <div className="flex items-center space-x-3">
-          <input
-            type="checkbox"
-            id="isPrimary"
-            checked={isPrimary}
-            onChange={(e) => setIsPrimary(e.target.checked)}
-            className="w-5 h-5 rounded accent-blue-500"
-            style={{
-              accentColor: '#0A84FF'
-            }}
-          />
-          <label htmlFor="isPrimary" className="ios-label" style={{ marginBottom: 0 }}>
-            Marcar como cuenta principal
-          </label>
         </div>
 
         <div className="flex space-x-3 pt-4">

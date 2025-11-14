@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
-import { Pocket } from '../../lib/types';
+import { Pocket, isExpensePocket } from '../../lib/types';
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -52,10 +52,15 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
 
       const pocket = pockets.find(p => p.id === pocketId);
       if (!pocket) throw new Error('Bolsa no encontrada');
+      if (!isExpensePocket(pocket)) throw new Error('Debe ser una bolsa de gasto');
 
       const expenseAmount = parseFloat(amount);
-      if (expenseAmount > pocket.current_balance) {
-        throw new Error('El gasto supera el saldo disponible en la bolsa');
+      
+      // Calcular saldo disponible: allocated_amount - spent_amount
+      const availableBalance = (pocket.allocated_amount || 0) - (pocket.spent_amount || 0);
+      
+      if (expenseAmount > availableBalance) {
+        throw new Error(`El gasto supera el saldo disponible ($${availableBalance.toFixed(2)})`);
       }
 
       const { error: insertError } = await supabase
@@ -127,11 +132,14 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
           required
           disabled={pockets.length === 0}
         >
-          {pockets.map((pocket) => (
-            <option key={pocket.id} value={pocket.id}>
-              {pocket.emoji} {pocket.name} - Disponible: ${pocket.current_balance.toFixed(2)}
-            </option>
-          ))}
+          {pockets.map((pocket) => {
+            const available = (pocket.allocated_amount || 0) - (pocket.spent_amount || 0);
+            return (
+              <option key={pocket.id} value={pocket.id}>
+                {pocket.emoji} {pocket.name} - Disponible: ${available.toFixed(2)} {pocket.currency}
+              </option>
+            );
+          })}
         </GlassSelect>
 
         <GlassField

@@ -15,11 +15,12 @@ export function usePockets() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Obtener bolsas activas desde la vista
+      // Obtener bolsas activas
       const { data, error: fetchError } = await supabase
-        .from('active_pockets_summary')
+        .from('pockets')
         .select('*')
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;

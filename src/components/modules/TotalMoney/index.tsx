@@ -1,4 +1,4 @@
-import { Account, Pocket } from '../../../lib/types';
+import { Account, Pocket, getAccountBalance } from '../../../lib/types';
 import { BaseCard } from '../BaseCard';
 import CountUp from '../../ui/CountUp';
 import { EyeIcon } from '@heroicons/react/24/outline';
@@ -12,8 +12,8 @@ interface TotalMoneyModuleProps {
 export function TotalMoneyModule({ accounts, pockets }: TotalMoneyModuleProps) {
   // Calcular el total de dinero disponible
   const totalMoney = useMemo(() => {
-    // Sumar saldo de cuentas
-    const accountsTotal = accounts.reduce((sum, account) => sum + account.balance, 0);
+    // Sumar saldo de cuentas (divisas primarias)
+    const accountsTotal = accounts.reduce((sum, account) => sum + getAccountBalance(account), 0);
     
     // Sumar saldo de bolsas de GASTO (expense)
     const pocketsTotal = pockets
@@ -27,12 +27,14 @@ export function TotalMoneyModule({ accounts, pockets }: TotalMoneyModuleProps) {
   const breakdownByCurrency = useMemo(() => {
     const grouped: Record<string, { accounts: number; pockets: number }> = {};
 
-    // Agrupar cuentas
+    // Agrupar cuentas (todas las divisas)
     accounts.forEach(account => {
-      if (!grouped[account.currency]) {
-        grouped[account.currency] = { accounts: 0, pockets: 0 };
-      }
-      grouped[account.currency].accounts += account.balance;
+      account.currencies?.forEach(curr => {
+        if (!grouped[curr.currency]) {
+          grouped[curr.currency] = { accounts: 0, pockets: 0 };
+        }
+        grouped[curr.currency].accounts += curr.balance;
+      });
     });
 
     // Agrupar bolsas de gasto

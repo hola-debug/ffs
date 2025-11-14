@@ -1,4 +1,4 @@
-import { Pocket, PocketType, PocketSubtype, Account } from '@/lib/types';
+import { Pocket, PocketType, PocketSubtype, Account, CurrencyCode } from '@/lib/types';
 
 export interface PocketEditorProps {
   isOpen: boolean;
@@ -21,6 +21,7 @@ export interface PocketFormState {
   emoji: string;
   accountId: string;
   linkedAccountId: string;
+  currency: CurrencyCode | '';
 
   // SAVING
   targetAmount: string;

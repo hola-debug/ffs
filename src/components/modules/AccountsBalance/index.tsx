@@ -1,4 +1,4 @@
-import { Account } from '../../../lib/types';
+import { Account, getAccountBalance } from '../../../lib/types';
 import { BaseCard } from '../BaseCard';
 import { BanknotesIcon } from '@heroicons/react/24/outline';
 import { useMemo } from 'react';
@@ -8,9 +8,9 @@ interface AccountsBalanceModuleProps {
 }
 
 export function AccountsBalanceModule({ accounts }: AccountsBalanceModuleProps) {
-  // Calcular el balance total de todas las cuentas
+  // Calcular el balance total de todas las cuentas (divisas primarias)
   const totalBalance = useMemo(() => {
-    return accounts.reduce((sum, account) => sum + account.balance, 0);
+    return accounts.reduce((sum, account) => sum + getAccountBalance(account), 0);
   }, [accounts]);
 
   // Agrupar por moneda
@@ -18,10 +18,13 @@ export function AccountsBalanceModule({ accounts }: AccountsBalanceModuleProps) 
     const grouped: Record<string, number> = {};
     
     accounts.forEach(account => {
-      if (!grouped[account.currency]) {
-        grouped[account.currency] = 0;
-      }
-      grouped[account.currency] += account.balance;
+      // Agrupar cada divisa de cada cuenta
+      account.currencies?.forEach(curr => {
+        if (!grouped[curr.currency]) {
+          grouped[curr.currency] = 0;
+        }
+        grouped[curr.currency] += curr.balance;
+      });
     });
 
     return Object.entries(grouped)

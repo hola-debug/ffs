@@ -61,7 +61,6 @@ CREATE TABLE accounts (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   type TEXT NOT NULL DEFAULT 'bank',
-  balance NUMERIC(12,2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   
@@ -370,7 +369,6 @@ SELECT
   a.user_id,
   a.name,
   a.type,
-  a.balance,
   a.created_at,
   COALESCE(
     JSON_AGG(
@@ -383,7 +381,7 @@ SELECT
   ) AS currencies
 FROM accounts a
 LEFT JOIN account_currencies ac ON a.id = ac.account_id
-GROUP BY a.id, a.user_id, a.name, a.type, a.balance, a.created_at;
+GROUP BY a.id, a.user_id, a.name, a.type, a.created_at;
 
 -- ============================================
 -- PASO 10: TRIGGERS PARA CÁLCULOS
@@ -686,19 +684,27 @@ ALTER TABLE account_currencies ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can view own account currencies" ON account_currencies;
 CREATE POLICY "Users can view own account currencies" ON account_currencies FOR SELECT
-USING (EXISTS (SELECT 1 FROM accounts WHERE id = account_id AND user_id = auth.uid()));
+USING (
+  account_id IN (SELECT id FROM accounts WHERE user_id = auth.uid())
+);
 
 DROP POLICY IF EXISTS "Users can insert own account currencies" ON account_currencies;
 CREATE POLICY "Users can insert own account currencies" ON account_currencies FOR INSERT
-WITH CHECK (EXISTS (SELECT 1 FROM accounts WHERE id = account_id AND user_id = auth.uid()));
+WITH CHECK (
+  account_id IN (SELECT id FROM accounts WHERE user_id = auth.uid())
+);
 
 DROP POLICY IF EXISTS "Users can update own account currencies" ON account_currencies;
 CREATE POLICY "Users can update own account currencies" ON account_currencies FOR UPDATE
-USING (EXISTS (SELECT 1 FROM accounts WHERE id = account_id AND user_id = auth.uid()));
+USING (
+  account_id IN (SELECT id FROM accounts WHERE user_id = auth.uid())
+);
 
 DROP POLICY IF EXISTS "Users can delete own account currencies" ON account_currencies;
 CREATE POLICY "Users can delete own account currencies" ON account_currencies FOR DELETE
-USING (EXISTS (SELECT 1 FROM accounts WHERE id = account_id AND user_id = auth.uid()));
+USING (
+  account_id IN (SELECT id FROM accounts WHERE user_id = auth.uid())
+);
 
 -- ============================================
 -- PASO 13: COMENTARIOS

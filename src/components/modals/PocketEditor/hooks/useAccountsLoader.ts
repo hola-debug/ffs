@@ -18,10 +18,10 @@ export function useAccountsLoader(isOpen: boolean) {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('No user logged in');
 
-      // Cargar cuentas simples (sin is_primary en accounts)
+      // Cargar cuentas con sus divisas
       const { data, error } = await supabase
         .from('accounts')
-        .select('*')
+        .select('*, currencies:account_currencies(*)')
         .eq('user_id', user.user.id)
         .order('created_at', { ascending: false });
 

@@ -11,12 +11,26 @@ export function usePocketSubmit() {
     if (!state.name.trim()) return 'Ingresa el nombre de la bolsa';
     if (!state.accountId) return 'Selecciona una cuenta válida';
 
-    if (state.pocketType === 'saving' && !state.targetAmount) {
-      return 'Ingresa el monto objetivo';
+    if (state.pocketType === 'saving') {
+      if (!state.targetAmount) return 'Ingresa el monto objetivo';
+      // Validar fechas según el modo de entrada (opcional para saving)
+      if (state.savingDateMode === 'days' && state.savingDaysDuration) {
+        if (parseInt(state.savingDaysDuration) <= 0) {
+          return 'La cantidad de días debe ser mayor a 0';
+        }
+      }
     }
 
     if (state.pocketType === 'expense' && state.pocketSubtype === 'period') {
-      if (!state.allocatedAmount || !state.endsAt) return 'Completa monto y período';
+      if (!state.allocatedAmount) return 'Ingresa el monto asignado';
+      // Validar según el modo de entrada
+      if (state.periodDateMode === 'days') {
+        if (!state.periodDaysDuration || parseInt(state.periodDaysDuration) <= 0) {
+          return 'Ingresa la cantidad de días (mayor a 0)';
+        }
+      } else if (state.periodDateMode === 'dates') {
+        if (!state.startsAt || !state.endsAt) return 'Completa las fechas de inicio y fin';
+      }
     }
 
     if (state.pocketType === 'expense' && state.pocketSubtype === 'recurrent') {
@@ -37,6 +51,7 @@ export function usePocketSubmit() {
   const buildPocketData = (state: PocketFormState, accounts: Account[], userId: string) => {
     const selectedAccount = accounts.find((a) => a.id === state.accountId);
     if (!selectedAccount) throw new Error('Selecciona una cuenta válida');
+    if (!state.currency) throw new Error('Selecciona una divisa');
 
     const pocketData: any = {
       user_id: userId,
@@ -44,7 +59,7 @@ export function usePocketSubmit() {
       type: state.pocketType,
       emoji: state.emoji,
       account_id: state.accountId,
-      currency: selectedAccount.currency || 'ARS',
+      currency: state.currency,
       status: 'active',
     };
 

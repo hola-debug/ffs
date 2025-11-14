@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
-import { Account } from '../../lib/types';
+import { Account, AccountCurrency, CurrencyCode } from '../../lib/types';
 
 interface AddIncomeModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState('');
+  const [currency, setCurrency] = useState<CurrencyCode | ''>('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
@@ -27,17 +28,45 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
   const fetchAccounts = async () => {
     const { data, error } = await supabase
       .from('accounts')
-      .select('*')
-      .order('is_primary', { ascending: false });
+      .select('*, currencies:account_currencies(*)')
+      .order('created_at', { ascending: false });
     
-    if (data) {
+    if (data && data.length > 0) {
       setAccounts(data);
-      if (data.length > 0) {
-        setAccountId(data[0].id);
+      setAccountId(data[0].id);
+      // Auto-seleccionar la divisa primaria de la primera cuenta
+      const primaryCurrency = data[0].currencies?.find(c => c.is_primary);
+      if (primaryCurrency) {
+        setCurrency(primaryCurrency.currency);
+      } else if (data[0].currencies && data[0].currencies.length > 0) {
+        setCurrency(data[0].currencies[0].currency);
       }
     }
     if (error) console.error(error);
   };
+
+  // Obtener las divisas disponibles de la cuenta seleccionada
+  const availableCurrencies = useMemo(() => {
+    const account = accounts.find(a => a.id === accountId);
+    return account?.currencies || [];
+  }, [accounts, accountId]);
+
+  // Cuando cambia la cuenta, actualizar la divisa
+  useEffect(() => {
+    if (accountId && availableCurrencies.length > 0) {
+      // Intentar mantener la divisa actual si existe en la nueva cuenta
+      const currencyExists = availableCurrencies.some(c => c.currency === currency);
+      if (!currencyExists) {
+        // Si no existe, seleccionar la primaria o la primera disponible
+        const primaryCurrency = availableCurrencies.find(c => c.is_primary);
+        if (primaryCurrency) {
+          setCurrency(primaryCurrency.currency);
+        } else {
+          setCurrency(availableCurrencies[0].currency);
+        }
+      }
+    }
+  }, [accountId, availableCurrencies]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,22 +77,44 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      const account = accounts.find(a => a.id === accountId);
-      if (!account) throw new Error('Cuenta no encontrada');
+      if (!accountId) throw new Error('Selecciona una cuenta');
+      if (!currency) throw new Error('Selecciona una divisa');
 
+      const amountValue = parseFloat(amount);
+      if (isNaN(amountValue) || amountValue <= 0) {
+        throw new Error('El monto debe ser mayor a 0');
+      }
+
+      // 1. Crear el movimiento de ingreso
       const { error: insertError } = await supabase
         .from('movements')
         .insert({
           user_id: user.id,
           type: 'income',
           account_id: accountId,
-          amount: parseFloat(amount),
-          currency: account.currency,
+          amount: amountValue,
+          currency: currency,
           date,
           description: description || 'Ingreso',
         });
 
       if (insertError) throw insertError;
+
+      // 2. Actualizar el balance en account_currencies
+      const accountCurrency = availableCurrencies.find(c => c.currency === currency);
+      if (accountCurrency) {
+        const { error: updateError } = await supabase
+          .from('account_currencies')
+          .update({
+            balance: (accountCurrency.balance || 0) + amountValue
+          })
+          .eq('id', accountCurrency.id);
+
+        if (updateError) {
+          console.error('Error actualizando balance:', updateError);
+          // No lanzamos error porque el movimiento ya se creó
+        }
+      }
 
       // Reset form
       setAmount('');
@@ -104,9 +155,25 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
           onChange={(e) => setAccountId(e.target.value)}
           required
         >
+          <option value="" disabled>Seleccionar cuenta</option>
           {accounts.map((acc) => (
             <option key={acc.id} value={acc.id}>
-              {acc.name} ({acc.currency})
+              {acc.name}
+            </option>
+          ))}
+        </GlassSelect>
+
+        <GlassSelect
+          label="Divisa"
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+          required
+          disabled={!accountId || availableCurrencies.length === 0}
+        >
+          <option value="" disabled>Seleccionar divisa</option>
+          {availableCurrencies.map((curr) => (
+            <option key={curr.id} value={curr.currency}>
+              {curr.currency} {curr.is_primary ? '(Principal)' : ''}
             </option>
           ))}
         </GlassSelect>

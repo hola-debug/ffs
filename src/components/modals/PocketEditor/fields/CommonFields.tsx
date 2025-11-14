@@ -1,10 +1,33 @@
-import { memo } from 'react';
+import { memo, useMemo, useEffect } from 'react';
 import { GlassField, GlassSelect } from '@/components/IOSModal';
 import { PocketFieldsProps } from '../types';
+import { CurrencyCode } from '@/lib/types';
 
 const EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉', '🍔', '⚡', '📱', '🎬', '🏋️'] as const;
 
 function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps) {
+  // Obtener las divisas disponibles de la cuenta seleccionada
+  const availableCurrencies = useMemo(() => {
+    const account = accounts.find(a => a.id === state.accountId);
+    return account?.currencies || [];
+  }, [accounts, state.accountId]);
+
+  // Cuando cambia la cuenta, actualizar la divisa
+  useEffect(() => {
+    if (state.accountId && availableCurrencies.length > 0) {
+      // Si no hay divisa seleccionada o la divisa actual no existe en la nueva cuenta
+      const currencyExists = availableCurrencies.some(c => c.currency === state.currency);
+      if (!state.currency || !currencyExists) {
+        // Seleccionar la primaria o la primera disponible
+        const primaryCurrency = availableCurrencies.find(c => c.is_primary);
+        if (primaryCurrency) {
+          setState((prev) => ({ ...prev, currency: primaryCurrency.currency }));
+        } else {
+          setState((prev) => ({ ...prev, currency: availableCurrencies[0].currency }));
+        }
+      }
+    }
+  }, [state.accountId, availableCurrencies]);
   return (
     <div className="space-y-5">
       <GlassField
@@ -49,6 +72,21 @@ function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps)
         {accounts.map((acc) => (
           <option key={acc.id} value={acc.id}>
             {acc.name}
+          </option>
+        ))}
+      </GlassSelect>
+
+      <GlassSelect
+        label="Divisa"
+        value={state.currency || ''}
+        onChange={(e) => setState((prev) => ({ ...prev, currency: e.target.value as CurrencyCode }))}
+        required
+        disabled={!state.accountId || availableCurrencies.length === 0}
+      >
+        <option value="" disabled>Seleccionar divisa</option>
+        {availableCurrencies.map((curr) => (
+          <option key={curr.id} value={curr.currency}>
+            {curr.currency} {curr.is_primary ? '(Principal)' : ''} - Saldo: ${curr.balance.toFixed(2)}
           </option>
         ))}
       </GlassSelect>

@@ -24,8 +24,12 @@ export type AccountType = 'bank' | 'fintech' | 'cash' | 'crypto' | 'investment' 
 export type CurrencyCode = 'ARS' | 'USD' | 'EUR' | 'UYU' | 'BRL' | 'CLP' | 'PEN' | 'COP' | 'MXN' | 'BTC' | 'ETH';
 
 export interface AccountCurrency {
+  id: string;
+  account_id: string;
   currency: CurrencyCode;
   is_primary: boolean;
+  balance: number;
+  created_at: string;
 }
 
 export interface Account {
@@ -33,11 +37,10 @@ export interface Account {
   user_id: string;
   name: string;
   type: AccountType;
-  balance: number;
-  is_primary: boolean;
   created_at: string;
-  // Relación con divisas (viene desde vista account_with_currencies)
-  currencies?: AccountCurrency[];
+  updated_at: string;
+  // Relación con divisas y sus balances
+  currencies: AccountCurrency[];
 }
 
 // ============================================
@@ -263,9 +266,11 @@ export interface Movement {
 export interface CreateAccountInput {
   name: string;
   type: AccountType;
-  balance?: number;
-  is_primary?: boolean;
-  currencies: Array<{ currency: CurrencyCode; is_primary: boolean }>;
+  currencies: Array<{ 
+    currency: CurrencyCode; 
+    is_primary: boolean;
+    balance?: number;
+  }>;
 }
 
 export interface CreateIncomeInput {
@@ -330,6 +335,30 @@ export interface CreateMovementInput {
 // TYPES HELPERS
 // ============================================
 
+// Account helpers
+export function getAccountPrimaryCurrency(account: Account): AccountCurrency | undefined {
+  return account.currencies?.find(c => c.is_primary);
+}
+
+export function getAccountBalance(account: Account, currency?: CurrencyCode): number {
+  if (currency) {
+    // Balance de una divisa específica
+    return account.currencies?.find(c => c.currency === currency)?.balance || 0;
+  }
+  // Balance de la divisa primaria
+  return getAccountPrimaryCurrency(account)?.balance || 0;
+}
+
+export function getAccountTotalBalance(account: Account): number {
+  // Suma de todos los balances (útil si quieres ver el total en todas las divisas)
+  return account.currencies?.reduce((sum, curr) => sum + curr.balance, 0) || 0;
+}
+
+export function getAccountCurrency(account: Account): CurrencyCode {
+  // Obtener la divisa primaria de la cuenta
+  return getAccountPrimaryCurrency(account)?.currency || 'UYU';
+}
+
 // Type guards
 export function isSavingPocket(pocket: Pocket): pocket is SavingPocket {
   return pocket.type === 'saving';
@@ -369,6 +398,14 @@ export interface ActivePocketSummary extends Pocket {
   days_remaining?: number;
   progress_percentage?: number;
   remaining_daily_allowance?: number;
+}
+
+export interface UserMonthlySummary {
+  user_id: string;
+  total_income: number;
+  total_expenses: number;
+  total_savings: number;
+  balance: number;
 }
 
 export interface DashboardData {

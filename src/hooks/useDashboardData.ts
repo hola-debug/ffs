@@ -38,12 +38,10 @@ export function useDashboardData() {
         accountsRes,
         categoriesRes,
         pocketsRes,
-        summaryRes,
       ] = await Promise.all([
-        supabase.from('accounts').select('*').eq('user_id', user.id).order('is_primary', { ascending: false }),
+        supabase.from('accounts').select('*').eq('user_id', user.id).order('is_primary', { ascending: false }).order('created_at', { ascending: false }),
         supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
-        supabase.from('active_pockets_summary').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('user_monthly_summary').select('*').eq('user_id', user.id).single(),
+        supabase.from('pockets').select('*').eq('user_id', user.id).eq('status', 'active').order('created_at', { ascending: false }),
       ]);
 
       if (accountsRes.data) setAccounts(accountsRes.data);
@@ -54,10 +52,9 @@ export function useDashboardData() {
       } else {
         setPockets([]);
       }
-      if (summaryRes.data) {
-        console.log('[Dashboard] Monthly Summary:', summaryRes.data);
-        setMonthlySummary(summaryRes.data);
-      }
+
+      // TODO: Calculate monthly summary from movements if needed
+      setMonthlySummary(null);
 
       // Trigger flash animation when data updates from realtime
       if (isRefresh) {
