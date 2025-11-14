@@ -1,4 +1,4 @@
-import { Pocket, PocketType, PocketSubtype, Account } from '../../lib/types';
+import { Pocket, PocketType, PocketSubtype, Account } from '@/lib/types';
 
 export interface PocketEditorProps {
   isOpen: boolean;
@@ -9,6 +9,9 @@ export interface PocketEditorProps {
 }
 
 export type FormStep = 'type' | 'subtype' | 'config';
+
+export type DateInputMode = 'days' | 'dates';
+export type DebtInputMode = 'installments' | 'amount';
 
 export interface PocketFormState {
   // Comunes
@@ -23,11 +26,15 @@ export interface PocketFormState {
   targetAmount: string;
   frequency: 'monthly' | 'weekly' | 'none';
   allowWithdrawals: boolean;
+  savingDateMode: DateInputMode; // 'days' o 'dates'
+  savingDaysDuration: string;    // Cantidad de días
   startsAt: string;
   endsAt: string;
 
   // EXPENSE.PERIOD
   allocatedAmount: string;
+  periodDateMode: DateInputMode; // 'days' o 'dates'
+  periodDaysDuration: string;    // Cantidad de días
 
   // EXPENSE.RECURRENT
   averageAmount: string;
@@ -42,6 +49,7 @@ export interface PocketFormState {
 
   // DEBT
   originalAmount: string;
+  debtInputMode: DebtInputMode;  // 'installments' o 'amount'
   installmentsTotal: string;
   installmentAmount: string;
   interestRate: string;

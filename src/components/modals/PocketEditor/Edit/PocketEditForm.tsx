@@ -1,13 +1,13 @@
-import IOSModal from '../../../IOSModal';
-import { CommonFields } from '../../fields/CommonFields';
-import { SavingFields } from '../../fields/subtypes/SavingFields';
-import { ExpensePeriodFields } from '../../fields/subtypes/ExpensePeriodFields';
-import { ExpenseRecurrentFields } from '../../fields/subtypes/ExpenseRecurrentFields';
-import { ExpenseFixedFields } from '../../fields/subtypes/ExpenseFixedFields';
-import { DebtFields } from '../../fields/subtypes/DebtFields';
+import IOSModal from '@/components/IOSModal';
+import { CommonFields } from '../fields/CommonFields';
+import { SavingFields } from '../fields/subtypes/SavingFields';
+import { ExpensePeriodFields } from '../fields/subtypes/ExpensePeriodFields';
+import { ExpenseRecurrentFields } from '../fields/subtypes/ExpenseRecurrentFields';
+import { ExpenseFixedFields } from '../fields/subtypes/ExpenseFixedFields';
+import { DebtFields } from '../fields/subtypes/DebtFields';
 import { useEditForm } from './hooks/useEditForm';
-import { usePocketSubmit } from '../../hooks/usePocketSubmit';
-import { Pocket, Account } from '../../../../lib/types';
+import { usePocketSubmit } from '../hooks/usePocketSubmit';
+import { Pocket, Account } from '@/lib/types';
 
 interface PocketEditFormProps {
   isOpen: boolean;

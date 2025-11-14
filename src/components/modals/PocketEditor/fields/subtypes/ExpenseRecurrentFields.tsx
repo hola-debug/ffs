@@ -1,4 +1,4 @@
-import { GlassField, GlassSelect } from '../../../IOSModal';
+import { GlassField, GlassSelect } from '@/components/IOSModal';
 import { PocketFieldsProps } from '../../types';
 
 export function ExpenseRecurrentFields({ state, setState }: PocketFieldsProps) {

@@ -62,7 +62,7 @@ export interface Category {
 
 export type PocketType = 'expense' | 'saving' | 'debt';
 export type PocketStatus = 'active' | 'finished' | 'cancelled' | 'archived';
-export type PocketSubtype = 'variable' | 'fixed' | 'period' | 'shared' | null;
+export type PocketSubtype = 'period' | 'recurrent' | 'fixed' | 'shared' | null;
 export type ExpenseFrequency = 'monthly' | 'weekly' | 'none';
 
 // ============================================
@@ -124,29 +124,25 @@ export interface SavingPocket extends Pocket {
 
 export interface ExpensePocket extends Pocket {
   type: 'expense';
-  subtype: 'variable' | 'fixed' | 'period' | 'shared';
+  subtype: 'period' | 'recurrent' | 'fixed' | 'shared';
 }
 
-// EXPENSE.VARIABLE (gasto día a día)
-export interface ExpenseVariablePocket extends ExpensePocket {
-  subtype: 'variable';
+// EXPENSE.RECURRENT (gasto mensual variable: luz, agua)
+export interface ExpenseRecurrentPocket extends ExpensePocket {
+  subtype: 'recurrent';
   
-  // Asignación
-  allocated_amount: number;
-  spent_amount: number;
-  remaining_amount?: number; // Calculado
+  // Montos
+  average_amount: number;
+  spent_amount?: number;
+  last_payment_amount?: number;
   
-  // Tiempo
-  starts_at: string;
-  ends_at: string;
-  days_duration: number;
-  days_elapsed?: number; // Calculado
-  days_remaining?: number; // Calculado
+  // Vencimiento
+  due_day: number; // 1-31
+  notification_days_before?: number;
   
-  // Gasto diario
-  daily_allowance: number;
-  daily_allowance_remaining?: number; // Calculado
-  reset_mode?: 'monthly' | 'once';
+  // Historial
+  last_payment?: string;
+  next_payment?: string; // Calculado
 }
 
 // EXPENSE.FIXED (gasto mensual fijo)
@@ -347,8 +343,8 @@ export function isDebtPocket(pocket: Pocket): pocket is DebtPocket {
   return pocket.type === 'debt';
 }
 
-export function isExpenseVariablePocket(pocket: Pocket): pocket is ExpenseVariablePocket {
-  return pocket.type === 'expense' && pocket.subtype === 'variable';
+export function isExpenseRecurrentPocket(pocket: Pocket): pocket is ExpenseRecurrentPocket {
+  return pocket.type === 'expense' && pocket.subtype === 'recurrent';
 }
 
 export function isExpenseFixedPocket(pocket: Pocket): pocket is ExpenseFixedPocket {
@@ -362,6 +358,7 @@ export function isExpensePeriodPocket(pocket: Pocket): pocket is ExpensePeriodPo
 export function isExpenseSharedPocket(pocket: Pocket): pocket is ExpenseSharedPocket {
   return pocket.type === 'expense' && pocket.subtype === 'shared';
 }
+
 
 // ============================================
 // VISTAS Y RESÚMENES

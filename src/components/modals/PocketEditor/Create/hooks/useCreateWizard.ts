@@ -10,20 +10,35 @@ const initialState: PocketFormState = {
   emoji: '💰',
   accountId: '',
   linkedAccountId: '',
+  
+  // SAVING
   targetAmount: '',
-  frequency: 'monthly',
+  frequency: 'none',
   allowWithdrawals: true,
+  savingDateMode: 'days',
+  savingDaysDuration: '',
   startsAt: new Date().toISOString().split('T')[0],
   endsAt: '',
+  
+  // EXPENSE.PERIOD
   allocatedAmount: '',
+  periodDateMode: 'days',
+  periodDaysDuration: '',
+  
+  // EXPENSE.RECURRENT
   averageAmount: '',
   lastPaymentAmount: '',
   notificationDaysBefore: 3,
   recurrentDueDay: 10,
+  
+  // EXPENSE.FIXED
   monthlyAmount: '',
   dueDay: 15,
   autoRegister: false,
+  
+  // DEBT
   originalAmount: '',
+  debtInputMode: 'installments',
   installmentsTotal: '',
   installmentAmount: '',
   interestRate: '',

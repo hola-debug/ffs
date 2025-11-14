@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { CommonFields } from '../../fields/CommonFields';
 import { SavingFields } from '../../fields/subtypes/SavingFields';
 import { ExpensePeriodFields } from '../../fields/subtypes/ExpensePeriodFields';
@@ -5,7 +6,7 @@ import { ExpenseRecurrentFields } from '../../fields/subtypes/ExpenseRecurrentFi
 import { ExpenseFixedFields } from '../../fields/subtypes/ExpenseFixedFields';
 import { DebtFields } from '../../fields/subtypes/DebtFields';
 import { PocketFormState, PocketFieldsProps } from '../../types';
-import { Account } from '../../../../lib/types';
+import { Account } from '@/lib/types';
 
 interface Step3Props extends PocketFieldsProps {
   onSubmit: () => void;
@@ -15,16 +16,28 @@ interface Step3Props extends PocketFieldsProps {
   error: string | null;
 }
 
-function getSubtypeFields(state: PocketFormState, setState: React.Dispatch<React.SetStateAction<PocketFormState>>) {
-  if (state.pocketType === 'saving') return <SavingFields state={state} setState={setState} accounts={[]} />;
-  if (state.pocketType === 'expense' && state.pocketSubtype === 'period') return <ExpensePeriodFields state={state} setState={setState} accounts={[]} />;
-  if (state.pocketType === 'expense' && state.pocketSubtype === 'recurrent') return <ExpenseRecurrentFields state={state} setState={setState} accounts={[]} />;
-  if (state.pocketType === 'expense' && state.pocketSubtype === 'fixed') return <ExpenseFixedFields state={state} setState={setState} accounts={[]} />;
-  if (state.pocketType === 'debt') return <DebtFields state={state} setState={setState} accounts={[]} />;
-  return null;
-}
 
 export function Step3_Config({ state, setState, accounts, onSubmit, onBack, onClose, loading, error }: Step3Props) {
+  // Memoize subtype fields to avoid unnecessary re-renders
+  const subtypeFields = useMemo(() => {
+    if (state.pocketType === 'saving') {
+      return <SavingFields state={state} setState={setState} accounts={[]} />;
+    }
+    if (state.pocketType === 'expense' && state.pocketSubtype === 'period') {
+      return <ExpensePeriodFields state={state} setState={setState} accounts={[]} />;
+    }
+    if (state.pocketType === 'expense' && state.pocketSubtype === 'recurrent') {
+      return <ExpenseRecurrentFields state={state} setState={setState} accounts={[]} />;
+    }
+    if (state.pocketType === 'expense' && state.pocketSubtype === 'fixed') {
+      return <ExpenseFixedFields state={state} setState={setState} accounts={[]} />;
+    }
+    if (state.pocketType === 'debt') {
+      return <DebtFields state={state} setState={setState} accounts={[]} />;
+    }
+    return null;
+  }, [state.pocketType, state.pocketSubtype, state, setState]);
+
   return (
     <form
       onSubmit={(e) => {
@@ -36,7 +49,7 @@ export function Step3_Config({ state, setState, accounts, onSubmit, onBack, onCl
       {error && <div className="mb-4 ios-error">{error}</div>}
 
       <CommonFields state={state} setState={setState} accounts={accounts} />
-      {getSubtypeFields(state, setState)}
+      {subtypeFields}
 
       <div className="flex space-x-3 pt-4">
         <button type="button" onClick={onBack} className="flex-1 ios-button-secondary">

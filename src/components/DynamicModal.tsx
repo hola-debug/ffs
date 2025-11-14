@@ -1,11 +1,11 @@
 import { lazy, Suspense } from 'react';
 
 // Lazy load modal components
-const AddIncomeModal = lazy(() => import('./modals/AddIncomeModal'));
-const AddAccountModal = lazy(() => import('./modals/AddAccountModal'));
-const PocketEditor = lazy(() => import('./modals/PocketEditor'));
-const AddExpenseModal = lazy(() => import('./modals/AddExpenseModal'));
-const HelpModal = lazy(() => import('./modals/HelpModal'));
+const AddIncomeModal = lazy(() => import('@/components/modals/AddIncomeModal'));
+const AddAccountModal = lazy(() => import('@/components/modals/AddAccountModal'));
+const PocketEditor = lazy(() => import('@/components/modals/PocketEditor'));
+const AddExpenseModal = lazy(() => import('@/components/modals/AddExpenseModal'));
+const HelpModal = lazy(() => import('@/components/modals/HelpModal'));
 
 interface DynamicModalProps {
   activeModal: string | null;

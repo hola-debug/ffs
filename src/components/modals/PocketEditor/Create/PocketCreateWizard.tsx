@@ -1,11 +1,12 @@
-import IOSModal from '../../../IOSModal';
+import { useCallback } from 'react';
+import IOSModal from '@/components/IOSModal';
 import { Step1_Type } from './steps/Step1_Type';
 import { Step2_Subtype } from './steps/Step2_Subtype';
 import { Step3_Config } from './steps/Step3_Config';
 import { useCreateWizard } from './hooks/useCreateWizard';
-import { usePocketSubmit } from '../../hooks/usePocketSubmit';
-import { useAccountsLoader } from '../../hooks/useAccountsLoader';
-import { Account } from '../../../../lib/types';
+import { usePocketSubmit } from '../hooks/usePocketSubmit';
+import { useAccountsLoader } from '../hooks/useAccountsLoader';
+import { Account } from '@/lib/types';
 
 interface PocketCreateWizardProps {
   isOpen: boolean;
@@ -18,19 +19,19 @@ export function PocketCreateWizard({ isOpen, onClose, onSuccess, accounts }: Poc
   const { step, state, setState, nextStep, prevStep, reset } = useCreateWizard();
   const { submit, loading, error, setError } = usePocketSubmit();
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     reset();
     onClose();
-  };
+  }, [reset, onClose]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     const success = await submit(state, accounts, 'create');
     if (success) {
       reset();
       onSuccess?.();
       onClose();
     }
-  };
+  }, [submit, state, accounts, reset, onSuccess, onClose]);
 
   return (
     <IOSModal isOpen={isOpen} onClose={handleClose} title="Nueva Bolsa">

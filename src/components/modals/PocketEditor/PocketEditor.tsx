@@ -1,10 +1,13 @@
+import { memo } from 'react';
 import { PocketCreateWizard } from './Create/PocketCreateWizard';
 import { PocketEditForm } from './Edit/PocketEditForm';
 import { useAccountsLoader } from './hooks/useAccountsLoader';
 import { PocketEditorProps } from './types';
 
-export default function PocketEditor({ isOpen, onClose, onSuccess, mode, pocket }: PocketEditorProps) {
+function PocketEditor({ isOpen, onClose, onSuccess, mode, pocket }: PocketEditorProps) {
   const { accounts } = useAccountsLoader(isOpen);
+
+  if (!isOpen) return null;
 
   if (mode === 'create') {
     return <PocketCreateWizard isOpen={isOpen} onClose={onClose} onSuccess={onSuccess} accounts={accounts} />;
@@ -16,3 +19,5 @@ export default function PocketEditor({ isOpen, onClose, onSuccess, mode, pocket 
 
   return null;
 }
+
+export default memo(PocketEditor);

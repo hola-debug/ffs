@@ -1,9 +1,10 @@
-import { GlassField, GlassSelect } from '../../IOSModal';
+import { memo } from 'react';
+import { GlassField, GlassSelect } from '@/components/IOSModal';
 import { PocketFieldsProps } from '../types';
 
-const EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉', '🍔', '⚡', '📱', '🎬', '🏋️'];
+const EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉', '🍔', '⚡', '📱', '🎬', '🏋️'] as const;
 
-export function CommonFields({ state, setState, accounts }: PocketFieldsProps) {
+function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps) {
   return (
     <div className="space-y-5">
       <GlassField
@@ -52,7 +53,7 @@ export function CommonFields({ state, setState, accounts }: PocketFieldsProps) {
         ))}
       </GlassSelect>
 
-      {(state.pocketType === 'expense' || state.pocketType === 'debt') && (
+      {state.pocketType === 'debt' && (
         <GlassSelect
           label="Cuenta de pago (opcional)"
           value={state.linkedAccountId}
@@ -69,3 +70,5 @@ export function CommonFields({ state, setState, accounts }: PocketFieldsProps) {
     </div>
   );
 }
+
+export const CommonFields = memo(CommonFieldsComponent);

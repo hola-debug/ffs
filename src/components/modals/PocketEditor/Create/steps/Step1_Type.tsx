@@ -1,4 +1,5 @@
-import { PocketType } from '../../../../lib/types';
+import { memo } from 'react';
+import { PocketType } from '@/lib/types';
 import { PocketFormState } from '../../types';
 
 interface Step1Props {
@@ -14,7 +15,7 @@ const POCKET_TYPES: Array<{ value: PocketType; label: string; emoji: string; des
   { value: 'debt', label: 'Deuda', emoji: '📊', description: 'Gestionar préstamos y cuotas' },
 ];
 
-export function Step1_Type({ state, setState, onNext, onClose }: Step1Props) {
+function Step1TypeComponent({ state, setState, onNext, onClose }: Step1Props) {
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-white mb-4">Tipo de bolsa</h3>
@@ -68,3 +69,5 @@ export function Step1_Type({ state, setState, onNext, onClose }: Step1Props) {
     </div>
   );
 }
+
+export const Step1_Type = memo(Step1TypeComponent);

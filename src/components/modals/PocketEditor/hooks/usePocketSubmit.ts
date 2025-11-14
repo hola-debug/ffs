@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { supabase } from '../../../lib/supabaseClient';
-import { Pocket, Account } from '../../../lib/types';
+import { supabase } from '@/lib/supabaseClient';
+import { Pocket, Account } from '@/lib/types';
 import { PocketFormState } from '../types';
 
 export function usePocketSubmit() {
@@ -61,15 +61,30 @@ export function usePocketSubmit() {
       pocketData.amount_saved = 0;
       pocketData.frequency = state.frequency;
       pocketData.allow_withdrawals = state.allowWithdrawals;
-      pocketData.starts_at = state.startsAt;
-      if (state.endsAt) pocketData.ends_at = state.endsAt;
+
+      // Manejar fechas según modo de entrada
+      if (state.savingDateMode === 'days' && state.savingDaysDuration) {
+        pocketData.days_duration = parseInt(state.savingDaysDuration);
+        // starts_at y ends_at se calculan en el trigger de BD
+      } else if (state.savingDateMode === 'dates') {
+        if (state.endsAt) pocketData.ends_at = state.endsAt;
+        // starts_at se calcula en el trigger si no está presente
+      }
     }
 
     if (state.pocketType === 'expense' && state.pocketSubtype === 'period') {
       pocketData.allocated_amount = parseFloat(state.allocatedAmount);
       pocketData.spent_amount = 0;
-      pocketData.starts_at = state.startsAt;
-      pocketData.ends_at = state.endsAt;
+
+      // Manejar fechas según modo de entrada
+      if (state.periodDateMode === 'days' && state.periodDaysDuration) {
+        pocketData.days_duration = parseInt(state.periodDaysDuration);
+        // starts_at y ends_at se calculan en el trigger de BD
+      } else if (state.periodDateMode === 'dates') {
+        pocketData.starts_at = state.startsAt;
+        pocketData.ends_at = state.endsAt;
+        // days_duration se calcula en el trigger
+      }
     }
 
     if (state.pocketType === 'expense' && state.pocketSubtype === 'recurrent') {
@@ -89,12 +104,20 @@ export function usePocketSubmit() {
     if (state.pocketType === 'debt') {
       pocketData.original_amount = parseFloat(state.originalAmount);
       pocketData.remaining_amount = parseFloat(state.originalAmount);
-      pocketData.installments_total = parseInt(state.installmentsTotal);
-      pocketData.installment_current = 0;
-      if (state.installmentAmount) pocketData.installment_amount = parseFloat(state.installmentAmount);
-      if (state.interestRate) pocketData.interest_rate = parseFloat(state.interestRate);
       pocketData.due_day = state.debtDueDay;
       pocketData.automatic_payment = state.automaticPayment;
+
+      // Manejar cuotas según modo de entrada
+      if (state.debtInputMode === 'installments') {
+        pocketData.installments_total = parseInt(state.installmentsTotal);
+        // installment_amount se calcula en el trigger
+      } else if (state.debtInputMode === 'amount') {
+        pocketData.installment_amount = parseFloat(state.installmentAmount);
+        // installments_total se calcula en el trigger
+      }
+
+      pocketData.installment_current = 0;
+      if (state.interestRate) pocketData.interest_rate = parseFloat(state.interestRate);
     }
 
     return pocketData;

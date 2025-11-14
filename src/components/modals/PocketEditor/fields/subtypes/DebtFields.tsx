@@ -1,7 +1,47 @@
-import { GlassField, GlassSelect } from '../../../IOSModal';
+import { GlassField, GlassSelect } from '@/components/IOSModal';
 import { PocketFieldsProps } from '../../types';
+import { useMemo, useEffect } from 'react';
 
 export function DebtFields({ state, setState }: PocketFieldsProps) {
+  // Auto-calcular según el modo seleccionado
+  useEffect(() => {
+    const original = parseFloat(state.originalAmount);
+    if (!original || original <= 0) return;
+
+    if (state.debtInputMode === 'installments' && state.installmentsTotal) {
+      const installments = parseInt(state.installmentsTotal);
+      if (installments > 0) {
+        const calculated = (original / installments).toFixed(2);
+        setState((prev) => ({ ...prev, installmentAmount: calculated }));
+      }
+    } else if (state.debtInputMode === 'amount' && state.installmentAmount) {
+      const amount = parseFloat(state.installmentAmount);
+      if (amount > 0) {
+        const calculated = Math.ceil(original / amount).toString();
+        setState((prev) => ({ ...prev, installmentsTotal: calculated }));
+      }
+    }
+  }, [state.debtInputMode, state.originalAmount, state.installmentsTotal, state.installmentAmount, setState]);
+
+  // Preview de información
+  const debtInfo = useMemo(() => {
+    const original = parseFloat(state.originalAmount);
+    const installments = parseInt(state.installmentsTotal);
+    const amount = parseFloat(state.installmentAmount);
+
+    if (original > 0 && installments > 0 && amount > 0) {
+      const total = amount * installments;
+      const difference = total - original;
+      return {
+        installments,
+        amount: amount.toFixed(2),
+        total: total.toFixed(2),
+        difference: difference.toFixed(2),
+      };
+    }
+    return null;
+  }, [state.originalAmount, state.installmentsTotal, state.installmentAmount]);
+
   return (
     <div className="space-y-5">
       <GlassField
@@ -14,24 +54,95 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
         placeholder="0.00"
       />
 
-      <div className="grid grid-cols-2 gap-4">
-        <GlassField
-          label="Total de cuotas"
-          type="number"
-          value={state.installmentsTotal}
-          onChange={(e) => setState((prev) => ({ ...prev, installmentsTotal: e.target.value }))}
-          required
-          placeholder="12"
-        />
-        <GlassField
-          label="Monto por cuota"
-          type="number"
-          step="0.01"
-          value={state.installmentAmount}
-          onChange={(e) => setState((prev) => ({ ...prev, installmentAmount: e.target.value }))}
-          placeholder="Calculado"
-        />
+      {/* Selector de modo de entrada */}
+      <div className="space-y-3">
+        <label className="ios-label">¿Qué dato conoces?</label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setState((prev) => ({ ...prev, debtInputMode: 'installments' }))}
+            className={`p-3 rounded-xl transition-all ${
+              state.debtInputMode === 'installments'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800'
+            }`}
+          >
+            <div className="text-sm font-semibold">Cantidad de cuotas</div>
+            <div className="text-xs mt-1 opacity-75">Se calcula el monto</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setState((prev) => ({ ...prev, debtInputMode: 'amount' }))}
+            className={`p-3 rounded-xl transition-all ${
+              state.debtInputMode === 'amount'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800'
+            }`}
+          >
+            <div className="text-sm font-semibold">Monto por cuota</div>
+            <div className="text-xs mt-1 opacity-75">Se calcula la cantidad</div>
+          </button>
+        </div>
       </div>
+
+      {/* Campos según modo seleccionado */}
+      <div className="grid grid-cols-2 gap-4">
+        {state.debtInputMode === 'installments' ? (
+          <>
+            <GlassField
+              label="Total de cuotas"
+              type="number"
+              value={state.installmentsTotal}
+              onChange={(e) => setState((prev) => ({ ...prev, installmentsTotal: e.target.value }))}
+              required
+              placeholder="12"
+            />
+            <GlassField
+              label="Monto por cuota"
+              type="number"
+              step="0.01"
+              value={state.installmentAmount}
+              onChange={(e) => setState((prev) => ({ ...prev, installmentAmount: e.target.value }))}
+              placeholder="Auto-calculado"
+              disabled
+            />
+          </>
+        ) : (
+          <>
+            <GlassField
+              label="Monto por cuota"
+              type="number"
+              step="0.01"
+              value={state.installmentAmount}
+              onChange={(e) => setState((prev) => ({ ...prev, installmentAmount: e.target.value }))}
+              required
+              placeholder="0.00"
+            />
+            <GlassField
+              label="Total de cuotas"
+              type="number"
+              value={state.installmentsTotal}
+              onChange={(e) => setState((prev) => ({ ...prev, installmentsTotal: e.target.value }))}
+              placeholder="Auto-calculado"
+              disabled
+            />
+          </>
+        )}
+      </div>
+
+      {/* Preview de información */}
+      {debtInfo && (
+        <div className="text-sm p-3 rounded-xl bg-purple-950/30 border border-purple-800/30">
+          <div className="text-purple-400 font-semibold mb-2">📊 Resumen de la deuda:</div>
+          <div className="text-gray-300 space-y-1 text-xs">
+            <div>• {debtInfo.installments} cuotas de ${debtInfo.amount}</div>
+            <div>• Total a pagar: ${debtInfo.total}</div>
+            {parseFloat(debtInfo.difference) > 0 && (
+              <div className="text-red-400">• Intereses: +${debtInfo.difference}</div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <GlassSelect
@@ -46,7 +157,7 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
           ))}
         </GlassSelect>
         <GlassField
-          label="Tasa de interés (%)"
+          label="Tasa de interés (%) opcional"
           type="number"
           step="0.01"
           value={state.interestRate}
@@ -69,7 +180,7 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
         </label>
       </div>
 
-      <div className="text-sm text-gray-400 p-3 rounded bg-gray-900/50">
+      <div className="text-xs text-gray-500">
         ℹ️ El sistema calculará automáticamente la próxima fecha de vencimiento
       </div>
     </div>

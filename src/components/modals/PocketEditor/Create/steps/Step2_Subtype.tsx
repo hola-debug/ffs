@@ -1,4 +1,5 @@
-import { PocketSubtype } from '../../../../lib/types';
+import { memo } from 'react';
+import { PocketSubtype } from '@/lib/types';
 import { PocketFormState } from '../../types';
 
 interface Step2Props {
@@ -15,7 +16,7 @@ const EXPENSE_SUBTYPES: Array<{ value: PocketSubtype; label: string; emoji: stri
   { value: 'fixed', label: 'Fijo Mensual', emoji: '📌', description: 'Vence cada mes, mismo monto (alquiler, Netflix)' },
 ];
 
-export function Step2_Subtype({ state, setState, onNext, onBack, onClose }: Step2Props) {
+function Step2SubtypeComponent({ state, setState, onNext, onBack, onClose }: Step2Props) {
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-white mb-4">Tipo de gasto</h3>
@@ -66,3 +67,5 @@ export function Step2_Subtype({ state, setState, onNext, onBack, onClose }: Step
     </div>
   );
 }
+
+export const Step2_Subtype = memo(Step2SubtypeComponent);
