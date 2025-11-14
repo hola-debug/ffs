@@ -35,23 +35,21 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
           position: 'fixed',
           inset: 0,
           zIndex: 9998,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(2px)',
-          WebkitBackdropFilter: 'blur(2px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(8px)',
+        
         }}
         onClick={onClose}
       />
 
       {/* Modal Content */}
       <div 
-        className="fixed inset-0 flex items-center justify-center p-4 z-[9999] pointer-events-none"
+        className="fixed inset-0 flex items-center justify-center p-4 z-[9999] pointer-events-none "
         onClick={onClose}
       >
         <div
           className="relative w-full max-w-md pointer-events-auto"
-          style={{
-            maxHeight: 'calc(100vh - 2rem)',
-          }}
+      
           onClick={(e) => e.stopPropagation()}
         >
           {/* Glass Surface Container */}
@@ -59,14 +57,14 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
            <GlassSurface
             width="100%"
             height="auto"
-            borderRadius={24}
-            borderWidth={0.08}
-            brightness={15}
+            borderRadius={11}
+            borderWidth={0.011}
+            brightness={11}
             opacity={0.95}
             blur={20}
             displace={1.2}
             backgroundOpacity={0.25}
-            saturation={1.4}
+            saturation={1.2}
             distortionScale={-200}
             redOffset={0}
             greenOffset={8}
@@ -94,7 +92,7 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
             >
               {/* Header */}
               <div 
-                className="relative px-6 pt-6 pb-4 border-b border-white/10"
+                className="relative px-6 pt-6 pb-4 border-b border-white/10 "
               >
                 <h2 
                   className="text-2xl font-semibold text-white pr-10"
