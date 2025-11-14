@@ -99,8 +99,8 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
           position: 'fixed',
           inset: 0,
           zIndex: 9998,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(10px)',
           willChange: 'opacity',
           transform: 'translateZ(0)',
         }}
@@ -125,7 +125,7 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
             borderWidth={0.011}
             brightness={11}
             opacity={0.95}
-            blur={15}
+            blur={25}
             displace={0.8}
             backgroundOpacity={0.25}
             saturation={1.1}

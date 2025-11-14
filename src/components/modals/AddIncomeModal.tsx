@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
+import IOSModal, { GlassField } from '../IOSModal';
+import GlassDropdown from '../GlassDropdown';
+import GlassDatePicker from '../GlassDatePicker';
 import { Account, AccountCurrency, CurrencyCode } from '../../lib/types';
 
 interface AddIncomeModalProps {
@@ -15,7 +17,7 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
   const [accountId, setAccountId] = useState('');
   const [currency, setCurrency] = useState<CurrencyCode | ''>('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,7 +96,7 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
           account_id: accountId,
           amount: amountValue,
           currency: currency,
-          date,
+          date: date.toISOString().split('T')[0],
           description: description || 'Ingreso',
         });
 
@@ -119,7 +121,7 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
       // Reset form
       setAmount('');
       setDescription('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(new Date());
       
       onSuccess?.();
       onClose();
@@ -149,41 +151,33 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
           placeholder="0.00"
         />
 
-        <GlassSelect
+        <GlassDropdown
           label="Cuenta"
           value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          required
-        >
-          <option value="" disabled>Seleccionar cuenta</option>
-          {accounts.map((acc) => (
-            <option key={acc.id} value={acc.id}>
-              {acc.name}
-            </option>
-          ))}
-        </GlassSelect>
+          onChange={setAccountId}
+          placeholder="Seleccionar cuenta"
+          options={accounts.map(acc => ({
+            value: acc.id,
+            label: acc.name
+          }))}
+        />
 
-        <GlassSelect
+        <GlassDropdown
           label="Divisa"
           value={currency}
-          onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-          required
-          disabled={!accountId || availableCurrencies.length === 0}
-        >
-          <option value="" disabled>Seleccionar divisa</option>
-          {availableCurrencies.map((curr) => (
-            <option key={curr.id} value={curr.currency}>
-              {curr.currency} {curr.is_primary ? '(Principal)' : ''}
-            </option>
-          ))}
-        </GlassSelect>
+          onChange={(val) => setCurrency(val as CurrencyCode)}
+          placeholder="Seleccionar divisa"
+          options={availableCurrencies.map(curr => ({
+            value: curr.currency,
+            label: curr.currency,
+            description: curr.is_primary ? 'Principal' : undefined
+          }))}
+        />
 
-        <GlassField
+        <GlassDatePicker
           label="Fecha"
-          type="date"
           value={date}
-          onChange={(e) => setDate(e.target.value)}
-          required
+          onChange={setDate}
         />
 
         <GlassField

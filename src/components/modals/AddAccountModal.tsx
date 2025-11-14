@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
+import IOSModal, { GlassField } from '../IOSModal';
+import GlassDropdown from '../GlassDropdown';
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -220,27 +221,23 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
           placeholder="Ej: Banco Nación, Billetera..."
         />
 
-        <GlassSelect
+        <GlassDropdown
           label="Tipo de cuenta"
           value={type}
-          onChange={(e) => setType(e.target.value as any)}
-          required
-        >
-          {ACCOUNT_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </GlassSelect>
+          onChange={(val) => setType(val as any)}
+          options={ACCOUNT_TYPES.map(t => ({
+            value: t.value,
+            label: t.label
+          }))}
+        />
 
         {/* Sección de divisas */}
-        <div className="bg-white/5 rounded-lg p-4 space-y-3">
+        <div className="p-4 space-y-3">
           <div className="flex justify-between items-center">
-            <label className="ios-label font-semibold">Divisas</label>
             <button
               type="button"
               onClick={handleAddCurrency}
-              className="text-sm text-blue-500 hover:text-blue-600"
+              className="text-sm text-white "
               disabled={currencyBalances.length >= CURRENCIES.length}
             >
               + Agregar divisa
@@ -248,20 +245,19 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
           </div>
 
           {currencyBalances.map((cb, index) => (
-            <div key={index} className="space-y-2 p-3 bg-white/5 rounded">
+            <div key={index} className="space-y-2 p-3 rounded">
               <div className="flex items-center justify-between gap-2">
-                <GlassSelect
-                  label={`Divisa ${index + 1}`}
-                  value={cb.currency}
-                  onChange={(e) => handleCurrencyChange(index, e.target.value)}
-                  required
-                >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </GlassSelect>
+                <div className="flex-1">
+                  <GlassDropdown
+                    label={`Divisa ${index + 1}`}
+                    value={cb.currency}
+                    onChange={(val) => handleCurrencyChange(index, val)}
+                    options={CURRENCIES.map(c => ({
+                      value: c.value,
+                      label: c.label
+                    }))}
+                  />
+                </div>
 
                 {currencyBalances.length > 1 && (
                   <button
@@ -281,6 +277,16 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                 step="0.01"
                 value={cb.balance}
                 onChange={(e) => handleBalanceChange(index, e.target.value)}
+                inputMode="decimal"
+                onWheel={(event) => {
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                    event.preventDefault();
+                  }
+                }}
                 placeholder="0.00"
               />
 

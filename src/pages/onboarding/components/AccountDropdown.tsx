@@ -38,7 +38,7 @@ export function AccountDropdown({ accounts, selectedId, onSelect }: AccountDropd
       <button
         type="button"
         onClick={() => setOpen((state) => !state)}
-        className="flex w-full items-center justify-between rounded-2xl border border-gray-300 bg-white px-4 py-3 text-left text-sm uppercase outline-none transition hover:border-gray-400 focus-visible:ring-2 focus-visible:ring-black"
+        className="flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm uppercase outline-none transition hover:border-gray-400 focus-visible:ring-2 focus-visible:ring-black"
       >
         {selectedAccount ? (
           <div>
