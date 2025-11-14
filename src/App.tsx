@@ -1,3 +1,4 @@
+import { useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useSupabaseUser } from './hooks/useSupabaseUser';
@@ -5,19 +6,52 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PocketDetailPage from './pages/PocketDetailPage';
+import FFSPreloader from './components/preloaders/FFSPreloader';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+declare global {
+  interface Window {
+    __FFSPreloaderPlayed?: boolean;
+  }
+}
+
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useSupabaseUser();
+  const [introFinished, setIntroFinished] = useState(() =>
+    typeof window !== 'undefined' ? Boolean(window.__FFSPreloaderPlayed) : false
+  );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Cargando...</div>
-      </div>
-    );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!user) {
+      window.__FFSPreloaderPlayed = false;
+      setIntroFinished(false);
+      return;
+    }
+
+    if (window.__FFSPreloaderPlayed) {
+      setIntroFinished(true);
+      return;
+    }
+
+    setIntroFinished(false);
+    const timer = window.setTimeout(() => {
+      window.__FFSPreloaderPlayed = true;
+      setIntroFinished(true);
+    }, 1400);
+
+    return () => window.clearTimeout(timer);
+  }, [user]);
+
+  if (loading || (user && !introFinished)) {
+    return <FFSPreloader />;
   }
 
-  return user ? <>{children}</> : <Navigate to="/login" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
 }
 
 export default function App() {

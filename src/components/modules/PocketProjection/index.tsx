@@ -137,7 +137,7 @@ export function PocketProjectionModule({ pockets, pocket, onRefresh }: PocketPro
                   Total mensual
                 </p>
                 <p className="text-lg font-semibold">
-                  ${activeExpensePocket.allocated_amount.toLocaleString()}
+                  ${(Number(activeExpensePocket.allocated_amount) || 0).toLocaleString()}
                 </p>
               </div>
 
