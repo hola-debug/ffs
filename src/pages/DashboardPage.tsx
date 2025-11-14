@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
@@ -9,19 +9,25 @@ import { useModuleSync } from '../hooks/useModuleSync';
 import { moduleRegistry } from '../lib/moduleRegistry';
 import FadeContent from '../components/ui/FadeContent';
 import CircularGalleryWithModals from '../components/CircularGalleryWithModals';
-import {
-  AddIncomeModal,
-  AddAccountModal,
-  CreatePocketModal,
-  AddExpenseModal,
-  HelpModal
-} from '../components/modals';
+import { useImagePreload } from '../hooks/useImagePreload';
+import DynamicModal from '../components/DynamicModal';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { loading, error, pockets, refetch } = useDashboardData();
   const { toasts, removeToast } = useToast();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  
+  // Preload gallery images
+  const galleryImages = useMemo(() => [
+    '/AGGREGAR INGRESO.png',
+    '/AGRREGAR CUENTAS.png',
+    '/AYUDA.png',
+    '/CREAR BOLSAS.png',
+    '/NUEVO GASTO.png'
+  ], []);
+  
+  useImagePreload(galleryImages);
   
   // Sincronizar bolsas con módulos dinámicos
   useModuleSync(pockets);
@@ -66,7 +72,7 @@ export default function DashboardPage() {
       <Header />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       
-      <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20 " >
+      <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20" >
         <div className="max-w-4xl mx-auto w-full ">
           {/* Galería Circular de Formularios */}
           <div className="">
@@ -119,34 +125,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Modales a nivel raíz - pantalla completa */}
-      <AddIncomeModal
-        isOpen={activeModal === 'agregar-ingreso'}
+      {/* Modal dinámico - solo renderiza el modal activo */}
+      <DynamicModal
+        activeModal={activeModal}
         onClose={handleModalClose}
         onSuccess={handleModalSuccess}
-      />
-      
-      <AddAccountModal
-        isOpen={activeModal === 'agregar-cuentas'}
-        onClose={handleModalClose}
-        onSuccess={handleModalSuccess}
-      />
-      
-      <CreatePocketModal
-        isOpen={activeModal === 'crear-bolsas'}
-        onClose={handleModalClose}
-        onSuccess={handleModalSuccess}
-      />
-      
-      <AddExpenseModal
-        isOpen={activeModal === 'nuevo-gasto'}
-        onClose={handleModalClose}
-        onSuccess={handleModalSuccess}
-      />
-      
-      <HelpModal
-        isOpen={activeModal === 'ayuda'}
-        onClose={handleModalClose}
       />
     </>
   );

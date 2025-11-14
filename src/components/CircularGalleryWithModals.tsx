@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from 'react';
 import CircularGallery from './CircularGallery';
 
 interface CircularGalleryWithModalsProps {
@@ -10,7 +11,7 @@ interface CircularGalleryWithModalsProps {
   onCardClick?: (modalId: string) => void;
 }
 
-export default function CircularGalleryWithModals({
+function CircularGalleryWithModals({
   bend = 3,
   textColor = '#ffffff',
   borderRadius = 0.05,
@@ -20,8 +21,8 @@ export default function CircularGalleryWithModals({
   onCardClick
 }: CircularGalleryWithModalsProps) {
 
-  // Define gallery items with their corresponding modals
-  const galleryItems = [
+  // Memoize gallery items to prevent recreation
+  const galleryItems = useMemo(() => [
     {
       image: '/AGGREGAR INGRESO.png',
       link: '#agregar-ingreso'
@@ -42,12 +43,12 @@ export default function CircularGalleryWithModals({
       image: '/NUEVO GASTO.png',
       link: '#nuevo-gasto'
     }
-  ];
+  ], []);
 
-  const handleCardClickInternal = (link: string) => {
+  const handleCardClickInternal = useCallback((link: string) => {
     const modalId = link.replace('#', '');
     onCardClick?.(modalId);
-  };
+  }, [onCardClick]);
 
   return (
     <CircularGallery
@@ -62,3 +63,5 @@ export default function CircularGalleryWithModals({
     />
   );
 }
+
+export default memo(CircularGalleryWithModals);

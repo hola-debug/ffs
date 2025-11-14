@@ -158,7 +158,9 @@ class Media {
 
   createShader() {
     const texture = new Texture(this.gl, {
-      generateMipmaps: true
+      generateMipmaps: false,
+      minFilter: this.gl.LINEAR,
+      magFilter: this.gl.LINEAR
     });
     this.program = new Program(this.gl, {
       depthTest: false,
@@ -224,11 +226,23 @@ class Media {
     });
     const img = new Image();
     img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+    img.loading = 'eager';
     img.src = this.image;
-    img.onload = () => {
-      texture.image = img;
-      this.program.uniforms.uImageSizes.value = [img.naturalWidth, img.naturalHeight];
-    };
+    
+    // Use decode() API for faster rendering
+    img.decode()
+      .then(() => {
+        texture.image = img;
+        this.program.uniforms.uImageSizes.value = [img.naturalWidth, img.naturalHeight];
+      })
+      .catch(() => {
+        // Fallback to onload
+        img.onload = () => {
+          texture.image = img;
+          this.program.uniforms.uImageSizes.value = [img.naturalWidth, img.naturalHeight];
+        };
+      });
   }
 
   createMesh() {
@@ -373,8 +387,9 @@ class App {
   createRenderer() {
     this.renderer = new Renderer({
       alpha: true,
-      antialias: true,
-      dpr: Math.min(window.devicePixelRatio || 1, 2)
+      antialias: false, // Disable antialiasing for better performance
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
+      powerPreference: 'high-performance'
     });
     this.gl = this.renderer.gl;
     this.gl.clearColor(0, 0, 0, 0);
