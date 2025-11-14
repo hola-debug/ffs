@@ -1,9 +1,48 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import GlassSurface from './GlassSurface';
 import GlassField, { GlassSelect } from './GlassField';
 
 export { GlassField, GlassSelect };
+
+const styles = `
+  @keyframes fadeInBackdrop {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeOutBackdrop {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  @keyframes slideInContent {
+    from { transform: translateY(20px); }
+    to { transform: translateY(0); }
+  }
+  @keyframes slideOutContent {
+    from { transform: translateY(0); }
+    to { transform: translateY(20px); }
+  }
+  .modal-backdrop-enter {
+    animation: fadeInBackdrop 600ms ease-out forwards;
+  }
+  .modal-backdrop-exit {
+    animation: fadeOutBackdrop 300ms ease-in forwards;
+  }
+  .modal-content-enter {
+    animation: slideInContent 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    will-change: transform;
+  }
+  .modal-content-exit {
+    animation: slideOutContent 300ms cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+    will-change: transform;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const styleEl = document.createElement('style');
+  styleEl.textContent = styles;
+  document.head.appendChild(styleEl);
+}
 
 interface IOSModalProps {
   isOpen: boolean;
@@ -13,9 +52,14 @@ interface IOSModalProps {
 }
 
 export default function IOSModal({ isOpen, onClose, title, children }: IOSModalProps) {
+  const [isClosing, setIsClosing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      setMounted(true);
+      setIsClosing(false);
     } else {
       document.body.style.overflow = '';
     }
@@ -25,31 +69,49 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  const handleClose = () => {
+    setIsClosing(true);
+    // Espera la duración de salida (300ms)
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  if (!mounted && !isOpen) return null;
+
+  const containerStyle: React.CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 9999,
+    pointerEvents: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '1rem',
+  };
 
   return (
     <>
       {/* Backdrop con blur y oscuridad */}
       <div
+        className={isClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'}
         style={{
           position: 'fixed',
           inset: 0,
           zIndex: 9998,
           backgroundColor: 'rgba(0, 0, 0, 0.4)',
           backdropFilter: 'blur(8px)',
-        
         }}
-        onClick={onClose}
+        onClick={handleClose}
       />
 
-      {/* Modal Content */}
+      {/* Modal Content Container */}
       <div 
-        className="fixed inset-0 flex items-center justify-center p-4 z-[9999] pointer-events-none "
-        onClick={onClose}
+        style={containerStyle}
+        onClick={handleClose}
       >
         <div
-          className="relative w-full max-w-md pointer-events-auto"
-      
+          className={`relative w-full max-w-md pointer-events-auto ${isClosing ? 'modal-content-exit' : 'modal-content-enter'}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Glass Surface Container */}
@@ -105,7 +167,7 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
                 
                 {/* Botón de cerrar estilo iOS */}
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="absolute top-5 right-5 group"
                   style={{
                     width: '32px',
@@ -147,10 +209,9 @@ export default function IOSModal({ isOpen, onClose, title, children }: IOSModalP
               </div>
             </div>
           </GlassSurface>
-          </div>
+        </div>
         </div>
       </div>
-         
     </>
   );
 }

@@ -26,45 +26,52 @@ function screenToNDC(x: number, y: number, width: number, height: number): { x: 
 }
 
 /**
- * Check if a point intersects with a plane (simplified AABB check)
- * Returns true if the click is within the plane's bounds
+ * Simple and reliable plane intersection check
+ * Returns intersection data with center distance for selection
  */
 function checkPlaneIntersection(
   mesh: Mesh,
   mouseNDC: { x: number; y: number },
   camera: Camera,
   viewport: { width: number; height: number }
-): boolean {
-  // Get mesh world position
+): { intersects: boolean; centerDistance: number } {
   mesh.updateMatrixWorld();
   const worldMatrix = mesh.worldMatrix;
-  const position = [worldMatrix[12], worldMatrix[13], worldMatrix[14]];
   
-  // Get scale from matrix
-  const scaleX = mesh.scale.x;
-  const scaleY = mesh.scale.y;
+  const worldX = worldMatrix[12];
+  const worldY = worldMatrix[13];
+  const worldZ = worldMatrix[14];
   
   // Project to screen space
   const fov = (camera.fov * Math.PI) / 180;
-  const distance = camera.position.z - position[2];
-  const height = 2 * Math.tan(fov / 2) * distance;
-  const width = height * camera.aspect;
+  const distance = camera.position.z - worldZ;
+  const viewHeight = 2 * Math.tan(fov / 2) * distance;
+  const viewWidth = viewHeight * camera.aspect;
   
-  // Calculate normalized screen position
-  const screenX = (position[0] / (width / 2));
-  const screenY = (position[1] / (height / 2));
+  const ndcX = (worldX / (viewWidth / 2));
+  const ndcY = (worldY / (viewHeight / 2));
   
-  // Calculate bounds in NDC space
-  const halfWidth = (scaleX / (width / 2));
-  const halfHeight = (scaleY / (height / 2));
+  // Simple bounding box check without rotation complexity
+  const scaleX = mesh.scale.x;
+  const scaleY = mesh.scale.y;
   
-  // Check if mouse is within bounds
-  return (
-    mouseNDC.x >= screenX - halfWidth &&
-    mouseNDC.x <= screenX + halfWidth &&
-    mouseNDC.y >= screenY - halfHeight &&
-    mouseNDC.y <= screenY + halfHeight
+  const halfWidth = (scaleX / (viewWidth / 2)) * 0.9; // Reduce to 90% for more precise clicks
+  const halfHeight = (scaleY / (viewHeight / 2)) * 0.9;
+  
+  const intersects = (
+    mouseNDC.x >= ndcX - halfWidth &&
+    mouseNDC.x <= ndcX + halfWidth &&
+    mouseNDC.y >= ndcY - halfHeight &&
+    mouseNDC.y <= ndcY + halfHeight
   );
+  
+  // Calculate distance from click to card center (in NDC space)
+  const centerDistance = Math.sqrt(
+    Math.pow(mouseNDC.x - ndcX, 2) +
+    Math.pow(mouseNDC.y - ndcY, 2)
+  );
+  
+  return { intersects, centerDistance };
 }
 
 interface ScreenSize {
@@ -479,8 +486,8 @@ class App {
     if (!this.isDown) return;
     const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const distance = (this.start - x) * (this.scrollSpeed * 0.025);
-    // Lower threshold for touch to be more lenient
-    if (Math.abs(distance) > 5) {
+    // Threshold increased to 15px for better tap vs scroll distinction
+    if (Math.abs(distance) > 15) {
       this.hasMoved = true;
       // Only prevent default when we're actually scrolling
       e.preventDefault();
@@ -500,40 +507,34 @@ class App {
   }
 
   /**
-   * Performs raycasting to detect which card was clicked at given screen coordinates
-   * @param clientX - X coordinate from mouse/touch event
-   * @param clientY - Y coordinate from mouse/touch event
+   * Detect which card was clicked using center distance as priority
    */
   handleCardClick(clientX: number, clientY: number) {
-    // Get click position relative to container
     const rect = this.container.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     
-    // Convert to NDC (Normalized Device Coordinates)
     const mouseNDC = screenToNDC(x, y, rect.width, rect.height);
     
-    // Raycast: find which card was clicked
-    // We check from front to back (by z-position) to get the topmost card
-    let clickedMedia: Media | null = null;
-    let closestZ = -Infinity;
+    // Find all cards that intersect and pick the one closest to click center
+    const candidates: Array<{ media: Media; centerDistance: number }> = [];
     
     this.medias.forEach(media => {
-      // Check if click intersects with this card's bounds
-      if (checkPlaneIntersection(media.plane, mouseNDC, this.camera, this.viewport)) {
-        // Get z-position (depth) to determine which card is in front
-        const worldMatrix = media.plane.worldMatrix;
-        const zPos = worldMatrix[14];
-        
-        // Keep the card closest to camera (highest z in our coordinate system)
-        if (zPos > closestZ) {
-          closestZ = zPos;
-          clickedMedia = media;
-        }
+      const result = checkPlaneIntersection(media.plane, mouseNDC, this.camera, this.viewport);
+      
+      if (result.intersects) {
+        candidates.push({
+          media,
+          centerDistance: result.centerDistance
+        });
       }
     });
     
-    // Only emit event if a card was actually clicked
+    // Sort by distance to center (closest center = most likely intended target)
+    candidates.sort((a, b) => a.centerDistance - b.centerDistance);
+    
+    const clickedMedia = candidates.length > 0 ? candidates[0].media : null;
+    
     if (clickedMedia && clickedMedia.link) {
       const event = new CustomEvent('gallery-card-click', {
         detail: { link: clickedMedia.link },
