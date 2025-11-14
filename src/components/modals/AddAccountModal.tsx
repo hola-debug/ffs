@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal from '../IOSModal';
-import GlassField from '../ui/GlassField';
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -81,66 +80,58 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="ios-label">Nombre</label>
-          <GlassField>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              placeholder="Ej: Banco Nación, Billetera..."
-              className="glass-control"
-            />
-          </GlassField>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            placeholder="Ej: Banco Nación, Billetera..."
+            className="w-full ios-input"
+          />
         </div>
 
         <div>
           <label className="ios-label">Tipo de cuenta</label>
-          <GlassField>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value as any)}
-              required
-              className="glass-control glass-control--select"
-            >
-              {ACCOUNT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </GlassField>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as any)}
+            required
+            className="w-full ios-select"
+          >
+            {ACCOUNT_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
           <label className="ios-label">Moneda</label>
-          <GlassField>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              required
-              className="glass-control glass-control--select"
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </GlassField>
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            required
+            className="w-full ios-select"
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
           <label className="ios-label">Saldo inicial (opcional)</label>
-          <GlassField>
-            <input
-              type="number"
-              step="0.01"
-              value={balance}
-              onChange={(e) => setBalance(e.target.value)}
-              placeholder="0.00"
-              className="glass-control"
-            />
-          </GlassField>
+          <input
+            type="number"
+            step="0.01"
+            value={balance}
+            onChange={(e) => setBalance(e.target.value)}
+            placeholder="0.00"
+            className="w-full ios-input"
+          />
         </div>
 
         <div className="flex items-center space-x-3">

@@ -16,7 +16,6 @@ import {
   AddExpenseModal,
   HelpModal
 } from '../components/modals';
-import { AIInputModule } from '../components/modules';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -90,11 +89,7 @@ export default function DashboardPage() {
                 />
               </div>
             </FadeContent>
-
-         
           </div>
-
-  
 
   
 

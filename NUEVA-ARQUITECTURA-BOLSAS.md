@@ -8,7 +8,8 @@
 
 **Ahora (Bolsas):**
 - Sistema de **BOLSAS DE DINERO** que se separan del ingreso
-- Dos tipos: **Bolsas de Gasto** y **Bolsas de Ahorro**
+- Tres tipos: **Bolsas de Gasto**, **Bolsas de Ahorro** y **Bolsas de Deuda**
+- Subtipos de gasto: **period**, **recurrent**, **fixed**, **shared**
 - Flujo de dinero más claro y natural
 
 ---
@@ -16,69 +17,116 @@
 ## 🌊 Flujo de Dinero
 
 ```
-INGRESO MENSUAL ($10,000)
-    │
-    ├─────────────────────────────────────────┐
-    │                                         │
-    ▼                                         ▼
-NIVEL INGRESO                         DISPONIBLE
-    │                                   ($6,000)
-    ├─ Gastos Fijos (-$3,000)              │
-    │  • Alquiler                           │
-    │  • Servicios                          ├──────────────┬─────────────┐
-    │  • Internet                           │              │             │
-    │                                       ▼              ▼             ▼
-    └─ Ahorro Directo (-$1,000)      BOLSA #1        BOLSA #2      BOLSA #3
-       • Emergencias                  Comida         Viaje         Entretenimiento
-                                     $2,000/15d     $3,000/30d      $1,000/30d
-                                     GASTO          AHORRO          GASTO
-                                     
-                                     └─> Al finalizar, si sobra dinero
-                                         vuelve al INGRESO
+INGRESOS (cuando llegan)
+    ↓
+CUENTAS (balance dinámico por cuenta/moneda)
+    • Banco BROU: 50,000 UYU
+    • PayPal: 100 USD
+    • Efectivo: 5,000 UYU
+    ↓
+DISPONIBLE = SUM(cuentas) - SUM(bolsas activas)
+    ↓
+BOLSAS (expense/saving/debt)
+    • Comida (expense.period, 8,000 UYU / 30d)
+    • Luz/Agua (expense.recurrent, vence día 10, ~2,500 UYU)
+    • Alquiler (expense.fixed, 15,000 UYU)
+    • Vacaciones (saving, objetivo 10,000 UYU)
+    • Tarjeta (debt, restante 5,000 UYU)
+
+Al finalizar, si sobra dinero (expense/saving) → vuelve al disponible
 ```
 
 ---
 
 ## 🎯 Conceptos Clave
 
-### 1. **Ingreso Mensual** (Nivel base)
-- El dinero total que entra cada mes
-- Configurado en el perfil del usuario
+### 1. **Cuentas e ingresos dinámicos**
+- Los ingresos se registran como movimientos de tipo `income` en cuentas
+- El balance de cada cuenta se actualiza automáticamente
 
-### 2. **Gastos Fijos** (Nivel ingreso)
-- Gastos recurrentes mensuales
-- Se descuentan directamente del ingreso
-- Ej: alquiler, servicios, subscripciones
-
-### 3. **Ahorro Directo** (Nivel ingreso)
-- Ahorros permanentes que NO están en bolsas
-- Se descuentan directamente del ingreso
-- Ej: fondo de emergencia, inversiones
-
-### 4. **Disponible**
+### 2. **Disponible**
 ```
-DISPONIBLE = INGRESO - GASTOS_FIJOS - AHORRO_DIRECTO
+DISPONIBLE = SUM(balance de cuentas) - SUM(saldo en bolsas activas)
 ```
 
-### 5. **Bolsas (Pockets)**
+### 3. **Bolsas (Pockets)**
 
-Son separaciones del dinero disponible con un objetivo específico:
+Son separaciones del dinero disponible con un objetivo específico (todo gasto/ahorro/deuda se modela como una bolsa):
+- Tipos: `expense`, `saving`, `debt`
+- Subtipos de `expense`: `period`, `recurrent`, `fixed`, `shared` (futuro)
 
-#### 🛒 Bolsas de GASTO (`type: 'expense'`)
-- Separo X dinero para gastar en Y días
-- Me dice cuánto puedo gastar por día
-- Al finalizar, el dinero restante vuelve al ingreso
+#### 🛍️ Bolsas de GASTO (`type: 'expense'`)
+Separo dinero para gastar con diferentes modalidades según el subtipo.
 
-**Ejemplo:**
+**1. EXPENSE.PERIOD** (`subtype: 'period'`) - Gasto con período definido
+- Para gastos con inicio/fin específico
+- Cálculo automático de cuota diaria
+- Ejemplos: comida mensual, viajes, gastos de fin de semana
+
 ```typescript
 {
-  name: "Comida Quincenal",
+  name: "Comida Febrero",
   type: "expense",
-  allocated_amount: 2000,
-  starts_at: "2025-01-01",
-  ends_at: "2025-01-15",
-  daily_allowance: 133.33,  // 2000 / 15 días
-  auto_return_remaining: true
+  subtype: "period",
+  allocated_amount: 10000,
+  spent_amount: 3500,
+  starts_at: "2025-02-01",
+  ends_at: "2025-02-28",
+  days_duration: 28,
+  daily_allowance: 357  // 10000 / 28
+}
+```
+
+**2. EXPENSE.RECURRENT** (`subtype: 'recurrent'`) - Gasto mensual variable
+- Para gastos que vencen mensualmente pero el monto varía
+- Notificaciones automáticas antes del vencimiento
+- Ejemplos: luz, agua, teléfono, gas
+
+```typescript
+{
+  name: "Luz",
+  type: "expense",
+  subtype: "recurrent",
+  average_amount: 2500,
+  spent_amount: 2350,
+  due_day: 10,  // Vence el 10 de cada mes
+  last_payment_amount: 2350,
+  notification_days_before: 3,
+  next_payment: "2025-02-10"
+}
+```
+
+**3. EXPENSE.FIXED** (`subtype: 'fixed'`) - Gasto mensual fijo
+- Para gastos que siempre son el mismo monto
+- Puede auto-registrarse automáticamente
+- Ejemplos: alquiler, Netflix, suscripciones
+
+```typescript
+{
+  name: "Alquiler",
+  type: "expense",
+  subtype: "fixed",
+  monthly_amount: 15000,
+  due_day: 1,
+  auto_register: true,  // Se registra automáticamente
+  last_payment: "2025-01-01",
+  next_payment: "2025-02-01"
+}
+```
+
+**4. EXPENSE.SHARED** (`subtype: 'shared'`) - Gasto compartido (futuro)
+- Para gastos divididos entre varias personas
+- Seguimiento de quién pagó y quién debe
+- Ejemplos: alquiler compartido, cena dividida
+
+```typescript
+{
+  name: "Alquiler Compartido",
+  type: "expense",
+  subtype: "shared",
+  allocated_amount: 20000,
+  split_type: "equal",  // o "percentage"
+  participants: ["user_1", "user_2"]
 }
 ```
 
@@ -124,16 +172,18 @@ Son separaciones del dinero disponible con un objetivo específico:
 
 ### Tabla: `movements` (Movimientos)
 
-Reemplaza la tabla `transactions`. Tipos de movimientos:
+Reemplaza la tabla `transactions`. Tipos de movimientos (asociados a cuentas/bolsas):
 
-| Tipo | Descripción | Nivel |
-|------|-------------|-------|
-| `income` | Ingreso mensual | Ingreso |
-| `fixed_expense` | Gasto fijo mensual | Ingreso |
-| `saving_deposit` | Depósito a ahorro directo | Ingreso |
-| `pocket_allocation` | Asignar dinero a una bolsa | Bolsa |
-| `pocket_expense` | Gasto desde una bolsa | Bolsa |
-| `pocket_return` | Devolución de bolsa al ingreso | Bolsa |
+| Tipo | Descripción |
+|------|-------------|
+| `income` | Ingreso a una cuenta |
+| `pocket_allocation` | Asignación de dinero desde cuenta a una bolsa |
+| `pocket_expense` | Gasto registrado desde una bolsa de tipo expense |
+| `pocket_return` | Devolución de saldo de una bolsa a la cuenta/disponible |
+| `saving_deposit` | Movimiento de aporte a una bolsa de ahorro (`saving`) |
+| `fixed_expense_auto` | Registro automático del pago de una bolsa `expense.fixed` |
+| `debt_payment` | Pago aplicado a una bolsa de deuda |
+| `debt_interest` | Interés aplicado a una bolsa de deuda |
 
 ---
 

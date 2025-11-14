@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal from '../IOSModal';
 import { PocketType } from '../../lib/types';
-import GlassField from '../ui/GlassField';
 
 interface CreatePocketModalProps {
   isOpen: boolean;
@@ -101,16 +100,14 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="ios-label">Nombre</label>
-          <GlassField>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              placeholder="Ej: Supermercado, Vacaciones..."
-              className="glass-control"
-            />
-          </GlassField>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            placeholder="Ej: Supermercado, Vacaciones..."
+            className="w-full ios-input"
+          />
         </div>
 
         <div>
@@ -175,60 +172,52 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
 
         <div>
           <label className="ios-label">Monto a asignar</label>
-          <GlassField>
-            <input
-              type="number"
-              step="0.01"
-              value={allocatedAmount}
-              onChange={(e) => setAllocatedAmount(e.target.value)}
-              required
-              placeholder="0.00"
-              className="glass-control"
-            />
-          </GlassField>
+          <input
+            type="number"
+            step="0.01"
+            value={allocatedAmount}
+            onChange={(e) => setAllocatedAmount(e.target.value)}
+            required
+            placeholder="0.00"
+            className="w-full ios-input"
+          />
         </div>
 
         {type === 'saving' && (
           <div>
             <label className="ios-label">Monto objetivo</label>
-            <GlassField>
-              <input
-                type="number"
-                step="0.01"
-                value={targetAmount}
-                onChange={(e) => setTargetAmount(e.target.value)}
-                required={type === 'saving'}
-                placeholder="0.00"
-                className="glass-control"
-              />
-            </GlassField>
+            <input
+              type="number"
+              step="0.01"
+              value={targetAmount}
+              onChange={(e) => setTargetAmount(e.target.value)}
+              required={type === 'saving'}
+              placeholder="0.00"
+              className="w-full ios-input"
+            />
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="ios-label">Fecha inicio</label>
-            <GlassField>
-              <input
-                type="date"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-                required
-                className="glass-control"
-              />
-            </GlassField>
+            <input
+              type="date"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+              required
+              className="w-full ios-input"
+            />
           </div>
           <div>
             <label className="ios-label">Fecha fin</label>
-            <GlassField>
-              <input
-                type="date"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-                required
-                className="glass-control"
-              />
-            </GlassField>
+            <input
+              type="date"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+              required
+              className="w-full ios-input"
+            />
           </div>
         </div>
 
