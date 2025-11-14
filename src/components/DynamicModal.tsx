@@ -3,7 +3,7 @@ import { lazy, Suspense } from 'react';
 // Lazy load modal components
 const AddIncomeModal = lazy(() => import('./modals/AddIncomeModal'));
 const AddAccountModal = lazy(() => import('./modals/AddAccountModal'));
-const CreatePocketModal = lazy(() => import('./modals/CreatePocketModal'));
+const PocketEditor = lazy(() => import('./modals/PocketEditor'));
 const AddExpenseModal = lazy(() => import('./modals/AddExpenseModal'));
 const HelpModal = lazy(() => import('./modals/HelpModal'));
 
@@ -39,8 +39,9 @@ export default function DynamicModal({ activeModal, onClose, onSuccess }: Dynami
       )}
       
       {activeModal === 'crear-bolsas' && (
-        <CreatePocketModal
+        <PocketEditor
           isOpen={true}
+          mode="create"
           onClose={onClose}
           onSuccess={onSuccess}
         />

@@ -9,22 +9,28 @@ interface AddAccountModalProps {
 }
 
 const ACCOUNT_TYPES = [
-  { value: 'cash', label: 'Efectivo' },
   { value: 'bank', label: 'Banco' },
-  { value: 'wallet', label: 'Billetera Digital' },
-  { value: 'crypto', label: 'Crypto' },
+  { value: 'fintech', label: 'Fintech / Billetera Digital' },
+  { value: 'cash', label: 'Efectivo' },
+  { value: 'crypto', label: 'Criptomonedas' },
+  { value: 'investment', label: 'Inversiones' },
   { value: 'other', label: 'Otro' },
 ] as const;
 
 const CURRENCIES = [
-  { value: 'ARS', label: 'ARS' },
-  { value: 'USD', label: 'USD' },
-  { value: 'EUR', label: 'EUR' },
+  { value: 'ARS', label: 'ARS - Peso Argentino' },
+  { value: 'USD', label: 'USD - Dólar' },
+  { value: 'EUR', label: 'EUR - Euro' },
+  { value: 'UYU', label: 'UYU - Peso Uruguayo' },
+  { value: 'BRL', label: 'BRL - Real Brasileño' },
+  { value: 'CLP', label: 'CLP - Peso Chileno' },
+  { value: 'BTC', label: 'BTC - Bitcoin' },
+  { value: 'ETH', label: 'ETH - Ethereum' },
 ] as const;
 
 export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccountModalProps) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<'cash' | 'bank' | 'wallet' | 'crypto' | 'other'>('bank');
+  const [type, setType] = useState<'cash' | 'bank' | 'fintech' | 'crypto' | 'investment' | 'other'>('bank');
   const [currency, setCurrency] = useState('ARS');
   const [balance, setBalance] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
+import IOSModal from '../IOSModal';
 import {
   Pocket,
   PocketType,
@@ -30,11 +30,11 @@ const POCKET_TYPES: Array<{ value: PocketType; label: string; description: strin
   { value: 'debt', label: 'Deuda', description: 'Gestionar préstamos y cuotas' },
 ];
 
-const EXPENSE_SUBTYPES: Array<{ value: PocketSubtype; label: string; description: string }> = [
-  { value: 'variable', label: 'Gasto Diario', description: 'Gasto variable con límite de días' },
-  { value: 'fixed', label: 'Gasto Fijo', description: 'Gasto mensual recurrente' },
-  { value: 'period', label: 'Período', description: 'Gasto en período personalizado' },
-  // { value: 'shared', label: 'Compartida', description: 'Compartir con otros usuarios' },
+const EXPENSE_SUBTYPES: Array<{ value: PocketSubtype; label: string; description: string; icon: string }> = [
+  { value: 'period', label: 'Período', description: 'Gasto en período personalizado', icon: '📅' },
+  { value: 'recurrent', label: 'Recurrente', description: 'Gasto mensual variable', icon: '🔄' },
+  { value: 'fixed', label: 'Gasto Fijo', description: 'Gasto mensual fijo', icon: '📌' },
+  { value: 'shared', label: 'Compartida', description: 'Compartir con otros usuarios', icon: '👥' },
 ];
 
 const EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉', '🍔', '⚡', '📱', '🎬', '🏋️'];
@@ -68,12 +68,17 @@ export default function PocketEditor({
   const [startsAt, setStartsAt] = useState(pocket?.starts_at?.split('T')[0] || new Date().toISOString().split('T')[0]);
   const [endsAt, setEndsAt] = useState(pocket?.ends_at?.split('T')[0] || '');
 
-  // EXPENSE.VARIABLE
+  // EXPENSE - campos compartidos
   const [allocatedAmount, setAllocatedAmount] = useState(
-    pocket && (isExpenseVariablePocket(pocket) || isExpensePeriodPocket(pocket)) ? pocket.allocated_amount : ''
+    pocket && (isExpenseVariablePocket(pocket) || isExpensePeriodPocket(pocket) || isExpenseSharedPocket(pocket)) ? pocket.allocated_amount : ''
   );
-  const [resetMode, setResetMode] = useState(
-    pocket && isExpenseVariablePocket(pocket) ? pocket.reset_mode : 'once'
+  
+  // EXPENSE.RECURRENT
+  const [expectedAmount, setExpectedAmount] = useState(
+    pocket && isExpenseVariablePocket(pocket) ? pocket.expected_amount : ''
+  );
+  const [recurrentDueDay, setRecurrentDueDay] = useState(
+    pocket && isExpenseVariablePocket(pocket) ? pocket.due_day : 15
   );
 
   // EXPENSE.FIXED
@@ -115,9 +120,8 @@ export default function PocketEditor({
 
   const fetchAccounts = async () => {
     const { data, error } = await supabase
-      .from('accounts')
-      .select('*')
-      .order('is_primary', { ascending: false });
+      .from('account_with_currencies')
+      .select('*');
 
     if (data) {
       setAccounts(data);
@@ -140,6 +144,11 @@ export default function PocketEditor({
       const selectedAccount = accounts.find(a => a.id === accountId);
       if (!selectedAccount) throw new Error('Selecciona una cuenta válida');
 
+      // Obtener la divisa primaria de la cuenta
+      const primaryCurrency = selectedAccount.currencies?.find((c: any) => c.is_primary)?.currency 
+        || selectedAccount.currencies?.[0]?.currency 
+        || 'UYU';
+
       // Construir payload según tipo
       const pocketData: any = {
         user_id: user.id,
@@ -147,7 +156,9 @@ export default function PocketEditor({
         type: pocketType,
         emoji,
         account_id: accountId,
-        currency: selectedAccount.currency || 'ARS',
+        // La currency se autoasignará por el trigger si no la enviamos
+        // pero la enviamos explícitamente por seguridad
+        currency: primaryCurrency,
         status: 'active',
       };
 
@@ -171,13 +182,11 @@ export default function PocketEditor({
         pocketData.starts_at = startsAt;
       }
 
-      if (pocketType === 'expense' && pocketSubtype === 'variable') {
-        if (!allocatedAmount || !endsAt) throw new Error('Completa monto y fechas');
-        pocketData.allocated_amount = parseFloat(allocatedAmount as string);
+      if (pocketType === 'expense' && pocketSubtype === 'recurrent') {
+        if (!recurrentDueDay) throw new Error('Completa día de vencimiento');
+        pocketData.due_day = recurrentDueDay;
+        if (expectedAmount) pocketData.expected_amount = parseFloat(expectedAmount as string);
         pocketData.spent_amount = 0;
-        pocketData.starts_at = startsAt;
-        pocketData.ends_at = endsAt;
-        pocketData.reset_mode = resetMode;
       }
 
       if (pocketType === 'expense' && pocketSubtype === 'fixed') {
@@ -193,6 +202,14 @@ export default function PocketEditor({
         pocketData.spent_amount = 0;
         pocketData.starts_at = startsAt;
         pocketData.ends_at = endsAt;
+        // days_duration y daily_allowance se calculan automáticamente por el trigger
+      }
+      
+      if (pocketType === 'expense' && pocketSubtype === 'shared') {
+        if (!allocatedAmount) throw new Error('Completa monto asignado');
+        pocketData.allocated_amount = parseFloat(allocatedAmount as string);
+        pocketData.spent_amount = 0;
+        // TODO: agregar participants cuando se implemente
       }
 
       if (pocketType === 'debt') {
@@ -239,12 +256,12 @@ export default function PocketEditor({
 
   // Step 1: Seleccionar tipo
   const renderTypeSelection = () => (
-    <div className=\"space-y-3\">
-      <h3 className=\"font-semibold text-white mb-4\">Tipo de bolsa</h3>
+    <div className="space-y-3">
+      <h3 className="font-semibold text-white mb-4">Tipo de bolsa</h3>
       {POCKET_TYPES.map((type) => (
         <label
           key={type.value}
-          className=\"block p-4 rounded-2xl cursor-pointer transition-all\"
+          className="block p-4 rounded-2xl cursor-pointer transition-all"
           style={{
             background: pocketType === type.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',
             border: pocketType === type.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
@@ -252,24 +269,24 @@ export default function PocketEditor({
             WebkitBackdropFilter: 'blur(20px)',
           }}
         >
-          <div className=\"flex items-start\">
+          <div className="flex items-start">
             <input
-              type=\"radio\"
-              name=\"type\"
+              type="radio"
+              name="type"
               value={type.value}
               checked={pocketType === type.value}
               onChange={(e) => {
                 setPocketType(e.target.value as PocketType);
                 if (e.target.value === 'expense') {
-                  setPocketSubtype('variable');
+                  setPocketSubtype('period');
                 }
               }}
-              className=\"mt-1 mr-3\"
+              className="mt-1 mr-3"
               style={{ accentColor: '#0A84FF' }}
             />
             <div>
-              <div className=\"font-medium text-white\">{type.label}</div>
-              <div className=\"text-sm mt-1\" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+              <div className="font-medium text-white">{type.label}</div>
+              <div className="text-sm mt-1" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
                 {type.description}
               </div>
             </div>
@@ -281,12 +298,12 @@ export default function PocketEditor({
 
   // Step 1b: Seleccionar subtype para gastos
   const renderSubtypeSelection = () => (
-    <div className=\"space-y-3\">
-      <h3 className=\"font-semibold text-white mb-4\">Tipo de gasto</h3>
+    <div className="space-y-3">
+      <h3 className="font-semibold text-white mb-4">Tipo de gasto</h3>
       {EXPENSE_SUBTYPES.map((subtype) => (
         <label
           key={subtype.value}
-          className=\"block p-4 rounded-2xl cursor-pointer transition-all\"
+          className="block p-4 rounded-2xl cursor-pointer transition-all"
           style={{
             background: pocketSubtype === subtype.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',
             border: pocketSubtype === subtype.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
@@ -294,19 +311,22 @@ export default function PocketEditor({
             WebkitBackdropFilter: 'blur(20px)',
           }}
         >
-          <div className=\"flex items-start\">
-            <input
-              type=\"radio\"
-              name=\"subtype\"
-              value={subtype.value || ''}
-              checked={pocketSubtype === subtype.value}
-              onChange={(e) => setPocketSubtype((e.target.value as PocketSubtype) || null)}
-              className=\"mt-1 mr-3\"
-              style={{ accentColor: '#0A84FF' }}
-            />
-            <div>
-              <div className=\"font-medium text-white\">{subtype.label}</div>
-              <div className=\"text-sm mt-1\" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          <div className="flex items-start">
+            <div className="text-2xl mr-3">{subtype.icon}</div>
+            <div className="flex-1">
+              <div className="flex items-center">
+                <input
+                  type="radio"
+                  name="subtype"
+                  value={subtype.value || ''}
+                  checked={pocketSubtype === subtype.value}
+                  onChange={(e) => setPocketSubtype((e.target.value as PocketSubtype) || null)}
+                  className="mr-2"
+                  style={{ accentColor: '#0A84FF' }}
+                />
+                <div className="font-medium text-white">{subtype.label}</div>
+              </div>
+              <div className="text-sm mt-1 ml-6" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
                 {subtype.description}
               </div>
             </div>
@@ -318,25 +338,28 @@ export default function PocketEditor({
 
   // Step 2: Campos comunes
   const renderCommonFields = () => (
-    <div className=\"space-y-5\">
-      <GlassField
-        label="Nombre"
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        required
-        placeholder="Ej: Supermercado, Ahorro, Netflix..."
-      />
+    <div className="space-y-5">
+      <div>
+        <label className="ios-label">Nombre</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          placeholder="Ej: Supermercado, Ahorro, Netflix..."
+          className="w-full ios-input"
+        />
+      </div>
 
       <div>
-        <label className=\"ios-label\">Emoji</label>
-        <div className=\"flex flex-wrap gap-2\">
+        <label className="ios-label">Emoji</label>
+        <div className="flex flex-wrap gap-2">
           {EMOJIS.map((e) => (
             <button
               key={e}
-              type=\"button\"
+              type="button"
               onClick={() => setEmoji(e)}
-              className=\"text-2xl p-2 rounded transition-all\"
+              className="text-2xl p-2 rounded transition-all"
               style={{
                 background: emoji === e ? 'rgba(10, 132, 255, 0.9)' : 'rgba(120, 120, 128, 0.16)',
                 border: emoji === e ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
@@ -351,33 +374,53 @@ export default function PocketEditor({
         </div>
       </div>
 
-      <GlassSelect
-        label="Cuenta"
-        value={accountId}
-        onChange={(e) => setAccountId(e.target.value)}
-        required
-      >
-        <option value="">Selecciona una cuenta</option>
-        {accounts.map((acc) => (
-          <option key={acc.id} value={acc.id}>
-            {acc.name}
-          </option>
-        ))}
-      </GlassSelect>
+      <div>
+        <label className="ios-label">Cuenta</label>
+        <select
+          value={accountId}
+          onChange={(e) => setAccountId(e.target.value)}
+          required
+          className="w-full ios-select"
+        >
+          <option value="">Selecciona una cuenta</option>
+          {accounts.map((acc) => {
+            const primaryCurrency = acc.currencies?.find((c: any) => c.is_primary)?.currency 
+              || acc.currencies?.[0]?.currency;
+            return (
+              <option key={acc.id} value={acc.id}>
+                {acc.name} {primaryCurrency ? `(${primaryCurrency})` : ''}
+              </option>
+            );
+          })}
+        </select>
+        {accountId && (() => {
+          const selectedAcc = accounts.find(a => a.id === accountId);
+          const currency = selectedAcc?.currencies?.find((c: any) => c.is_primary)?.currency 
+            || selectedAcc?.currencies?.[0]?.currency;
+          return currency && (
+            <p className="text-xs mt-1" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+              Divisa: {currency}
+            </p>
+          );
+        })()}
+      </div>
 
       {(pocketType === 'expense' || pocketType === 'debt') && (
-        <GlassSelect
-          label="Cuenta de pago (opcional)"
-          value={linkedAccountId}
-          onChange={(e) => setLinkedAccountId(e.target.value)}
-        >
-          <option value="">No especificar</option>
-          {accounts.map((acc) => (
-            <option key={acc.id} value={acc.id}>
-              {acc.name}
-            </option>
-          ))}
-        </GlassSelect>
+        <div>
+          <label className="ios-label">Cuenta de pago (opcional)</label>
+          <select
+            value={linkedAccountId}
+            onChange={(e) => setLinkedAccountId(e.target.value)}
+            className="w-full ios-select"
+          >
+            <option value="">No especificar</option>
+            {accounts.map((acc) => (
+              <option key={acc.id} value={acc.id}>
+                {acc.name}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
     </div>
   );
@@ -386,52 +429,60 @@ export default function PocketEditor({
   const renderTypeSpecificFields = () => {
     if (pocketType === 'saving') {
       return (
-        <div className=\"space-y-5\">
-          <GlassField
-            label="Monto objetivo"
-            type="number"
-            step="0.01"
-            value={targetAmount}
-            onChange={(e) => setTargetAmount(e.target.value)}
-            required
-            placeholder="0.00"
-          />
-
-          <GlassSelect
-            label="Frecuencia de aporte"
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value as any)}
-          >
-            <option value="monthly">Mensual</option>
-            <option value="weekly">Semanal</option>
-            <option value="none">Sin frecuencia</option>
-          </GlassSelect>
-
-          <div className=\"grid grid-cols-2 gap-4\">
-            <GlassField
-              label="Fecha inicio"
-              type="date"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-            />
-            <GlassField
-              label="Fecha fin (opcional)"
-              type="date"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
+        <div className="space-y-5">
+          <div>
+            <label className="ios-label">Monto objetivo</label>
+            <input
+              type="number"
+              step="0.01"
+              value={targetAmount}
+              onChange={(e) => setTargetAmount(e.target.value)}
+              required
+              placeholder="0.00"
+              className="w-full ios-input"
             />
           </div>
 
-          <div className=\"flex items-center space-x-3\">
+          <div>
+            <label className="ios-label">Frecuencia de aporte</label>
+            <select value={frequency} onChange={(e) => setFrequency(e.target.value as any)} className="w-full ios-select">
+              <option value="monthly">Mensual</option>
+              <option value="weekly">Semanal</option>
+              <option value="none">Sin frecuencia</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="ios-label">Fecha inicio</label>
+              <input
+                type="date"
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                className="w-full ios-input"
+              />
+            </div>
+            <div>
+              <label className="ios-label">Fecha fin (opcional)</label>
+              <input
+                type="date"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+                className="w-full ios-input"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
             <input
-              type=\"checkbox\"
-              id=\"allowWithdrawals\"
+              type="checkbox"
+              id="allowWithdrawals"
               checked={allowWithdrawals}
               onChange={(e) => setAllowWithdrawals(e.target.checked)}
-              className=\"w-5 h-5 rounded\"
+              className="w-5 h-5 rounded"
               style={{ accentColor: '#0A84FF' }}
             />
-            <label htmlFor=\"allowWithdrawals\" className=\"ios-label\" style={{ marginBottom: 0 }}>
+            <label htmlFor="allowWithdrawals" className="ios-label" style={{ marginBottom: 0 }}>
               Permitir retiros antes de completar
             </label>
           </div>
@@ -439,83 +490,80 @@ export default function PocketEditor({
       );
     }
 
-    if (pocketType === 'expense' && pocketSubtype === 'variable') {
+    if (pocketType === 'expense' && pocketSubtype === 'recurrent') {
       return (
-        <div className=\"space-y-5\">
-          <GlassField
-            label="Monto asignado"
-            type="number"
-            step="0.01"
-            value={allocatedAmount}
-            onChange={(e) => setAllocatedAmount(e.target.value)}
-            required
-            placeholder="0.00"
-          />
-
-          <div className=\"grid grid-cols-2 gap-4\">
-            <GlassField
-              label="Desde"
-              type="date"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
+        <div className="space-y-5">
+          <div>
+            <label className="ios-label">Día de vencimiento</label>
+            <select 
+              value={recurrentDueDay} 
+              onChange={(e) => setRecurrentDueDay(parseInt(e.target.value))} 
+              className="w-full ios-select"
               required
-            />
-            <GlassField
-              label="Hasta"
-              type="date"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-              required
-            />
+            >
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <GlassSelect
-            label="Renovación"
-            value={resetMode}
-            onChange={(e) => setResetMode(e.target.value as any)}
-          >
-            <option value="once">Una sola vez</option>
-            <option value="monthly">Mensualmente</option>
-          </GlassSelect>
+          <div>
+            <label className="ios-label">Monto esperado (opcional)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={expectedAmount}
+              onChange={(e) => setExpectedAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full ios-input"
+            />
+            <p className="text-xs mt-1" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+              Estimación mensual. El sistema calculará el promedio automáticamente.
+            </p>
+          </div>
         </div>
       );
     }
 
     if (pocketType === 'expense' && pocketSubtype === 'fixed') {
       return (
-        <div className=\"space-y-5\">
-          <GlassField
-            label="Monto mensual"
-            type="number"
-            step="0.01"
-            value={monthlyAmount}
-            onChange={(e) => setMonthlyAmount(e.target.value)}
-            required
-            placeholder="0.00"
-          />
-
-          <GlassSelect
-            label="Día de vencimiento"
-            value={dueDay}
-            onChange={(e) => setDueDay(parseInt(e.target.value))}
-          >
-            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-              <option key={day} value={day}>
-                {day}
-              </option>
-            ))}
-          </GlassSelect>
-
-          <div className=\"flex items-center space-x-3\">
+        <div className="space-y-5">
+          <div>
+            <label className="ios-label">Monto mensual</label>
             <input
-              type=\"checkbox\"
-              id=\"autoRegister\"
+              type="number"
+              step="0.01"
+              value={monthlyAmount}
+              onChange={(e) => setMonthlyAmount(e.target.value)}
+              required
+              placeholder="0.00"
+              className="w-full ios-input"
+            />
+          </div>
+
+          <div>
+            <label className="ios-label">Día de vencimiento</label>
+            <select value={dueDay} onChange={(e) => setDueDay(parseInt(e.target.value))} className="w-full ios-select">
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="autoRegister"
               checked={autoRegister}
               onChange={(e) => setAutoRegister(e.target.checked)}
-              className=\"w-5 h-5 rounded\"
+              className="w-5 h-5 rounded"
               style={{ accentColor: '#0A84FF' }}
             />
-            <label htmlFor=\"autoRegister\" className=\"ios-label\" style={{ marginBottom: 0 }}>
+            <label htmlFor="autoRegister" className="ios-label" style={{ marginBottom: 0 }}>
               Registrar automáticamente cada mes
             </label>
           </div>
@@ -525,32 +573,70 @@ export default function PocketEditor({
 
     if (pocketType === 'expense' && pocketSubtype === 'period') {
       return (
-        <div className=\"space-y-5\">
-          <GlassField
-            label="Monto asignado"
-            type="number"
-            step="0.01"
-            value={allocatedAmount}
-            onChange={(e) => setAllocatedAmount(e.target.value)}
-            required
-            placeholder="0.00"
-          />
+        <div className="space-y-5">
+          <div>
+            <label className="ios-label">Monto asignado</label>
+            <input
+              type="number"
+              step="0.01"
+              value={allocatedAmount}
+              onChange={(e) => setAllocatedAmount(e.target.value)}
+              required
+              placeholder="0.00"
+              className="w-full ios-input"
+            />
+          </div>
 
-          <div className=\"grid grid-cols-2 gap-4\">
-            <GlassField
-              label="Desde"
-              type="date"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="ios-label">Desde</label>
+              <input
+                type="date"
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                required
+                className="w-full ios-input"
+              />
+            </div>
+            <div>
+              <label className="ios-label">Hasta</label>
+              <input
+                type="date"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+                required
+                className="w-full ios-input"
+              />
+            </div>
+          </div>
+          
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+            ℹ️ La duración en días y el promedio diario se calcularán automáticamente.
+          </p>
+        </div>
+      );
+    }
+    
+    if (pocketType === 'expense' && pocketSubtype === 'shared') {
+      return (
+        <div className="space-y-5">
+          <div>
+            <label className="ios-label">Monto asignado</label>
+            <input
+              type="number"
+              step="0.01"
+              value={allocatedAmount}
+              onChange={(e) => setAllocatedAmount(e.target.value)}
               required
+              placeholder="0.00"
+              className="w-full ios-input"
             />
-            <GlassField
-              label="Hasta"
-              type="date"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-              required
-            />
+          </div>
+          
+          <div className="p-4 rounded-xl" style={{ background: 'rgba(255, 204, 0, 0.1)', border: '1px solid rgba(255, 204, 0, 0.3)' }}>
+            <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+              🚧 Funcionalidad de participantes próximamente
+            </p>
           </div>
         </div>
       );
@@ -558,68 +644,79 @@ export default function PocketEditor({
 
     if (pocketType === 'debt') {
       return (
-        <div className=\"space-y-5\">
-          <GlassField
-            label="Monto total de la deuda"
-            type="number"
-            step="0.01"
-            value={originalAmount}
-            onChange={(e) => setOriginalAmount(e.target.value)}
-            required
-            placeholder="0.00"
-          />
-
-          <div className=\"grid grid-cols-2 gap-4\">
-            <GlassField
-              label="Total de cuotas"
-              type="number"
-              value={installmentsTotal}
-              onChange={(e) => setInstallmentsTotal(e.target.value)}
-              required
-              placeholder="12"
-            />
-            <GlassField
-              label="Monto por cuota"
-              type="number"
-              step="0.01"
-              value={installmentAmount}
-              onChange={(e) => setInstallmentAmount(e.target.value)}
-              placeholder="Calculado"
-            />
-          </div>
-
-          <div className=\"grid grid-cols-2 gap-4\">
-            <GlassSelect
-              label="Día de vencimiento"
-              value={debtDueDay}
-              onChange={(e) => setDebtDueDay(parseInt(e.target.value))}
-            >
-              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </GlassSelect>
-            <GlassField
-              label="Tasa de interés (%)"
-              type="number"
-              step="0.01"
-              value={interestRate}
-              onChange={(e) => setInterestRate(e.target.value)}
-              placeholder="0.00"
-            />
-          </div>
-
-          <div className=\"flex items-center space-x-3\">
+        <div className="space-y-5">
+          <div>
+            <label className="ios-label">Monto total de la deuda</label>
             <input
-              type=\"checkbox\"
-              id=\"automaticPayment\"
+              type="number"
+              step="0.01"
+              value={originalAmount}
+              onChange={(e) => setOriginalAmount(e.target.value)}
+              required
+              placeholder="0.00"
+              className="w-full ios-input"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="ios-label">Total de cuotas</label>
+              <input
+                type="number"
+                value={installmentsTotal}
+                onChange={(e) => setInstallmentsTotal(e.target.value)}
+                required
+                placeholder="12"
+                className="w-full ios-input"
+              />
+            </div>
+            <div>
+              <label className="ios-label">Monto por cuota</label>
+              <input
+                type="number"
+                step="0.01"
+                value={installmentAmount}
+                onChange={(e) => setInstallmentAmount(e.target.value)}
+                placeholder="Calculado"
+                className="w-full ios-input"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="ios-label">Día de vencimiento</label>
+              <select value={debtDueDay} onChange={(e) => setDebtDueDay(parseInt(e.target.value))} className="w-full ios-select">
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                  <option key={day} value={day}>
+                    {day}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="ios-label">Tasa de interés (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={interestRate}
+                onChange={(e) => setInterestRate(e.target.value)}
+                placeholder="0.00"
+                className="w-full ios-input"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="automaticPayment"
               checked={automaticPayment}
               onChange={(e) => setAutomaticPayment(e.target.checked)}
-              className=\"w-5 h-5 rounded\"
+              className="w-5 h-5 rounded"
               style={{ accentColor: '#0A84FF' }}
             />
-            <label htmlFor=\"automaticPayment\" className=\"ios-label\" style={{ marginBottom: 0 }}>
+            <label htmlFor="automaticPayment" className="ios-label" style={{ marginBottom: 0 }}>
               Pago automático
             </label>
           </div>
@@ -634,22 +731,22 @@ export default function PocketEditor({
 
   return (
     <IOSModal isOpen={isOpen} onClose={onClose} title={title}>
-      {error && <div className=\"mb-4 ios-error\">{error}</div>}
+      {error && <div className="mb-4 ios-error">{error}</div>}
 
-      <form onSubmit={handleSubmit} className=\"space-y-5\">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* PASO 1: Tipo de bolsa */}
         {currentStep === 'type' && mode === 'create' && (
           <>
             {renderTypeSelection()}
             {pocketType === 'expense' && renderSubtypeSelection()}
-            <div className=\"flex space-x-3 pt-4\">
-              <button type=\"button\" onClick={onClose} className=\"flex-1 ios-button-secondary\">
+            <div className="flex space-x-3 pt-4">
+              <button type="button" onClick={onClose} className="flex-1 ios-button-secondary">
                 Cancelar
               </button>
               <button
-                type=\"button\"
+                type="button"
                 onClick={() => setCurrentStep('config')}
-                className=\"flex-1 ios-button\"
+                className="flex-1 ios-button"
               >
                 Siguiente
               </button>
@@ -662,20 +759,20 @@ export default function PocketEditor({
           <>
             {renderCommonFields()}
             {renderTypeSpecificFields()}
-            <div className=\"flex space-x-3 pt-4\">
+            <div className="flex space-x-3 pt-4">
               {mode === 'create' && (
                 <button
-                  type=\"button\"
+                  type="button"
                   onClick={() => setCurrentStep('type')}
-                  className=\"flex-1 ios-button-secondary\"
+                  className="flex-1 ios-button-secondary"
                 >
                   Atrás
                 </button>
               )}
-              <button type=\"button\" onClick={onClose} className=\"flex-1 ios-button-secondary\">
+              <button type="button" onClick={onClose} className="flex-1 ios-button-secondary">
                 Cancelar
               </button>
-              <button type=\"submit\" disabled={loading} className=\"flex-1 ios-button\">
+              <button type="submit" disabled={loading} className="flex-1 ios-button">
                 {loading ? 'Guardando...' : mode === 'create' ? 'Crear' : 'Guardar'}
               </button>
             </div>
@@ -685,4 +782,3 @@ export default function PocketEditor({
     </IOSModal>
   );
 }
-"

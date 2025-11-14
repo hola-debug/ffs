@@ -306,6 +306,7 @@ SELECT
   p.user_id,
   p.account_id,
   p.name,
+  p.emoji,
   p.type,
   p.subtype,
   p.status,
@@ -349,7 +350,7 @@ SELECT
   p.due_day,
   p.auto_register,
   p.last_payment,
-  calculate_next_payment(p.due_day, p.last_payment) AS next_payment_calc,
+  p.next_payment,
   
   -- DEBT fields
   p.original_amount,
@@ -370,7 +371,6 @@ SELECT
   a.name,
   a.type,
   a.balance,
-  a.is_primary,
   a.created_at,
   COALESCE(
     JSON_AGG(
@@ -383,11 +383,83 @@ SELECT
   ) AS currencies
 FROM accounts a
 LEFT JOIN account_currencies ac ON a.id = ac.account_id
-GROUP BY a.id, a.user_id, a.name, a.type, a.balance, a.is_primary, a.created_at;
+GROUP BY a.id, a.user_id, a.name, a.type, a.balance, a.created_at;
 
 -- ============================================
 -- PASO 10: TRIGGERS PARA CÁLCULOS
 -- ============================================
+
+-- Función para obtener divisa primaria de una cuenta
+CREATE OR REPLACE FUNCTION get_account_primary_currency(p_account_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+  v_currency TEXT;
+BEGIN
+  -- Buscar la divisa primaria de la cuenta
+  SELECT currency INTO v_currency
+  FROM account_currencies
+  WHERE account_id = p_account_id
+    AND is_primary = TRUE
+  LIMIT 1;
+  
+  -- Si no hay primaria, tomar la primera disponible
+  IF v_currency IS NULL THEN
+    SELECT currency INTO v_currency
+    FROM account_currencies
+    WHERE account_id = p_account_id
+    LIMIT 1;
+  END IF;
+  
+  RETURN v_currency;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- Trigger para auto-calcular campos de período y currency
+CREATE OR REPLACE FUNCTION calculate_pocket_period_fields()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Calcular days_duration si hay starts_at y ends_at
+  IF NEW.starts_at IS NOT NULL AND NEW.ends_at IS NOT NULL THEN
+    NEW.days_duration := (NEW.ends_at - NEW.starts_at)::INT + 1;
+  END IF;
+  
+  -- Calcular daily_allowance para expense.period
+  IF NEW.type = 'expense' AND NEW.subtype = 'period' 
+     AND NEW.allocated_amount IS NOT NULL 
+     AND NEW.days_duration IS NOT NULL 
+     AND NEW.days_duration > 0 THEN
+    NEW.daily_allowance := ROUND((NEW.allocated_amount / NEW.days_duration)::NUMERIC, 2);
+  END IF;
+  
+  -- Auto-asignar currency si no está presente pero hay account_id
+  IF NEW.currency IS NULL AND NEW.account_id IS NOT NULL THEN
+    NEW.currency := get_account_primary_currency(NEW.account_id);
+    -- Si aún no hay currency, usar UYU por defecto
+    IF NEW.currency IS NULL THEN
+      NEW.currency := 'UYU';
+    END IF;
+  END IF;
+  
+  -- Calcular next_payment para fixed y recurrent
+  IF NEW.type = 'expense' AND NEW.subtype IN ('fixed', 'recurrent') 
+     AND NEW.due_day IS NOT NULL THEN
+    NEW.next_payment := calculate_next_payment(NEW.due_day, NEW.last_payment);
+  END IF;
+  
+  -- Para debt, también calcular next_payment
+  IF NEW.type = 'debt' AND NEW.due_day IS NOT NULL THEN
+    NEW.next_payment := calculate_next_payment(NEW.due_day, NEW.last_payment);
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_calculate_pocket_fields ON pockets;
+CREATE TRIGGER trg_calculate_pocket_fields
+BEFORE INSERT OR UPDATE ON pockets
+FOR EACH ROW
+EXECUTE FUNCTION calculate_pocket_period_fields();
 
 -- Trigger para actualizar amount_saved en pockets de ahorro
 CREATE OR REPLACE FUNCTION update_saving_pocket_balance()
@@ -419,7 +491,6 @@ DROP TRIGGER IF EXISTS trg_update_saving_pocket_balance ON movements;
 CREATE TRIGGER trg_update_saving_pocket_balance
 AFTER INSERT OR DELETE ON movements
 FOR EACH ROW
-WHEN (NEW.type = 'saving_deposit' OR OLD.type = 'saving_deposit')
 EXECUTE FUNCTION update_saving_pocket_balance();
 
 -- Trigger para actualizar spent_amount en pockets de gasto
@@ -452,7 +523,6 @@ DROP TRIGGER IF EXISTS trg_update_expense_pocket_spent ON movements;
 CREATE TRIGGER trg_update_expense_pocket_spent
 AFTER INSERT OR DELETE ON movements
 FOR EACH ROW
-WHEN (NEW.type = 'pocket_expense' OR OLD.type = 'pocket_expense')
 EXECUTE FUNCTION update_expense_pocket_spent();
 
 -- Trigger para actualizar remaining_amount en pockets de deuda
@@ -487,8 +557,56 @@ DROP TRIGGER IF EXISTS trg_update_debt_pocket_remaining ON movements;
 CREATE TRIGGER trg_update_debt_pocket_remaining
 AFTER INSERT OR DELETE ON movements
 FOR EACH ROW
-WHEN (NEW.type IN ('debt_payment', 'debt_interest') OR OLD.type IN ('debt_payment', 'debt_interest'))
 EXECUTE FUNCTION update_debt_pocket_remaining();
+
+-- Trigger para actualizar last_payment cuando se registra un pago
+CREATE OR REPLACE FUNCTION update_pocket_last_payment()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    -- Actualizar last_payment para fixed_expense o debt_payment
+    IF NEW.type IN ('fixed_expense', 'fixed_expense_auto', 'debt_payment') AND NEW.pocket_id IS NOT NULL THEN
+      UPDATE pockets
+      SET last_payment = NEW.date
+      WHERE id = NEW.pocket_id;
+      
+      -- Recalcular next_payment
+      UPDATE pockets
+      SET next_payment = calculate_next_payment(due_day, last_payment)
+      WHERE id = NEW.pocket_id
+        AND due_day IS NOT NULL;
+    END IF;
+    
+    -- Para recurrent, actualizar last_payment_amount y promedio
+    IF NEW.type = 'pocket_expense' AND NEW.pocket_id IS NOT NULL THEN
+      UPDATE pockets
+      SET 
+        last_payment = NEW.date,
+        last_payment_amount = NEW.amount,
+        -- Recalcular promedio (simple: último promedio * 0.7 + nuevo valor * 0.3)
+        average_amount = CASE 
+          WHEN average_amount IS NULL THEN NEW.amount
+          ELSE ROUND((COALESCE(average_amount, 0) * 0.7 + NEW.amount * 0.3)::NUMERIC, 2)
+        END
+      WHERE id = NEW.pocket_id
+        AND type = 'expense'
+        AND subtype = 'recurrent';
+    END IF;
+  END IF;
+  
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_update_pocket_last_payment ON movements;
+CREATE TRIGGER trg_update_pocket_last_payment
+AFTER INSERT OR DELETE ON movements
+FOR EACH ROW
+EXECUTE FUNCTION update_pocket_last_payment();
 
 -- ============================================
 -- PASO 11: RLS POLICIES
@@ -595,6 +713,12 @@ COMMENT ON COLUMN pockets.spent_amount IS 'Dinero gastado desde la bolsa (solo e
 COMMENT ON COLUMN pockets.average_amount IS 'Monto promedio histórico (solo expense.recurrent)';
 COMMENT ON COLUMN pockets.last_payment_amount IS 'Último monto pagado (solo expense.recurrent)';
 COMMENT ON COLUMN pockets.notification_days_before IS 'Días antes del vencimiento para notificar (solo expense.recurrent)';
+COMMENT ON COLUMN pockets.days_duration IS 'Calculado automáticamente: días entre starts_at y ends_at';
+COMMENT ON COLUMN pockets.daily_allowance IS 'Calculado automáticamente: allocated_amount / days_duration (solo expense.period)';
+COMMENT ON COLUMN pockets.next_payment IS 'Calculado automáticamente: próxima fecha de pago según due_day';
+COMMENT ON FUNCTION get_account_primary_currency IS 'Obtiene la divisa primaria de una cuenta desde account_currencies';
+COMMENT ON FUNCTION calculate_pocket_period_fields IS 'Calcula automáticamente days_duration, daily_allowance, currency y next_payment';
+COMMENT ON FUNCTION update_pocket_last_payment IS 'Actualiza last_payment, last_payment_amount y average_amount cuando se registra un movimiento';
 
 -- ============================================
 -- PASO 14: VERIFICACIÓN FINAL
@@ -620,9 +744,11 @@ BEGIN
   RAISE NOTICE '  ✓ calculate_next_payment()';
   RAISE NOTICE '';
   RAISE NOTICE 'Triggers creados:';
-  RAISE NOTICE '  ✓ update_saving_pocket_balance';
-  RAISE NOTICE '  ✓ update_expense_pocket_spent';
-  RAISE NOTICE '  ✓ update_debt_pocket_remaining';
+  RAISE NOTICE '  ✓ trg_calculate_pocket_fields (auto-calcular days_duration, daily_allowance, currency, next_payment)';
+  RAISE NOTICE '  ✓ trg_update_saving_pocket_balance';
+  RAISE NOTICE '  ✓ trg_update_expense_pocket_spent';
+  RAISE NOTICE '  ✓ trg_update_debt_pocket_remaining';
+  RAISE NOTICE '  ✓ trg_update_pocket_last_payment (auto-actualizar last_payment y promedios)';
   RAISE NOTICE '============================================';
 END $$;
 
