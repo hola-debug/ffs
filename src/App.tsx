@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AnimatePresence } from 'motion/react';
 import { AuthProvider } from './contexts/AuthContext';
 import { useSupabaseUser } from './hooks/useSupabaseUser';
 import LoginPage from './pages/LoginPage';
@@ -19,6 +20,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const [introFinished, setIntroFinished] = useState(() =>
     typeof window !== 'undefined' ? Boolean(window.__FFSPreloaderPlayed) : false
   );
+  const [allowExit, setAllowExit] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -26,6 +28,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     if (!user) {
       window.__FFSPreloaderPlayed = false;
       setIntroFinished(false);
+      setAllowExit(false);
       return;
     }
 
@@ -35,23 +38,39 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     }
 
     setIntroFinished(false);
-    const timer = window.setTimeout(() => {
-      window.__FFSPreloaderPlayed = true;
-      setIntroFinished(true);
-    }, 1400);
+    setAllowExit(false);
+    
+    // Esperar a que las letras FFS aparezcan antes de permitir salida
+    const allowExitTimer = window.setTimeout(() => {
+      setAllowExit(true);
+    }, 2500);
 
-    return () => window.clearTimeout(timer);
+    return () => window.clearTimeout(allowExitTimer);
   }, [user]);
 
-  if (loading || (user && !introFinished)) {
-    return <FFSPreloader />;
+  const handlePreloaderFinish = () => {
+    window.__FFSPreloaderPlayed = true;
+    setIntroFinished(true);
+  };
+
+  if (loading) {
+    return <div className="min-h-screen bg-black" />;
   }
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <AnimatePresence mode="wait">
+        {!introFinished && (
+          <FFSPreloader key="preloader" allowExit={allowExit} onFinish={handlePreloaderFinish} />
+        )}
+      </AnimatePresence>
+      {introFinished && children}
+    </>
+  );
 }
 
 export default function App() {

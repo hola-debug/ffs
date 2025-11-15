@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { StaggeredMenu } from './ui/StaggeredMenu';
 import logoSvg from '../assets/logo.svg';
 
@@ -13,13 +15,34 @@ const socialItems = [
 ];
 
 export default function Header() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <>
       {/* Barra negra fija */}
-      <div className="fixed top-0 left-0 right-0 h-20 bg-black z-40" />
+      <motion.div 
+        className="fixed top-0 left-0 right-0 h-20 bg-black z-40"
+        initial={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+        animate={{ 
+          opacity: mounted ? 1 : 0, 
+          y: mounted ? 0 : -20,
+          filter: mounted ? 'blur(0px)' : 'blur(10px)'
+        }}
+        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
+      />
       
       {/* Menu que ocupa toda la pantalla */}
-      <div className="custom-menu-wrapper" style={{ pointerEvents: 'none' }}>
+      <motion.div 
+        className="custom-menu-wrapper" 
+        style={{ pointerEvents: 'none', position: 'relative', zIndex: 50 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: mounted ? 1 : 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
+      >
         <StaggeredMenu
           position="right"
           items={menuItems}
@@ -36,7 +59,7 @@ export default function Header() {
           onMenuOpen={() => console.log('Menu opened')}
           onMenuClose={() => console.log('Menu closed')}
         />
-      </div>
+      </motion.div>
       
       <style>{`
         .custom-menu-wrapper .staggered-menu-header {
