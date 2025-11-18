@@ -21,7 +21,6 @@ function Step1TypeComponent({ state, setState, onNext, onClose }: Step1Props) {
     <div className="space-y-4">
       <div className="space-y-1">
         <p className="font-monda text-xs tracking-[0.35em] text-white/60 uppercase">Tipo de bolsa</p>
-        <div className="h-px w-16 bg-white/40" />
       </div>
 
       <div className="space-y-3">
@@ -60,17 +59,7 @@ function Step1TypeComponent({ state, setState, onNext, onClose }: Step1Props) {
                     boxShadow: isSelected ? `0 0 25px ${ACCENT_COLOR}80` : 'inset 0 0 4px rgba(0,0,0,0.45)',
                   }}
                 />
-                <span
-                  className="flex h-11 w-11 items-center justify-center rounded-full border text-2xl transition-transform"
-                  style={{
-                    borderColor: 'rgba(255,255,255,0.18)',
-                    backgroundColor: 'rgba(0,0,0,0.45)',
-                    boxShadow: 'inset 0 -4px 10px rgba(0,0,0,0.6)',
-                    transform: isSelected ? 'translateY(-2px)' : 'none',
-                  }}
-                >
-                  {type.emoji}
-                </span>
+              
               </span>
 
               <div className="flex flex-col text-sm font-roboto">

@@ -161,10 +161,10 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
               }}
             >
               <div 
-                className="relative px-6 pt-8 pb-5 border-b border-white/5"
+                className="relative px-6 pt-8 pb-5"
               >
                 <h2 
-                  className="modal-title text-lg font-semibold uppercase text-[#53ff94] pr-12"
+                  className="modal-title text[15px] font-semibold uppercase text-[#53ff94] pr-12"
                 >
                   {title}
                 </h2>

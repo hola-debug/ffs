@@ -56,6 +56,11 @@ body {
   .ios-modal-surface .font-monda * {
     font-family: 'Monda', sans-serif;
   }
+  .ios-modal-surface .font-roboto,
+  .ios-modal-surface .font-roboto * {
+    font-family: 'Roboto', sans-serif;
+    letter-spacing: initial;
+  }
 
   .modal-title {
     font-family: 'Monda', sans-serif;
