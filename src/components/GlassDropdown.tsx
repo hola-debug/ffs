@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
+const ACCENT_COLOR = '#67F690';
+
 interface DropdownOption {
   value: string;
   label: string;
@@ -51,9 +53,7 @@ export const GlassDropdown = ({
   return (
     <div className={className} ref={dropdownRef}>
       {label && (
-        <label 
-          className="block text-sm font-medium text-white/80 mb-2"
-        >
+        <label className="block font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase mb-2">
           {label}
         </label>
       )}
@@ -62,31 +62,34 @@ export const GlassDropdown = ({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-neutral-950/70 px-4 py-3 text-left text-white transition-all hover:border-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          className={`w-full flex items-center justify-between rounded-[20px] border px-5 py-3 text-left transition-all shadow-[0_18px_45px_rgba(0,0,0,0.55)] ${
+            isOpen ? 'border-[rgba(103,246,144,0.7)] bg-black/60 text-white' : 'border-white/12 bg-black/45 text-white'
+          } focus:outline-none`}
+          style={{ boxShadow: '0 18px 45px rgba(0,0,0,0.55)' }}
         >
-          <div className="flex items-center gap-2">
-            {selectedOption?.icon && (
-              <span className="flex-shrink-0">{selectedOption.icon}</span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 font-roboto text-[13px] tracking-[0.08em]">
+              {selectedOption?.icon && <span className="flex-shrink-0">{selectedOption.icon}</span>}
+              <span className={selectedOption ? 'text-white' : 'text-white/50'}>
+                {selectedOption ? selectedOption.label : placeholder}
+              </span>
+            </div>
+            {selectedOption?.description && (
+              <span className="font-roboto text-[10px] text-white/60 mt-0.5">
+                {selectedOption.description}
+              </span>
             )}
-            <span className={selectedOption ? 'text-white' : 'text-white/50'}>
-              {selectedOption ? selectedOption.label : placeholder}
-            </span>
           </div>
-          <svg 
-            width="12" 
-            height="8" 
-            viewBox="0 0 12 8" 
-            fill="none"
-            className={`transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+          <span
+            className="ml-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-base"
+            style={{
+              backgroundColor: isOpen ? ACCENT_COLOR : 'rgba(255,255,255,0.08)',
+              color: isOpen ? '#000' : '#fff',
+              boxShadow: isOpen ? `0 0 20px ${ACCENT_COLOR}70` : 'inset 0 0 5px rgba(0,0,0,0.6)',
+            }}
           >
-            <path 
-              d="M1 1.5L6 6.5L11 1.5" 
-              stroke="rgba(255,255,255,0.7)" 
-              strokeWidth="1.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            />
-          </svg>
+            {isOpen ? '−' : '＋'}
+          </span>
         </button>
 
         {/* Dropdown Menu */}
@@ -97,7 +100,7 @@ export const GlassDropdown = ({
               animation: 'fadeIn 0.15s ease-out'
             }}
           >
-            <div className="rounded-xl border border-white/10 bg-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.55)] overflow-hidden">
+            <div className="rounded-[20px] border border-white/15 bg-black/90 shadow-[0_30px_70px_rgba(0,0,0,0.65)] overflow-hidden">
               <div className="max-h-60 overflow-y-auto scrollbar-hide py-2">
                 {options.map((option) => {
                   const isSelected = option.value === value;
@@ -106,15 +109,19 @@ export const GlassDropdown = ({
                       key={option.value}
                       type="button"
                       onClick={() => handleSelect(option.value)}
-                      className={`w-full px-4 py-3 text-left flex items-center gap-3 text-sm sm:text-base transition-colors ${isSelected ? 'bg-white/5 text-white' : 'text-white/80 hover:bg-white/5'}`}
+                      className={`w-full px-4 py-3 text-left flex items-center gap-3 font-roboto text-[13px] transition-colors ${
+                        isSelected ? 'bg-white/5 text-white' : 'text-white/80 hover:bg-white/5'
+                      }`}
                     >
                       {option.icon && (
                         <span className="flex-shrink-0">{option.icon}</span>
                       )}
                       <div className="flex-1">
-                        <div className="font-medium">{option.label}</div>
+                        <div className="font-medium tracking-[0.08em] uppercase text-[11px] text-white/80">
+                          {option.label}
+                        </div>
                         {option.description && (
-                          <div className="text-xs text-white/60 mt-0.5">
+                          <div className="text-[10px] text-white/60 mt-0.5">
                             {option.description}
                           </div>
                         )}

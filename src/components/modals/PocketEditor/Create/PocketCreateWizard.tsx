@@ -3,9 +3,9 @@ import IOSModal from '@/components/IOSModal';
 import { Step1_Type } from './steps/Step1_Type';
 import { Step2_Subtype } from './steps/Step2_Subtype';
 import { Step3_Config } from './steps/Step3_Config';
+import { Step4_Config } from './steps/Step4_Config';
 import { useCreateWizard } from './hooks/useCreateWizard';
 import { usePocketSubmit } from '../hooks/usePocketSubmit';
-import { useAccountsLoader } from '../hooks/useAccountsLoader';
 import { Account } from '@/lib/types';
 
 interface PocketCreateWizardProps {
@@ -54,8 +54,19 @@ export function PocketCreateWizard({ isOpen, onClose, onSuccess, accounts }: Poc
         />
       )}
 
-      {step === 'config' && (
+      {step === 'common' && (
         <Step3_Config
+          state={state}
+          setState={setState}
+          accounts={accounts}
+          onNext={nextStep}
+          onBack={prevStep}
+          onClose={handleClose}
+        />
+      )}
+
+      {step === 'details' && (
+        <Step4_Config
           state={state}
           setState={setState}
           accounts={accounts}

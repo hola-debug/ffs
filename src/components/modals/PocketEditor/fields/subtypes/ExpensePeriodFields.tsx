@@ -1,4 +1,5 @@
 import { GlassField } from '@/components/IOSModal';
+import GlassDatePicker from '@/components/GlassDatePicker';
 import { PocketFieldsProps } from '../../types';
 import { useMemo } from 'react';
 
@@ -27,6 +28,11 @@ export function ExpensePeriodFields({ state, setState }: PocketFieldsProps) {
 
   return (
     <div className="space-y-5">
+      <div className="space-y-1">
+        <p className="font-monda text-[10px] tracking-[0.35em] text-white/70 uppercase">GASTO POR PERÍODO</p>
+        <p className="font-roboto text-[11px] text-white/60">Configura duración y presupuesto para tu evento.</p>
+      </div>
+
       <GlassField
         label="Monto asignado"
         type="number"
@@ -39,31 +45,31 @@ export function ExpensePeriodFields({ state, setState }: PocketFieldsProps) {
 
       {/* Selector de modo de entrada */}
       <div className="space-y-3">
-        <label className="ios-label">¿Cómo quieres definir el período?</label>
+        <label className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">¿Cómo quieres definir el período?</label>
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setState((prev) => ({ ...prev, periodDateMode: 'days' }))}
-            className={`p-3 rounded-xl transition-all ${
+            className={`rounded-[18px] border px-4 py-3 text-left transition-all ${
               state.periodDateMode === 'days'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800'
+                ? 'border-[#67F690] bg-black/70 text-white shadow-[0_20px_45px_rgba(0,0,0,0.7)]'
+                : 'border-white/10 bg-black/30 text-white/70 hover:border-white/30'
             }`}
           >
-            <div className="text-sm font-semibold">Por días</div>
-            <div className="text-xs mt-1 opacity-75">Cantidad de días</div>
+            <div className="font-monda text-[11px] tracking-[0.35em] uppercase">Por días</div>
+            <div className="font-roboto text-[11px] text-white/60 mt-1">Cantidad de días</div>
           </button>
           <button
             type="button"
             onClick={() => setState((prev) => ({ ...prev, periodDateMode: 'dates' }))}
-            className={`p-3 rounded-xl transition-all ${
+            className={`rounded-[18px] border px-4 py-3 text-left transition-all ${
               state.periodDateMode === 'dates'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800'
+                ? 'border-[#67F690] bg-black/70 text-white shadow-[0_20px_45px_rgba(0,0,0,0.7)]'
+                : 'border-white/10 bg-black/30 text-white/70 hover:border-white/30'
             }`}
           >
-            <div className="text-sm font-semibold">Por fechas</div>
-            <div className="text-xs mt-1 opacity-75">Inicio y fin</div>
+            <div className="font-monda text-[11px] tracking-[0.35em] uppercase">Por fechas</div>
+            <div className="font-roboto text-[11px] text-white/60 mt-1">Inicio y fin</div>
           </button>
         </div>
       </div>
@@ -80,32 +86,35 @@ export function ExpensePeriodFields({ state, setState }: PocketFieldsProps) {
         />
       ) : (
         <div className="grid grid-cols-2 gap-4">
-          <GlassField
+          <GlassDatePicker
+            className="w-full"
             label="Desde"
-            type="date"
-            value={state.startsAt}
-            onChange={(e) => setState((prev) => ({ ...prev, startsAt: e.target.value }))}
-            required
+            value={state.startsAt ? new Date(state.startsAt) : undefined}
+            onChange={(date) =>
+              setState((prev) => ({ ...prev, startsAt: date.toISOString().split('T')[0] }))
+            }
           />
-          <GlassField
+          <GlassDatePicker
+            className="w-full"
             label="Hasta"
-            type="date"
-            value={state.endsAt}
-            onChange={(e) => setState((prev) => ({ ...prev, endsAt: e.target.value }))}
-            required
+            value={state.endsAt ? new Date(state.endsAt) : undefined}
+            onChange={(date) =>
+              setState((prev) => ({ ...prev, endsAt: date.toISOString().split('T')[0] }))
+            }
+            minDate={state.startsAt ? new Date(state.startsAt) : undefined}
           />
         </div>
       )}
 
       {/* Preview info */}
       {previewInfo && (
-        <div className="text-sm text-blue-400 p-3 rounded-xl bg-blue-950/30 border border-blue-800/30">
+        <div className="text-[11px] text-[#67F690] font-roboto p-3 rounded-xl bg-blue-950/30 border border-blue-800/30">
           💡 {previewInfo}
         </div>
       )}
 
       {state.periodDateMode === 'days' && (
-        <div className="text-xs text-gray-500">
+        <div className="text-[10px] font-roboto text-white/60">
           ℹ️ La bolsa comenzará hoy y durará {state.periodDaysDuration || '0'} días
         </div>
       )}

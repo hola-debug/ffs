@@ -22,7 +22,6 @@ function Step2SubtypeComponent({ state, setState, onNext, onBack, onClose }: Ste
     <div className="space-y-4">
       <div className="space-y-1">
         <p className="font-monda text-xs tracking-[0.35em] text-white/60 uppercase">Tipo de gasto</p>
-        <div className="h-px w-16 bg-white/40" />
       </div>
 
       <div className="space-y-3">
@@ -47,22 +46,12 @@ function Step2SubtypeComponent({ state, setState, onNext, onBack, onClose }: Ste
                 className="sr-only"
               />
 
-              <span
-                className="flex h-11 w-11 items-center justify-center rounded-full border transition-transform"
-                style={{
-                  borderColor: isSelected ? ACCENT_COLOR : 'rgba(255,255,255,0.18)',
-                  backgroundColor: 'rgba(0,0,0,0.45)',
-                  boxShadow: isSelected
-                    ? `0 0 25px ${ACCENT_COLOR}80, inset 0 -4px 10px rgba(0,0,0,0.6)`
-                    : 'inset 0 -4px 10px rgba(0,0,0,0.6)',
-                  transform: isSelected ? 'translateY(-2px)' : 'none',
-                }}
-              >
+              <span className="flex items-center gap-4">
                 <span
-                  className="h-2.5 w-2.5 rounded-full"
+                  className="flex h-8 w-8 items-center justify-center rounded-full"
                   style={{
-                    backgroundColor: ACCENT_COLOR,
-                    opacity: isSelected ? 1 : 0.25,
+                    backgroundColor: isSelected ? ACCENT_COLOR : 'rgba(255,255,255,0.08)',
+                    boxShadow: isSelected ? `0 0 25px ${ACCENT_COLOR}80` : 'inset 0 0 4px rgba(0,0,0,0.45)',
                   }}
                 />
               </span>
@@ -71,7 +60,7 @@ function Step2SubtypeComponent({ state, setState, onNext, onBack, onClose }: Ste
                 <span className="font-monda font-semibold uppercase text-white text-xs" style={{ letterSpacing: '0.5em' }}>
                   {subtype.label}
                 </span>
-                <span className="font-roboto text-white/70 text-sm">{subtype.description}</span>
+                <span className="font-roboto text-white/70 text-[10px]">{subtype.description}</span>
               </div>
             </label>
           );
@@ -82,21 +71,21 @@ function Step2SubtypeComponent({ state, setState, onNext, onBack, onClose }: Ste
         <button
           type="button"
           onClick={onBack}
-          className="font-roboto tracking-[0.08em] flex-1 rounded-[18px] border border-white/15 bg-black/60 px-4 py-3 text-white transition hover:border-white/40"
+          className="font-roboto text-[10px] tracking-[0.08em] flex-1 rounded-[18px] border border-white/15 bg-black/60 px-4 py-3 text-white transition hover:border-white/40"
         >
           Atrás
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="font-roboto tracking-[0.08em] flex-1 rounded-[18px] border border-white/15 bg-black/60 px-4 py-3 text-white transition hover:border-white/40"
+          className="font-roboto text-[10px] tracking-[0.08em] flex-1 rounded-[18px] border border-white/15 bg-black/60 px-4 py-3 text-white transition hover:border-white/40"
         >
           Cancelar
         </button>
         <button
           type="button"
           onClick={onNext}
-          className="font-roboto tracking-[0.08em] flex-1 rounded-[18px] border-2 px-4 py-3 text-white transition"
+          className="font-roboto text-[10px] tracking-[0.08em] flex-1 rounded-[18px] border-2 px-4 py-3 text-white transition"
           style={{
             borderColor: ACCENT_COLOR,
             boxShadow: `0 12px 30px rgba(0,0,0,0.6), 0 0 15px ${ACCENT_COLOR}40`,

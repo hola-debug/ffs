@@ -8,7 +8,7 @@ export interface PocketEditorProps {
   pocket?: Pocket;
 }
 
-export type FormStep = 'type' | 'subtype' | 'config';
+export type FormStep = 'type' | 'subtype' | 'common' | 'details';
 
 export type DateInputMode = 'days' | 'dates';
 export type DebtInputMode = 'installments' | 'amount';

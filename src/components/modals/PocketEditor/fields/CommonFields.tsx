@@ -1,7 +1,11 @@
 import { memo, useMemo, useEffect } from 'react';
 import { GlassField, GlassSelect } from '@/components/IOSModal';
+import GlassDropdown from '@/components/GlassDropdown';
 import { PocketFieldsProps } from '../types';
 import { CurrencyCode } from '@/lib/types';
+
+const formatBalance = (value: number, currency: CurrencyCode) =>
+  value.toLocaleString('es-UY', { style: 'currency', currency });
 
 const EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉', '🍔', '⚡', '📱', '🎬', '🏋️'] as const;
 
@@ -28,6 +32,32 @@ function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps)
       }
     }
   }, [state.accountId, availableCurrencies]);
+  const accountOptions = useMemo(
+    () =>
+      accounts.map((acc) => ({
+        value: acc.id,
+        label: acc.name,
+        description:
+          acc.currencies
+            ?.map((curr) => `${formatBalance(curr.balance, curr.currency)}${curr.is_primary ? ' · Principal' : ''}`)
+            .join(' · ') || undefined,
+      })),
+    [accounts]
+  );
+  const hasAccounts = accountOptions.length > 0;
+
+  const currencyOptions = useMemo(
+    () =>
+      availableCurrencies.map((curr) => ({
+        value: curr.currency,
+        label: curr.currency,
+        description: `Saldo: ${formatBalance(curr.balance, curr.currency)}${curr.is_primary ? ' · Principal' : ''}`,
+      })),
+    [availableCurrencies]
+  );
+
+  const currencyDisabled = !state.accountId || availableCurrencies.length === 0;
+
   return (
     <div className="space-y-5">
       <GlassField
@@ -40,7 +70,7 @@ function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps)
       />
 
       <div>
-        <label className="ios-label">Emoji</label>
+        <label className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">Emoji</label>
         <div className="flex flex-wrap gap-2">
           {EMOJIS.map((e) => (
             <button
@@ -62,34 +92,23 @@ function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps)
         </div>
       </div>
 
-      <GlassSelect
+      <GlassDropdown
         label="Cuenta"
-        value={state.accountId}
-        onChange={(e) => setState((prev) => ({ ...prev, accountId: e.target.value }))}
-        required
-      >
-        <option value="">Selecciona una cuenta</option>
-        {accounts.map((acc) => (
-          <option key={acc.id} value={acc.id}>
-            {acc.name}
-          </option>
-        ))}
-      </GlassSelect>
+        value={state.accountId || undefined}
+        onChange={(accountId) => setState((prev) => ({ ...prev, accountId }))}
+        placeholder={hasAccounts ? 'Selecciona una cuenta' : 'No hay cuentas disponibles'}
+        options={accountOptions}
+        className={`w-full ${hasAccounts ? '' : 'pointer-events-none opacity-40'}`}
+      />
 
-      <GlassSelect
+      <GlassDropdown
         label="Divisa"
-        value={state.currency || ''}
-        onChange={(e) => setState((prev) => ({ ...prev, currency: e.target.value as CurrencyCode }))}
-        required
-        disabled={!state.accountId || availableCurrencies.length === 0}
-      >
-        <option value="" disabled>Seleccionar divisa</option>
-        {availableCurrencies.map((curr) => (
-          <option key={curr.id} value={curr.currency}>
-            {curr.currency} {curr.is_primary ? '(Principal)' : ''} - Saldo: ${curr.balance.toFixed(2)}
-          </option>
-        ))}
-      </GlassSelect>
+        value={state.currency || undefined}
+        onChange={(currency) => setState((prev) => ({ ...prev, currency: currency as CurrencyCode }))}
+        placeholder={currencyDisabled ? 'Selecciona una cuenta primero' : 'Seleccionar divisa'}
+        options={currencyOptions}
+        className={`w-full ${currencyDisabled ? 'pointer-events-none opacity-40' : ''}`}
+      />
 
       {state.pocketType === 'debt' && (
         <GlassSelect

@@ -8,6 +8,8 @@ interface GlassDatePickerProps {
   className?: string;
   minDate?: Date;
   maxDate?: Date;
+  placeholder?: string;
+  displayValue?: string;
 }
 
 const MONTHS = [
@@ -24,7 +26,9 @@ export const GlassDatePicker = ({
   onChange,
   className = '',
   minDate,
-  maxDate
+  maxDate,
+  placeholder = 'Seleccionar fecha',
+  displayValue,
 }: GlassDatePickerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(value || new Date());
@@ -91,9 +95,7 @@ export const GlassDatePicker = ({
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(
-        <div key={`empty-${i}`} className="aspect-square" />
-      );
+      days.push(<div key={`empty-${i}`} className="h-9" />);
     }
 
     // Days of the month
@@ -103,17 +105,17 @@ export const GlassDatePicker = ({
       const isDisabled = isDateDisabled(date);
       const isToday = isSameDay(date, new Date());
 
-      let dayClasses = 'aspect-square flex items-center justify-center rounded-lg text-sm transition-colors';
+      let dayClasses = 'h-9 flex items-center justify-center rounded-[12px] text-[12px] font-roboto tracking-[0.08em] transition-all border';
       if (isDisabled) {
-        dayClasses += ' text-white/30 cursor-not-allowed';
+        dayClasses += ' text-white/25 border-transparent cursor-not-allowed';
       } else {
-        dayClasses += ' text-white/80 hover:bg-white/10';
+        dayClasses += ' text-white/80 border-transparent hover:border-white/20 hover:bg-white/5';
       }
       if (isToday && !isSelected) {
-        dayClasses += ' ring-1 ring-white/30';
+        dayClasses += ' border-white/20';
       }
       if (isSelected) {
-        dayClasses += ' bg-indigo-500 text-white font-semibold shadow-inner';
+        dayClasses += ' bg-[#67F690] text-black font-semibold shadow-[0_0_20px_rgba(103,246,144,0.45)]';
       }
 
       days.push(
@@ -140,9 +142,7 @@ export const GlassDatePicker = ({
   return (
     <div className={className} ref={datePickerRef}>
       {label && (
-        <label 
-          className="block text-sm font-medium text-white/80 mb-2"
-        >
+        <label className="block font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase mb-2">
           {label}
         </label>
       )}
@@ -151,7 +151,9 @@ export const GlassDatePicker = ({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-neutral-950/70 px-4 py-3 text-left text-white transition-all hover:border-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          className={`w-full flex items-center justify-between rounded-[20px] border px-5 py-3 text-left text-white transition-all shadow-[0_18px_45px_rgba(0,0,0,0.55)] ${
+            isOpen ? 'border-[rgba(103,246,144,0.7)] bg-black/60' : 'border-white/12 bg-black/45'
+          } focus:outline-none`}
         >
           <div className="flex items-center gap-2">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-white/70">
@@ -184,8 +186,8 @@ export const GlassDatePicker = ({
                 strokeLinejoin="round"
               />
             </svg>
-            <span className={value ? 'text-white' : 'text-white/50'}>
-              {value ? formatDate(value) : 'Seleccionar fecha'}
+            <span className={`font-roboto text-[10px] leading-none ${value ? 'text-white' : 'text-white/50'}`}>
+              {value ? (displayValue || formatDate(value)) : placeholder}
             </span>
           </div>
           <svg 
@@ -207,19 +209,19 @@ export const GlassDatePicker = ({
 
         {/* Calendar Dropdown */}
         {isOpen && (
-          <div 
-            className="absolute w-full mt-2 z-50"
+          <div
+            className="absolute mt-2 z-50 w-full"
             style={{
               animation: 'fadeIn 0.15s ease-out'
             }}
           >
-            <div className="rounded-xl border border-white/10 bg-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.55)]">
-              <div className="p-4">
+            <div className="rounded-[24px] border border-white/12 bg-black/90 shadow-[0_30px_80px_rgba(0,0,0,0.75)] overflow-hidden min-w-[260px]">
+              <div className="p-1">
                 <div className="flex items-center justify-between mb-4">
                   <button
                     type="button"
                     onClick={handlePrevMonth}
-                    className="p-2 rounded-lg text-white/70 hover:bg-white/5"
+                    className="p-2 rounded-full text-white/70 hover:bg-white/10"
                   >
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                       <path 
@@ -231,13 +233,13 @@ export const GlassDatePicker = ({
                       />
                     </svg>
                   </button>
-                  <div className="text-white font-semibold text-base">
+                  <div className="text-white font-monda text-[10px] tracking-[0.35em] uppercase">
                     {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                   </div>
                   <button
                     type="button"
                     onClick={handleNextMonth}
-                    className="p-2 rounded-lg text-white/70 hover:bg-white/5"
+                    className="p-2 rounded-full text-white/70 hover:bg-white/10"
                   >
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                       <path 
@@ -251,18 +253,18 @@ export const GlassDatePicker = ({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-7 gap-2 mb-2">
+                <div className="grid grid-cols-7 gap-1 mb-2">
                   {DAYS.map((day) => (
                     <div
                       key={day}
-                      className="text-center text-[11px] font-medium text-white/60 uppercase"
+                      className="text-center text-[8px] font-monda leading-none text-white/60 uppercase"
                     >
                       {day}
                     </div>
                   ))}
                 </div>
 
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 ">
                   {renderCalendar()}
                 </div>
               </div>
@@ -272,7 +274,7 @@ export const GlassDatePicker = ({
       </div>
 
       {error && (
-        <span className="text-red-400 text-sm mt-1 block">{error}</span>
+        <span className="text-red-400 font-roboto text-[11px] mt-1 block">{error}</span>
       )}
 
       <style>{`

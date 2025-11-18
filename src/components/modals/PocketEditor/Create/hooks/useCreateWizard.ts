@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PocketFormState } from '../../types';
 
-type WizardStep = 'type' | 'subtype' | 'config';
+type WizardStep = 'type' | 'subtype' | 'common' | 'details';
 
 const initialState: PocketFormState = {
   name: '',
@@ -57,14 +57,18 @@ export function useCreateWizard() {
 
   const nextStep = () => {
     if (step === 'type') {
-      setStep(state.pocketType === 'expense' ? 'subtype' : 'config');
+      setStep(state.pocketType === 'expense' ? 'subtype' : 'common');
     } else if (step === 'subtype') {
-      setStep('config');
+      setStep('common');
+    } else if (step === 'common') {
+      setStep('details');
     }
   };
 
   const prevStep = () => {
-    if (step === 'config') {
+    if (step === 'details') {
+      setStep('common');
+    } else if (step === 'common') {
       setStep(state.pocketType === 'expense' ? 'subtype' : 'type');
     } else if (step === 'subtype') {
       setStep('type');

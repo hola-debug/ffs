@@ -13,18 +13,18 @@ type SelectProps = BaseFieldProps & SelectHTMLAttributes<HTMLSelectElement> & {
 const GlassField = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, className = '', ...props }, ref) => {
     return (
-      <div>
+      <div className="space-y-2">
         {label && (
           <label 
-            className="block text-sm font-medium text-white/80 mb-2"
+            className="block font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase"
           >
             {label}
           </label>
         )}
-        <div className="rounded-xl border border-white/10 bg-neutral-950/70 transition-all focus-within:border-white/40 focus-within:ring-2 focus-within:ring-indigo-500/40">
+        <div className="rounded-[20px] border border-white/12 bg-black/45 px-2 transition-all shadow-[0_18px_45px_rgba(0,0,0,0.55)] focus-within:border-[#67F690] focus-within:shadow-[0_25px_55px_rgba(0,0,0,0.65)]">
           <input
             ref={ref}
-            className={`w-full bg-transparent border-none outline-none px-4 py-3 text-white placeholder:text-white/40 text-base ${className}`}
+            className={`w-full bg-transparent border-none outline-none px-4 py-3 font-roboto text-[13px] tracking-[0.08em] text-white placeholder:text-white/30 ${className}`}
             {...props}
           />
         </div>
@@ -41,18 +41,18 @@ GlassField.displayName = 'GlassField';
 export const GlassSelect = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, error, className = '', children, ...props }, ref) => {
     return (
-      <div>
+      <div className="space-y-2">
         {label && (
           <label 
-            className="block text-sm font-medium text-white/80 mb-2"
+            className="block font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase"
           >
             {label}
           </label>
         )}
-        <div className="rounded-xl border border-white/10 bg-neutral-950/70 transition-all focus-within:border-white/40 focus-within:ring-2 focus-within:ring-indigo-500/40">
+        <div className="rounded-[20px] border border-white/12 bg-black/45 px-2 transition-all shadow-[0_18px_45px_rgba(0,0,0,0.55)] focus-within:border-[#67F690] focus-within:shadow-[0_25px_55px_rgba(0,0,0,0.65)]">
           <select
             ref={ref}
-            className={`w-full bg-transparent border-none outline-none px-4 py-3 text-white placeholder:text-white/40 text-base appearance-none ${className}`}
+            className={`w-full bg-transparent border-none outline-none px-4 py-3 font-roboto text-[13px] tracking-[0.08em] text-white appearance-none ${className}`}
             style={{
               WebkitAppearance: 'none',
               MozAppearance: 'none',

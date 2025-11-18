@@ -172,7 +172,7 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
                 <button
                   onClick={handleClose}
                   aria-label="Cerrar"
-                  className="modal-close-button absolute top-6 right-6 flex h-9 w-9 items-center justify-center"
+                  className=" absolute top-6 right-6 flex h-9 w-9 items-center justify-center"
                 >
                   <img src="/x.svg" alt="Cerrar" className="h-4 w-4" />
                 </button>

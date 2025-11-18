@@ -1,4 +1,6 @@
-import { GlassField, GlassSelect } from '@/components/IOSModal';
+import { GlassField } from '@/components/IOSModal';
+import GlassDropdown from '@/components/GlassDropdown';
+import GlassDatePicker from '@/components/GlassDatePicker';
 import { PocketFieldsProps } from '../../types';
 import { useMemo } from 'react';
 
@@ -31,6 +33,11 @@ export function SavingFields({ state, setState }: PocketFieldsProps) {
 
   return (
     <div className="space-y-5">
+      <div className="space-y-1">
+        <p className="font-monda text-[10px] tracking-[0.35em] text-white/70 uppercase">BOLSA DE AHORRO</p>
+        <p className="font-roboto text-[11px] text-white/60">Define tu objetivo y frecuencia de aporte.</p>
+      </div>
+
       <GlassField
         label="Monto objetivo"
         type="number"
@@ -41,43 +48,44 @@ export function SavingFields({ state, setState }: PocketFieldsProps) {
         placeholder="0.00"
       />
 
-      <GlassSelect
+      <GlassDropdown
         label="Frecuencia de aporte"
         value={state.frequency}
-        onChange={(e) => setState((prev) => ({ ...prev, frequency: e.target.value as any }))}
-      >
-        <option value="none">Sin frecuencia</option>
-        <option value="monthly">Mensual</option>
-        <option value="weekly">Semanal</option>
-      </GlassSelect>
+        onChange={(value) => setState((prev) => ({ ...prev, frequency: value as any }))}
+        options={[
+          { value: 'none', label: 'Sin frecuencia' },
+          { value: 'monthly', label: 'Mensual' },
+          { value: 'weekly', label: 'Semanal' },
+        ]}
+      />
 
       {/* Selector de modo de fecha */}
       <div className="space-y-3">
-        <label className="ios-label">¿Tienes fecha límite? (opcional)</label>
+        <label className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">¿Tienes fecha límite? (opcional)</label>
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setState((prev) => ({ ...prev, savingDateMode: 'days' }))}
-            className={`p-3 rounded-xl transition-all ${
+            className={`rounded-[18px] border px-4 py-3 text-left transition-all ${
               state.savingDateMode === 'days'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800'
+                ? 'border-[#67F690] bg-black/70 text-white shadow-[0_20px_45px_rgba(0,0,0,0.7)]'
+                : 'border-white/10 bg-black/30 text-white/70 hover:border-white/30'
             }`}
           >
-            <div className="text-sm font-semibold">Por días</div>
-            <div className="text-xs mt-1 opacity-75">Cantidad de días</div>
+            <div className="font-monda text-[11px] tracking-[0.35em] uppercase">Por días</div>
+            <div className="font-roboto text-[11px] text-white/60 mt-1">Cantidad de días</div>
           </button>
           <button
             type="button"
             onClick={() => setState((prev) => ({ ...prev, savingDateMode: 'dates' }))}
-            className={`p-3 rounded-xl transition-all ${
+            className={`rounded-[18px] border px-4 py-3 text-left transition-all ${
               state.savingDateMode === 'dates'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800'
+                ? 'border-[#67F690] bg-black/70 text-white shadow-[0_20px_45px_rgba(0,0,0,0.7)]'
+                : 'border-white/10 bg-black/30 text-white/70 hover:border-white/30'
             }`}
           >
-            <div className="text-sm font-semibold">Por fecha</div>
-            <div className="text-xs mt-1 opacity-75">Fecha específica</div>
+            <div className="font-monda text-[11px] tracking-[0.35em] uppercase">Por fecha</div>
+            <div className="font-roboto text-[11px] text-white/60 mt-1">Fecha específica</div>
           </button>
         </div>
       </div>
@@ -92,23 +100,23 @@ export function SavingFields({ state, setState }: PocketFieldsProps) {
           placeholder="180 (6 meses)"
         />
       ) : (
-        <GlassField
+        <GlassDatePicker
           label="Fecha límite (opcional)"
-          type="date"
-          value={state.endsAt}
-          onChange={(e) => setState((prev) => ({ ...prev, endsAt: e.target.value }))}
+          value={state.endsAt ? new Date(state.endsAt) : undefined}
+          onChange={(date) => setState((prev) => ({ ...prev, endsAt: date.toISOString().split('T')[0] }))}
+          placeholder="Selecciona la fecha"
         />
       )}
 
       {/* Preview de contribución recomendada */}
       {recommendedContribution && (
-        <div className="text-sm text-green-400 p-3 rounded-xl bg-green-950/30 border border-green-800/30">
+        <div className="text-[11px] text-[#67F690] font-roboto p-3 rounded-xl bg-green-950/30 border border-green-800/30 tracking-[0.08em]">
           🎯 {recommendedContribution}
         </div>
       )}
 
       {!hasDeadline && state.frequency !== 'none' && (
-        <div className="text-xs text-gray-500">
+        <div className="text-[10px] font-roboto text-white/60">
           ℹ️ Sin fecha límite, no se puede calcular aporte recomendado
         </div>
       )}
@@ -122,7 +130,11 @@ export function SavingFields({ state, setState }: PocketFieldsProps) {
           className="w-5 h-5 rounded"
           style={{ accentColor: '#0A84FF' }}
         />
-        <label htmlFor="allowWithdrawals" className="ios-label" style={{ marginBottom: 0 }}>
+        <label
+          htmlFor="allowWithdrawals"
+          className="font-monda text-[10px] tracking-[0.35em] text-white/70 uppercase"
+          style={{ marginBottom: 0 }}
+        >
           Permitir retiros antes de completar
         </label>
       </div>

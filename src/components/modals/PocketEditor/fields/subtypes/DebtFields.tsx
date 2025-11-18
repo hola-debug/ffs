@@ -1,4 +1,5 @@
-import { GlassField, GlassSelect } from '@/components/IOSModal';
+import { GlassField } from '@/components/IOSModal';
+import GlassDropdown from '@/components/GlassDropdown';
 import { PocketFieldsProps } from '../../types';
 import { useMemo, useEffect } from 'react';
 
@@ -44,6 +45,11 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
 
   return (
     <div className="space-y-5">
+      <div className="space-y-1">
+        <p className="font-monda text-[10px] tracking-[0.35em] text-white/70 uppercase">DEUDA</p>
+        <p className="font-roboto text-[11px] text-white/60">Define cuotas, intereses y vencimientos.</p>
+      </div>
+
       <GlassField
         label="Monto total de la deuda"
         type="number"
@@ -56,7 +62,7 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
 
       {/* Selector de modo de entrada */}
       <div className="space-y-3">
-        <label className="ios-label">¿Qué dato conoces?</label>
+        <label className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">¿Qué dato conoces?</label>
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
@@ -132,9 +138,9 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
 
       {/* Preview de información */}
       {debtInfo && (
-        <div className="text-sm p-3 rounded-xl bg-purple-950/30 border border-purple-800/30">
-          <div className="text-purple-400 font-semibold mb-2">📊 Resumen de la deuda:</div>
-          <div className="text-gray-300 space-y-1 text-xs">
+        <div className="text-[11px] font-roboto p-3 rounded-2xl bg-purple-950/30 border border-purple-800/30">
+          <div className="text-[#67F690] font-semibold mb-2 tracking-[0.08em] uppercase">📊 Resumen de la deuda:</div>
+          <div className="text-white/80 space-y-1 text-[10px]">
             <div>• {debtInfo.installments} cuotas de ${debtInfo.amount}</div>
             <div>• Total a pagar: ${debtInfo.total}</div>
             {parseFloat(debtInfo.difference) > 0 && (
@@ -145,17 +151,12 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <GlassSelect
+        <GlassDropdown
           label="Día de vencimiento"
-          value={state.debtDueDay}
-          onChange={(e) => setState((prev) => ({ ...prev, debtDueDay: parseInt(e.target.value) }))}
-        >
-          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-            <option key={day} value={day}>
-              {day}
-            </option>
-          ))}
-        </GlassSelect>
+          value={String(state.debtDueDay)}
+          onChange={(value) => setState((prev) => ({ ...prev, debtDueDay: parseInt(value, 10) }))}
+          options={Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
+        />
         <GlassField
           label="Tasa de interés (%) opcional"
           type="number"
@@ -175,12 +176,16 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
           className="w-5 h-5 rounded"
           style={{ accentColor: '#0A84FF' }}
         />
-        <label htmlFor="automaticPayment" className="ios-label" style={{ marginBottom: 0 }}>
+        <label
+          htmlFor="automaticPayment"
+          className="font-monda text-[10px] tracking-[0.35em] text-white/70 uppercase"
+          style={{ marginBottom: 0 }}
+        >
           Pago automático
         </label>
       </div>
 
-      <div className="text-xs text-gray-500">
+      <div className="text-[10px] font-roboto text-white/60">
         ℹ️ El sistema calculará automáticamente la próxima fecha de vencimiento
       </div>
     </div>
