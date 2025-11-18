@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'motion/react';
 import { AuthProvider } from './contexts/AuthContext';
 import { useSupabaseUser } from './hooks/useSupabaseUser';
+import { AccountsProvider } from './hooks/useAccountsStore';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import OnboardingPage from './pages/OnboardingPage';
@@ -76,36 +77,38 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/app"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/app/pocket/:pocketId"
-            element={
-              <ProtectedRoute>
-                <PocketDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <OnboardingPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/app" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <AccountsProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/app"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/pocket/:pocketId"
+              element={
+                <ProtectedRoute>
+                  <PocketDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <OnboardingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/app" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AccountsProvider>
     </AuthProvider>
   );
 }

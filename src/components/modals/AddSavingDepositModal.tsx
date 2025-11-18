@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
-import { Pocket, isSavingPocket, Account, getAccountBalance } from '../../lib/types';
+import { Pocket, isSavingPocket, getAccountBalance } from '../../lib/types';
 import { getPocketIconLabel } from '@/components/PocketIcon';
+import { useAccountsStore } from '../../hooks/useAccountsStore';
 
 interface AddSavingDepositModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ interface AddSavingDepositModalProps {
 
 export default function AddSavingDepositModal({ isOpen, onClose, onSuccess }: AddSavingDepositModalProps) {
   const [pockets, setPockets] = useState<Pocket[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const { accounts, loading: accountsLoading, refreshing: accountsRefreshing } = useAccountsStore();
   const [amount, setAmount] = useState('');
   const [pocketId, setPocketId] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -44,20 +45,16 @@ export default function AddSavingDepositModal({ isOpen, onClose, onSuccess }: Ad
     }
     if (pocketsError) console.error(pocketsError);
 
-    // Cargar cuentas con divisas
-    const { data: accountsData, error: accountsError } = await supabase
-      .from('accounts')
-      .select('*, currencies:account_currencies(*)')
-      .order('created_at', { ascending: false });
-    
-    if (accountsData) {
-      setAccounts(accountsData);
-      if (accountsData.length > 0) {
-        setAccountId(accountsData[0].id);
-      }
-    }
-    if (accountsError) console.error(accountsError);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (accounts.length === 0) {
+      setAccountId('');
+      return;
+    }
+    setAccountId((prev) => (prev && accounts.some((acc) => acc.id === prev) ? prev : accounts[0].id));
+  }, [isOpen, accounts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,7 +191,7 @@ export default function AddSavingDepositModal({ isOpen, onClose, onSuccess }: Ad
           value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
           required
-          disabled={accounts.length === 0}
+          disabled={accounts.length === 0 || accountsLoading || accountsRefreshing}
         >
           {accounts.map((account) => {
             const balance = selectedPocket 

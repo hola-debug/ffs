@@ -3,7 +3,8 @@ import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField } from '../IOSModal';
 import GlassDropdown from '../GlassDropdown';
 import GlassDatePicker from '../GlassDatePicker';
-import { Account, AccountCurrency, CurrencyCode } from '../../lib/types';
+import { CurrencyCode } from '../../lib/types';
+import { useAccountsStore } from '../../hooks/useAccountsStore';
 
 interface AddIncomeModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ interface AddIncomeModalProps {
 }
 
 export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncomeModalProps) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const { accounts, loading: accountsLoading, refreshing: accountsRefreshing } = useAccountsStore();
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState('');
   const [currency, setCurrency] = useState<CurrencyCode | ''>('');
@@ -22,30 +23,14 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchAccounts();
+    if (!isOpen) return;
+    if (accounts.length === 0) {
+      setAccountId('');
+      setCurrency('');
+      return;
     }
-  }, [isOpen]);
-
-  const fetchAccounts = async () => {
-    const { data, error } = await supabase
-      .from('accounts')
-      .select('*, currencies:account_currencies(*)')
-      .order('created_at', { ascending: false });
-    
-    if (data && data.length > 0) {
-      setAccounts(data);
-      setAccountId(data[0].id);
-      // Auto-seleccionar la divisa primaria de la primera cuenta
-      const primaryCurrency = data[0].currencies?.find(c => c.is_primary);
-      if (primaryCurrency) {
-        setCurrency(primaryCurrency.currency);
-      } else if (data[0].currencies && data[0].currencies.length > 0) {
-        setCurrency(data[0].currencies[0].currency);
-      }
-    }
-    if (error) console.error(error);
-  };
+    setAccountId((prev) => (prev && accounts.some((acc) => acc.id === prev) ? prev : accounts[0].id));
+  }, [isOpen, accounts]);
 
   // Obtener las divisas disponibles de la cuenta seleccionada
   const availableCurrencies = useMemo(() => {

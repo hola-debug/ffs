@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Account, SavingsVault } from '../lib/types';
+import { SavingsVault } from '../lib/types';
+import { useAccountsStore } from '../hooks/useAccountsStore';
 
 interface Props {
   onClose: () => void;
@@ -8,7 +9,7 @@ interface Props {
 }
 
 export default function ManageSavingsModal({ onClose, onSuccess }: Props) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const { accounts, loading: accountsLoading, refreshing: accountsRefreshing } = useAccountsStore();
   const [vaults, setVaults] = useState<SavingsVault[]>([]);
   const [selectedVault, setSelectedVault] = useState('');
   const [amount, setAmount] = useState('');
@@ -17,22 +18,29 @@ export default function ManageSavingsModal({ onClose, onSuccess }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const [accountsRes, vaultsRes] = await Promise.all([
-        supabase.from('accounts').select('*'),
-        supabase.from('savings_vaults').select('*'),
-      ]);
-      if (accountsRes.data) setAccounts(accountsRes.data);
-      if (vaultsRes.data) {
-        setVaults(vaultsRes.data);
-        if (vaultsRes.data.length > 0) setSelectedVault(vaultsRes.data[0].id);
+    const fetchVaults = async () => {
+      const { data, error } = await supabase.from('savings_vaults').select('*');
+      if (error) {
+        console.error('Error cargando vaults', error);
+        return;
       }
-      if (accountsRes.data && accountsRes.data.length > 0) {
-        setFromAccountId(accountsRes.data[0].id);
+      if (data) {
+        setVaults(data);
+        if (data.length > 0) {
+          setSelectedVault(data[0].id);
+        }
       }
     };
-    fetchData();
+    fetchVaults();
   }, []);
+
+  useEffect(() => {
+    if (accounts.length === 0) {
+      setFromAccountId('');
+      return;
+    }
+    setFromAccountId((prev) => (prev && accounts.some((acc) => acc.id === prev) ? prev : accounts[0].id));
+  }, [accounts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +99,7 @@ export default function ManageSavingsModal({ onClose, onSuccess }: Props) {
               value={fromAccountId}
               onChange={(e) => setFromAccountId(e.target.value)}
               required
+              disabled={accounts.length === 0 || accountsLoading || accountsRefreshing}
               className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {accounts.map((acc) => (

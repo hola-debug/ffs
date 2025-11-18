@@ -11,7 +11,7 @@ import FadeContent from '../components/ui/FadeContent';
 import CircularGalleryWithModals from '../components/CircularGalleryWithModals';
 import { useImagePreload } from '../hooks/useImagePreload';
 import DynamicModal from '../components/DynamicModal';
-import TotalBalance from '../components/TotalBalance';
+import TotalBalance, { noiseBackgroundStyle } from '../components/TotalBalance';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -72,43 +72,51 @@ export default function DashboardPage() {
     <>
       <Header />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      
-      <div className="min-h-screen bg-[#D5D5D5] w-full overflow-x-hidden box-border pt-20" >
-        <div className="max-w-4xl mx-auto w-full ">
-          {/* Galería Circular de Formularios */}
-          <div className="">
-            <FadeContent
-              blur={true}
-              duration={1000}
-              easing="ease-out"
-              initialOpacity={0}
-              threshold={0.3}
-              delay={0}
-            >
-              <div className=" relative sm:h-[100px] md:h-[250px] ">
-                <CircularGalleryWithModals 
-                  bend={-0.5} 
-                  textColor="#333333" 
-                  borderRadius={0.05} 
-                  scrollEase={0.02} 
-                  scrollSpeed={10}
-                  onCardClick={handleCardClick}
-                />
-              </div>
-            </FadeContent>
-          </div>
 
-          <div className="mt-10">
-            <FadeContent
-              blur={false}
-              duration={700}
-              easing="ease-out"
-              initialOpacity={0}
-              threshold={0.2}
-              delay={150}
-            >
-              <TotalBalance />
-            </FadeContent>
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 opacity-80"
+        style={noiseBackgroundStyle}
+        aria-hidden="true"
+      />
+      
+      <div className="min-h-screen w-full overflow-x-hidden box-border pt-20">
+        <div className="max-w-4xl mx-auto w-full">
+          <div className="relative z-10">
+            {/* Galería Circular de Formularios */}
+            <div className=" ">
+              <FadeContent
+                blur={true}
+                duration={1000}
+                easing="ease-out"
+                initialOpacity={0}
+                threshold={0.3}
+                delay={0}
+              >
+                <div className=" relative sm:h-[100px] md:h-[250px] ">
+                  <CircularGalleryWithModals 
+                    bend={-0.5} 
+                    textColor="#333333" 
+                    borderRadius={0.05} 
+                    scrollEase={0.02} 
+                    scrollSpeed={10}
+                    onCardClick={handleCardClick}
+                  />
+                </div>
+              </FadeContent>
+            </div>
+
+            <div className="mt-10">
+              <FadeContent
+                blur={false}
+                duration={700}
+                easing="ease-out"
+                initialOpacity={0}
+                threshold={0.2}
+                delay={150}
+              >
+                <TotalBalance showNoiseBackground={false} />
+              </FadeContent>
+            </div>
           </div>
 
   
