@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import GlassSurface from './GlassSurface';
 
 interface GlassDatePickerProps {
   label?: string;
@@ -104,41 +103,27 @@ export const GlassDatePicker = ({
       const isDisabled = isDateDisabled(date);
       const isToday = isSameDay(date, new Date());
 
+      let dayClasses = 'aspect-square flex items-center justify-center rounded-lg text-sm transition-colors';
+      if (isDisabled) {
+        dayClasses += ' text-white/30 cursor-not-allowed';
+      } else {
+        dayClasses += ' text-white/80 hover:bg-white/10';
+      }
+      if (isToday && !isSelected) {
+        dayClasses += ' ring-1 ring-white/30';
+      }
+      if (isSelected) {
+        dayClasses += ' bg-indigo-500 text-white font-semibold shadow-inner';
+      }
+
       days.push(
         <button
           key={day}
           type="button"
           onClick={() => handleDateSelect(day)}
           disabled={isDisabled}
-          className="aspect-square flex items-center justify-center rounded-lg transition-all"
-          style={{
-            background: isSelected 
-              ? 'rgba(255, 255, 255, 0.2)' 
-              : isToday 
-                ? 'rgba(255, 255, 255, 0.05)'
-                : 'transparent',
-            color: isDisabled 
-              ? 'rgba(255, 255, 255, 0.3)' 
-              : 'rgba(255, 255, 255, 0.9)',
-            fontSize: '14px',
-            fontWeight: isSelected ? 600 : 400,
-            cursor: isDisabled ? 'not-allowed' : 'pointer',
-            border: isToday ? '1px solid rgba(255, 255, 255, 0.2)' : 'none'
-          }}
-          onMouseEnter={(e) => {
-            if (!isDisabled) {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isDisabled) {
-              e.currentTarget.style.background = isSelected 
-                ? 'rgba(255, 255, 255, 0.2)' 
-                : isToday
-                  ? 'rgba(255, 255, 255, 0.05)'
-                  : 'transparent';
-            }
-          }}
+          className={dayClasses}
+          aria-pressed={isSelected}
         >
           {day}
         </button>
@@ -156,109 +141,69 @@ export const GlassDatePicker = ({
     <div className={className} ref={datePickerRef}>
       {label && (
         <label 
-          className="block text-sm font-medium mb-2"
-          style={{ 
-            color: 'rgba(255, 255, 255, 0.9)',
-            textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
-          }}
+          className="block text-sm font-medium text-white/80 mb-2"
         >
           {label}
         </label>
       )}
       
       <div className="relative">
-        {/* Date Display */}
-        <GlassSurface
-          width="100%"
-          height="auto"
-          borderRadius={12}
-          borderWidth={0.08}
-          brightness={60}
-          opacity={0.8}
-          blur={20}
-          displace={0.8}
-          backgroundOpacity={0.3}
-          saturation={1.2}
-          distortionScale={-100}
-          xChannel="R"
-          yChannel="G"
-          mixBlendMode="screen"
-          redOffset={0}
-          greenOffset={2}
-          blueOffset={4}
-          style={{
-            boxShadow: `
-              0 2px 10px rgba(0, 0, 0, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.15),
-              inset 0 -1px 0 rgba(0, 0, 0, 0.1)
-            `,
-          }}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-neutral-950/70 px-4 py-3 text-left text-white transition-all hover:border-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
         >
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="w-full bg-transparent border-none outline-none px-4 py-3 text-white flex items-center justify-between"
-            style={{
-              fontSize: '16px',
-              fontWeight: 400,
-              cursor: 'pointer'
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path 
-                  d="M15.8333 3.33334H4.16667C3.24619 3.33334 2.5 4.07954 2.5 5.00001V16.6667C2.5 17.5871 3.24619 18.3333 4.16667 18.3333H15.8333C16.7538 18.3333 17.5 17.5871 17.5 16.6667V5.00001C17.5 4.07954 16.7538 3.33334 15.8333 3.33334Z" 
-                  stroke="rgba(255,255,255,0.7)" 
-                  strokeWidth="1.5" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-                <path 
-                  d="M13.3333 1.66666V4.99999" 
-                  stroke="rgba(255,255,255,0.7)" 
-                  strokeWidth="1.5" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-                <path 
-                  d="M6.66667 1.66666V4.99999" 
-                  stroke="rgba(255,255,255,0.7)" 
-                  strokeWidth="1.5" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-                <path 
-                  d="M2.5 8.33334H17.5" 
-                  stroke="rgba(255,255,255,0.7)" 
-                  strokeWidth="1.5" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span style={{ color: value ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)' }}>
-                {value ? formatDate(value) : 'Seleccionar fecha'}
-              </span>
-            </div>
-            <svg 
-              width="12" 
-              height="8" 
-              viewBox="0 0 12 8" 
-              fill="none"
-              style={{
-                transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s ease'
-              }}
-            >
+          <div className="flex items-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-white/70">
               <path 
-                d="M1 1.5L6 6.5L11 1.5" 
-                stroke="rgba(255,255,255,0.7)" 
+                d="M15.8333 3.33334H4.16667C3.24619 3.33334 2.5 4.07954 2.5 5.00001V16.6667C2.5 17.5871 3.24619 18.3333 4.16667 18.3333H15.8333C16.7538 18.3333 17.5 17.5871 17.5 16.6667V5.00001C17.5 4.07954 16.7538 3.33334 15.8333 3.33334Z" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+              <path 
+                d="M13.3333 1.66666V4.99999" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+              <path 
+                d="M6.66667 1.66666V4.99999" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+              <path 
+                d="M2.5 8.33334H17.5" 
+                stroke="currentColor" 
                 strokeWidth="1.5" 
                 strokeLinecap="round" 
                 strokeLinejoin="round"
               />
             </svg>
-          </button>
-        </GlassSurface>
+            <span className={value ? 'text-white' : 'text-white/50'}>
+              {value ? formatDate(value) : 'Seleccionar fecha'}
+            </span>
+          </div>
+          <svg 
+            width="12" 
+            height="8" 
+            viewBox="0 0 12 8" 
+            fill="none"
+            className={`transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+          >
+            <path 
+              d="M1 1.5L6 6.5L11 1.5" 
+              stroke="rgba(255,255,255,0.7)" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
 
         {/* Calendar Dropdown */}
         {isOpen && (
@@ -268,49 +213,13 @@ export const GlassDatePicker = ({
               animation: 'fadeIn 0.15s ease-out'
             }}
           >
-            <GlassSurface
-              width="100%"
-              height="auto"
-              borderRadius={12}
-              borderWidth={0.08}
-              brightness={60}
-              opacity={0.9}
-              blur={25}
-              displace={10}
-              backgroundOpacity={0.6}
-              saturation={1.2}
-              distortionScale={0}
-              redOffset={0}
-              greenOffset={2}
-              blueOffset={4}
-              xChannel="R"
-              yChannel="G"
-              mixBlendMode="screen"
-              style={{
-                boxShadow: `
-                  0 8px 24px rgba(0, 0, 0, 0.2),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.2),
-                  inset 0 -1px 0 rgba(0, 0, 0, 0.15)
-                `,
-              }}
-            >
+            <div className="rounded-xl border border-white/10 bg-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.55)]">
               <div className="p-4">
-              {/* Month/Year Header */}
-              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4">
                   <button
                     type="button"
                     onClick={handlePrevMonth}
-                    className="p-2 rounded-lg transition-all"
-                    style={{
-                      background: 'transparent',
-                      color: 'rgba(255, 255, 255, 0.7)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}
+                    className="p-2 rounded-lg text-white/70 hover:bg-white/5"
                   >
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                       <path 
@@ -322,31 +231,13 @@ export const GlassDatePicker = ({
                       />
                     </svg>
                   </button>
-                  
-                  <div 
-                    style={{ 
-                      color: 'rgba(255, 255, 255, 0.9)',
-                      fontSize: '16px',
-                      fontWeight: 600
-                    }}
-                  >
+                  <div className="text-white font-semibold text-base">
                     {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                   </div>
-                  
                   <button
                     type="button"
                     onClick={handleNextMonth}
-                    className="p-2 rounded-lg transition-all"
-                    style={{
-                      background: 'transparent',
-                      color: 'rgba(255, 255, 255, 0.7)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}
+                    className="p-2 rounded-lg text-white/70 hover:bg-white/5"
                   >
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                       <path 
@@ -357,32 +248,25 @@ export const GlassDatePicker = ({
                         strokeLinejoin="round"
                       />
                     </svg>
-              </button>
-            </div>
+                  </button>
+                </div>
 
-            {/* Days of Week */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
+                <div className="grid grid-cols-7 gap-2 mb-2">
                   {DAYS.map((day) => (
                     <div
                       key={day}
-                      className="text-center"
-                      style={{
-                        color: 'rgba(255, 255, 255, 0.6)',
-                        fontSize: '12px',
-                        fontWeight: 500
-                      }}
+                      className="text-center text-[11px] font-medium text-white/60 uppercase"
                     >
                       {day}
                     </div>
                   ))}
-            </div>
+                </div>
 
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2">
-              {renderCalendar()}
-            </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {renderCalendar()}
+                </div>
               </div>
-            </GlassSurface>
+            </div>
           </div>
         )}
       </div>

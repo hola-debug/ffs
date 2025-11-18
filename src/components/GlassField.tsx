@@ -1,5 +1,4 @@
-import { InputHTMLAttributes, SelectHTMLAttributes, forwardRef } from 'react';
-import GlassSurface from './GlassSurface';
+import { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, forwardRef } from 'react';
 
 interface BaseFieldProps {
   label?: string;
@@ -8,7 +7,7 @@ interface BaseFieldProps {
 
 type InputProps = BaseFieldProps & InputHTMLAttributes<HTMLInputElement>;
 type SelectProps = BaseFieldProps & SelectHTMLAttributes<HTMLSelectElement> & {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 const GlassField = forwardRef<HTMLInputElement, InputProps>(
@@ -17,52 +16,18 @@ const GlassField = forwardRef<HTMLInputElement, InputProps>(
       <div>
         {label && (
           <label 
-            className="block text-sm font-medium mb-2"
-            style={{ 
-              color: 'rgba(255, 255, 255, 0.9)',
-            }}
+            className="block text-sm font-medium text-white/80 mb-2"
           >
             {label}
           </label>
         )}
-        <GlassSurface
-          width="100%"
-          height="auto"
-          borderRadius={12}
-          borderWidth={0.08}
-          brightness={60}
-          opacity={0.4}
-          blur={20}
-          displace={1.5}
-          backgroundOpacity={0.1}
-          saturation={1.4}
-          distortionScale={-150}
-          xChannel="R"
-          yChannel="G"
-          mixBlendMode="screen"
-          style={{
-            boxShadow: `
-              0 2px 10px rgba(0, 0, 0, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.15),
-              inset 0 -1px 0 rgba(0, 0, 0, 0.1)
-            `,
-          }}
-          redOffset={0}
-          greenOffset={8}
-          blueOffset={16}
-       
-       
-        >
+        <div className="rounded-xl border border-white/10 bg-neutral-950/70 transition-all focus-within:border-white/40 focus-within:ring-2 focus-within:ring-indigo-500/40">
           <input
             ref={ref}
-            className={`w-full bg-transparent border-none outline-none px-4 py-3 text-white ${className}`}
-            style={{
-              fontSize: '16px',
-              fontWeight: 400,
-            }}
+            className={`w-full bg-transparent border-none outline-none px-4 py-3 text-white placeholder:text-white/40 text-base ${className}`}
             {...props}
           />
-        </GlassSurface>
+        </div>
         {error && (
           <span className="text-red-400 text-sm mt-1 block">{error}</span>
         )}
@@ -79,60 +44,28 @@ export const GlassSelect = forwardRef<HTMLSelectElement, SelectProps>(
       <div>
         {label && (
           <label 
-            className="block text-sm font-medium mb-2"
-            style={{ 
-              color: 'rgba(255, 255, 255, 0.9)',
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
-            }}
+            className="block text-sm font-medium text-white/80 mb-2"
           >
             {label}
           </label>
         )}
-        <GlassSurface
-          width="100%"
-          height="auto"
-          borderRadius={12}
-          borderWidth={0.08}
-          brightness={60}
-          opacity={0.4}
-          blur={25}
-          displace={1.5}
-          backgroundOpacity={0.1}
-          saturation={1.4}
-          distortionScale={-200}
-          redOffset={0}
-          greenOffset={8}
-          blueOffset={16}
-          xChannel="R"
-          yChannel="G"
-          mixBlendMode="screen"
-          style={{
-            boxShadow: `
-              0 2px 10px rgba(0, 0, 0, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.15),
-              inset 0 -1px 0 rgba(0, 0, 0, 0.1)
-            `,
-          }}
-        >
+        <div className="rounded-xl border border-white/10 bg-neutral-950/70 transition-all focus-within:border-white/40 focus-within:ring-2 focus-within:ring-indigo-500/40">
           <select
             ref={ref}
-            className={`w-full bg-transparent border-none outline-none px-4 py-3 text-white ${className}`}
+            className={`w-full bg-transparent border-none outline-none px-4 py-3 text-white placeholder:text-white/40 text-base appearance-none ${className}`}
             style={{
-              fontSize: '16px',
-              fontWeight: 400,
-              appearance: 'none',
               WebkitAppearance: 'none',
               MozAppearance: 'none',
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='rgba(255,255,255,0.7)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 12px center',
-              paddingRight: '36px',
+              backgroundPosition: 'right 14px center',
+              paddingRight: '40px',
             }}
             {...props}
           >
             {children}
           </select>
-        </GlassSurface>
+        </div>
         {error && (
           <span className="text-red-400 text-sm mt-1 block">{error}</span>
         )}

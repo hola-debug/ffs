@@ -1,9 +1,16 @@
-import { ReactNode, useEffect, useState, memo } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
-import GlassSurface from './GlassSurface';
+import { memo, useEffect, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import GlassField, { GlassSelect } from './GlassField';
 
 export { GlassField, GlassSelect };
+
+const BACKDROP_ENTER_DURATION = 450;
+const BACKDROP_EXIT_DURATION = 220;
+const CONTENT_ENTER_DURATION = 450;
+const CONTENT_EXIT_DURATION = 320;
+const CONTENT_EXIT_DELAY = 220;
+const TOTAL_EXIT_DURATION = CONTENT_EXIT_DURATION + CONTENT_EXIT_DELAY;
+const ACCENT_COLOR = '#53ff94';
 
 const styles = `
   @keyframes fadeInBackdrop {
@@ -15,26 +22,40 @@ const styles = `
     to { opacity: 0; }
   }
   @keyframes slideInContent {
-    from { transform: translateY(20px); }
-    to { transform: translateY(0); }
+    from { opacity: 0; transform: translateY(24px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
   @keyframes slideOutContent {
-    from { transform: translateY(0); }
-    to { transform: translateY(20px); }
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(20px) scale(0.98); }
   }
   .modal-backdrop-enter {
-    animation: fadeInBackdrop 600ms ease-out forwards;
+    animation: fadeInBackdrop ${BACKDROP_ENTER_DURATION}ms ease-out forwards;
   }
   .modal-backdrop-exit {
-    animation: fadeOutBackdrop 300ms ease-in forwards;
+    animation: fadeOutBackdrop ${BACKDROP_EXIT_DURATION}ms ease-in forwards;
   }
   .modal-content-enter {
-    animation: slideInContent 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    will-change: transform;
+    animation: slideInContent ${CONTENT_ENTER_DURATION}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    will-change: transform, opacity;
   }
   .modal-content-exit {
-    animation: slideOutContent 300ms cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
-    will-change: transform;
+    animation: slideOutContent ${CONTENT_EXIT_DURATION}ms cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+    animation-delay: ${CONTENT_EXIT_DELAY}ms;
+    will-change: transform, opacity;
+  }
+  .modal-close-button {
+    transition: border-color 200ms ease, background-color 200ms ease, color 200ms ease, transform 200ms ease;
+  }
+  .modal-close-button:hover {
+    border-color: ${ACCENT_COLOR};
+    color: #ffffff;
+    background-color: rgba(0, 0, 0, 0.85);
+    transform: scale(1.05);
+  }
+  .modal-close-button:focus-visible {
+    outline: 2px solid ${ACCENT_COLOR};
+    outline-offset: 2px;
   }
 `;
 
@@ -71,15 +92,15 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
 
   const handleClose = () => {
     setIsClosing(true);
-    // Espera la duración de salida (300ms)
+    // Espera la animación: delay del contenido + duración del slide
     setTimeout(() => {
       onClose();
-    }, 300);
+    }, TOTAL_EXIT_DURATION);
   };
 
   if (!mounted && !isOpen) return null;
 
-  const containerStyle: React.CSSProperties = {
+  const containerStyle: CSSProperties = {
     position: 'fixed',
     inset: 0,
     zIndex: 9999,
@@ -92,7 +113,6 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
 
   return (
     <>
-      {/* Backdrop con blur y oscuridad - Optimized */}
       <div
         className={isClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'}
         style={{
@@ -100,14 +120,12 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
           inset: 0,
           zIndex: 9998,
           backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
           willChange: 'opacity',
           transform: 'translateZ(0)',
         }}
         onClick={handleClose}
       />
 
-      {/* Modal Content Container */}
       <div 
         style={containerStyle}
         onClick={handleClose}
@@ -116,103 +134,50 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
           className={`relative w-full max-w-md pointer-events-auto ${isClosing ? 'modal-content-exit' : 'modal-content-enter'}`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Glass Surface Container - Optimized */}
-          <div>
-           <GlassSurface
-            width="100%"
-            height="auto"
-            borderRadius={11}
-            borderWidth={0.011}
-            brightness={11}
-            opacity={0.95}
-            blur={25}
-            displace={0.8}
-            backgroundOpacity={0.25}
-            saturation={1.1}
-            distortionScale={-150}
-            redOffset={0}
-            greenOffset={6}
-            blueOffset={12}
-            xChannel="R"
-            yChannel="G"
-            mixBlendMode="screen"
-            className="shadow-2xl backdrop-blur-2xl"
+          <div
+            className="relative overflow-hidden rounded-[32px] border border-white/5 text-white shadow-[0_30px_80px_rgba(0,0,0,0.75)]"
             style={{
-              willChange: 'transform',
-              transform: 'translateZ(0)',
-              backfaceVisibility: 'hidden',
-              boxShadow: `
-                0 20px 60px rgba(0, 0, 0, 0.3),
-                0 8px 30px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.15)
-              `,
+              backgroundColor: '#040404',
+              backgroundImage: ` url('/modal.bg.webp')`,
+              backgroundSize: 'auto, auto, cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'repeat, no-repeat, no-repeat',
             }}
           >
-       
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -40px 80px rgba(0,0,0,0.85)',
+              }}
+            />
             <div 
-              className="w-full overflow-y-auto scrollbar-hide"
+              className="relative w-full overflow-y-auto scrollbar-hide"
               style={{
                 maxHeight: 'calc(100vh - 4rem)',
               }}
             >
-              {/* Header */}
               <div 
-                className="relative px-6 pt-6 pb-4 border-b border-white/10 "
+                className="relative px-6 pt-8 pb-5 border-b border-white/5"
               >
                 <h2 
-                  className="text-2xl font-semibold text-white pr-10"
-                  style={{
-                    textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
-                  }}
+                  className="text-lg font-semibold uppercase tracking-[0.55em] text-[#53ff94] pr-12"
                 >
                   {title}
                 </h2>
-                
-                {/* Botón de cerrar estilo iOS */}
+                <div className="mt-4 h-px w-full bg-gradient-to-r from-white/50 via-white/10 to-transparent" />
                 <button
                   onClick={handleClose}
-                  className="absolute top-5 right-5 group"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(120, 120, 128, 0.24)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    border: '0.5px solid rgba(255, 255, 255, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(120, 120, 128, 0.36)';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(120, 120, 128, 0.24)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
+                  aria-label="Cerrar"
+                  className="modal-close-button absolute top-6 right-6 flex h-9 w-9 items-center justify-center"
                 >
-                  <XMarkIcon 
-                    className="w-5 h-5 text-white/90 transition-colors"
-                    style={{
-                      filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))',
-                    }}
-                  />
+                  <img src="/x.svg" alt="Cerrar" className="h-4 w-4" />
                 </button>
               </div>
-              
-              {/* Content */}
-              <div 
-                className="px-6 py-6"
-              >
+              <div className="px-6 py-6">
                 {children}
               </div>
             </div>
-          </GlassSurface>
-        </div>
+          </div>
         </div>
       </div>
     </>
