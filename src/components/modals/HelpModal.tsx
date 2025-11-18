@@ -47,7 +47,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
             <li>Crea bolsas con nombres descriptivos</li>
             <li>Define períodos realistas para tus bolsas</li>
             <li>Revisa regularmente tus gastos</li>
-            <li>Usa emojis para identificar rápidamente tus bolsas</li>
+            <li>Asigna iconos claros para identificar rápidamente tus bolsas</li>
           </ul>
         </section>
 

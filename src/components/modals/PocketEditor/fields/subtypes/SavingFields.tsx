@@ -1,6 +1,7 @@
 import { GlassField } from '@/components/IOSModal';
 import GlassDropdown from '@/components/GlassDropdown';
 import GlassDatePicker from '@/components/GlassDatePicker';
+import GlassToggle from '@/components/GlassToggle';
 import { PocketFieldsProps } from '../../types';
 import { useMemo } from 'react';
 
@@ -121,22 +122,19 @@ export function SavingFields({ state, setState }: PocketFieldsProps) {
         </div>
       )}
 
-      <div className="flex items-center space-x-3">
-        <input
-          type="checkbox"
-          id="allowWithdrawals"
-          checked={state.allowWithdrawals}
-          onChange={(e) => setState((prev) => ({ ...prev, allowWithdrawals: e.target.checked }))}
-          className="w-5 h-5 rounded"
-          style={{ accentColor: '#0A84FF' }}
-        />
-        <label
-          htmlFor="allowWithdrawals"
-          className="font-monda text-[10px] tracking-[0.35em] text-white/70 uppercase"
-          style={{ marginBottom: 0 }}
-        >
+      <div className="space-y-3">
+        <p className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">
           Permitir retiros antes de completar
-        </label>
+        </p>
+        <GlassToggle
+          label="Permitir retiros"
+          activeLabel="Retiros permitidos"
+          inactiveLabel="Permitir retiros"
+          descriptionOn="Podrás mover fondos antes de alcanzar el objetivo."
+          descriptionOff="Mantén los fondos bloqueados hasta completar el objetivo."
+          value={state.allowWithdrawals}
+          onChange={(value) => setState((prev) => ({ ...prev, allowWithdrawals: value }))}
+        />
       </div>
     </div>
   );

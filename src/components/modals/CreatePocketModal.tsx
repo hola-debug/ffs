@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import type { WheelEvent } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField } from '../IOSModal';
 import { PocketType } from '../../lib/types';
+import { PocketIcon, POCKET_ICON_OPTIONS } from '@/components/PocketIcon';
 
 interface CreatePocketModalProps {
   isOpen: boolean;
@@ -14,12 +16,10 @@ const POCKET_TYPES: { value: PocketType; label: string; description: string }[] 
   { value: 'saving', label: 'Ahorro', description: 'Para ahorrar con objetivo específico' },
 ];
 
-const EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉'];
-
 export default function CreatePocketModal({ isOpen, onClose, onSuccess }: CreatePocketModalProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState<PocketType>('expense');
-  const [emoji, setEmoji] = useState('💰');
+  const [emoji, setEmoji] = useState('wallet');
   const [allocatedAmount, setAllocatedAmount] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [startsAt, setStartsAt] = useState(new Date().toISOString().split('T')[0]);
@@ -27,6 +27,22 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
   const [autoReturnRemaining, setAutoReturnRemaining] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const iconOptionsLoop = useMemo(() => [...POCKET_ICON_OPTIONS, ...POCKET_ICON_OPTIONS, ...POCKET_ICON_OPTIONS], []);
+  const iconScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = iconScrollRef.current;
+    if (el) {
+      el.scrollLeft = el.scrollWidth / 3;
+    }
+  }, []);
+
+  const handleIconWheel = (event: WheelEvent<HTMLDivElement>) => {
+    if (!iconScrollRef.current) return;
+    if (event.deltaY === 0) return;
+    event.preventDefault();
+    iconScrollRef.current.scrollLeft += event.deltaY;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +89,7 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
       // Reset form
       setName('');
       setType('expense');
-      setEmoji('💰');
+      setEmoji('wallet');
       setAllocatedAmount('');
       setTargetAmount('');
       setStartsAt(new Date().toISOString().split('T')[0]);
@@ -145,25 +161,33 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
         </div>
 
         <div>
-          <label className="ios-label">Emoji</label>
-          <div className="flex flex-wrap gap-2">
-            {EMOJIS.map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => setEmoji(e)}
-                className="text-2xl p-2 rounded transition-all"
-                style={{
-                  background: emoji === e ? 'rgba(10, 132, 255, 0.9)' : 'rgba(120, 120, 128, 0.16)',
-                  border: emoji === e ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
-                  transform: emoji === e ? 'scale(1.1)' : 'scale(1)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                }}
-              >
-                {e}
-              </button>
-            ))}
+          <label className="ios-label">Icono</label>
+          <div
+            ref={iconScrollRef}
+            className="relative mt-2 overflow-x-auto overflow-y-hidden scrollbar-hide rounded-[22px] border border-white/10 bg-black/25"
+            onWheel={handleIconWheel}
+          >
+            <div className="flex gap-2 min-w-max py-2 px-1">
+              {iconOptionsLoop.map((option, index) => {
+                const key = `${option.id}-${index}`;
+                const isSelected = emoji === option.id;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setEmoji(option.id)}
+                    className={`flex flex-col items-center gap-1 rounded-2xl border px-3 py-2 min-w-[84px] shrink-0 transition-all ${
+                      isSelected
+                        ? 'border-[#67F690] bg-black/70 text-white shadow-[0_12px_30px_rgba(0,0,0,0.55)]'
+                        : 'border-white/12 bg-black/30 text-white/70 hover:border-white/30'
+                    }`}
+                  >
+                    <PocketIcon iconId={option.id} className="w-5 h-5" />
+                    <span className="text-[9px] text-center font-roboto tracking-[0.08em] leading-tight">{option.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

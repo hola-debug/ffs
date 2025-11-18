@@ -1,5 +1,6 @@
 import { BaseCard } from '../BaseCard';
 import { useNavigate } from 'react-router-dom';
+import { PocketIcon } from '@/components/PocketIcon';
 
 interface SavingPocket {
   id: string;
@@ -33,7 +34,7 @@ export function SavingPocketsModule({ pockets }: SavingPocketsModuleProps) {
       <div className="space-y-3">
         {/* Header */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-2xl">🐷</span>
+          <PocketIcon iconId="banknotes" className="w-6 h-6 text-white/80" />
           <h3 className="text-lg font-bold text-white/90">Bolsas de Ahorro</h3>
         </div>
 
@@ -54,7 +55,7 @@ export function SavingPocketsModule({ pockets }: SavingPocketsModuleProps) {
                 {/* Header */}
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{pocket.emoji}</span>
+                    <PocketIcon iconId={pocket.emoji} className="w-6 h-6 text-white" fallbackClassName="text-2xl" />
                     <h4 className="font-bold text-white/90 text-base">{pocket.name}</h4>
                   </div>
                   <div className={`

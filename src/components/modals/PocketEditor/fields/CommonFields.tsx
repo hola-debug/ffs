@@ -1,13 +1,13 @@
-import { memo, useMemo, useEffect } from 'react';
-import { GlassField, GlassSelect } from '@/components/IOSModal';
+import { memo, useMemo, useEffect, useRef } from 'react';
+import type { WheelEvent } from 'react';
+import { GlassField } from '@/components/IOSModal';
 import GlassDropdown from '@/components/GlassDropdown';
+import { PocketIcon, POCKET_ICON_OPTIONS } from '@/components/PocketIcon';
 import { PocketFieldsProps } from '../types';
 import { CurrencyCode } from '@/lib/types';
 
 const formatBalance = (value: number, currency: CurrencyCode) =>
   value.toLocaleString('es-UY', { style: 'currency', currency });
-
-const EMOJIS = ['💰', '🎯', '🛒', '🏖️', '🏠', '🚗', '🎮', '📚', '✈️', '🎉', '🍔', '⚡', '📱', '🎬', '🏋️'] as const;
 
 function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps) {
   // Obtener las divisas disponibles de la cuenta seleccionada
@@ -45,6 +45,13 @@ function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps)
     [accounts]
   );
   const hasAccounts = accountOptions.length > 0;
+  const paymentAccountOptions = useMemo(
+    () => [
+      { value: '', label: 'No especificar', description: 'Cuenta con la que se paga la deuda' },
+      ...accountOptions,
+    ],
+    [accountOptions]
+  );
 
   const currencyOptions = useMemo(
     () =>
@@ -58,6 +65,25 @@ function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps)
 
   const currencyDisabled = !state.accountId || availableCurrencies.length === 0;
 
+  const iconOptionsLoop = useMemo(
+    () => [...POCKET_ICON_OPTIONS, ...POCKET_ICON_OPTIONS, ...POCKET_ICON_OPTIONS],
+    []
+  );
+  const iconScrollRef = useRef<HTMLDivElement>(null);
+  const handleIconWheel = (event: WheelEvent<HTMLDivElement>) => {
+    if (!iconScrollRef.current) return;
+    if (event.deltaY === 0) return;
+    event.preventDefault();
+    iconScrollRef.current.scrollLeft += event.deltaY;
+  };
+
+  useEffect(() => {
+    const el = iconScrollRef.current;
+    if (!el) return;
+    // Start roughly in the middle so there are icons to both sides
+    el.scrollLeft = el.scrollWidth / 3;
+  }, []);
+
   return (
     <div className="space-y-5">
       <GlassField
@@ -70,25 +96,38 @@ function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps)
       />
 
       <div>
-        <label className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">Emoji</label>
-        <div className="flex flex-wrap gap-2">
-          {EMOJIS.map((e) => (
-            <button
-              key={e}
-              type="button"
-              onClick={() => setState((prev) => ({ ...prev, emoji: e }))}
-              className="text-2xl p-2 rounded transition-all"
-              style={{
-                background: state.emoji === e ? 'rgba(10, 132, 255, 0.9)' : 'rgba(120, 120, 128, 0.16)',
-                border: state.emoji === e ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
-                transform: state.emoji === e ? 'scale(1.1)' : 'scale(1)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-              }}
-            >
-              {e}
-            </button>
-          ))}
+        <label className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">Icono</label>
+        <div
+          ref={iconScrollRef}
+          className="relative mt-2 overflow-x-auto overflow-y-hidden scrollbar-hide rounded-[22px] border border-white/10 bg-black/25"
+          onWheel={handleIconWheel}
+        >
+          <div
+            className="flex gap-2 min-w-max py-2 px-1"
+          >
+            {iconOptionsLoop.map((option, index) => {
+              const key = `${option.id}-${index}`;
+              const isSelected = state.emoji === option.id;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setState((prev) => ({ ...prev, emoji: option.id }))}
+                  className={`flex flex-col items-center gap-1 rounded-2xl border px-3 py-2 min-w-[84px] shrink-0 transition-all ${
+                    isSelected
+                      ? 'border-[#67F690] bg-black/70 text-white shadow-[0_12px_30px_rgba(0,0,0,0.55)]'
+                      : 'border-white/12 bg-black/30 text-white/70 hover:border-white/30'
+                  }`}
+                  aria-pressed={isSelected}
+                >
+                  <PocketIcon iconId={option.id} className="w-5 h-5" />
+                  <span className="text-[9px] text-center font-roboto tracking-[0.08em] leading-tight">
+                    {option.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -111,18 +150,13 @@ function CommonFieldsComponent({ state, setState, accounts }: PocketFieldsProps)
       />
 
       {state.pocketType === 'debt' && (
-        <GlassSelect
+        <GlassDropdown
           label="Cuenta de pago (opcional)"
-          value={state.linkedAccountId}
-          onChange={(e) => setState((prev) => ({ ...prev, linkedAccountId: e.target.value }))}
-        >
-          <option value="">No especificar</option>
-          {accounts.map((acc) => (
-            <option key={acc.id} value={acc.id}>
-              {acc.name}
-            </option>
-          ))}
-        </GlassSelect>
+          value={state.linkedAccountId ?? ''}
+          onChange={(linkedAccountId) => setState((prev) => ({ ...prev, linkedAccountId }))}
+          options={paymentAccountOptions}
+          placeholder="No especificar"
+        />
       )}
     </div>
   );

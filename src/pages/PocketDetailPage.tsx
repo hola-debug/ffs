@@ -6,6 +6,7 @@ import { useToast } from '../hooks/useToast';
 import { BaseCard } from '../components/modules/BaseCard';
 import CountUp from '../components/ui/CountUp';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { PocketIcon } from '@/components/PocketIcon';
 
 export default function PocketDetailPage() {
   const { pocketId } = useParams<{ pocketId: string }>();
@@ -60,7 +61,7 @@ export default function PocketDetailPage() {
 
           {/* Header con emoji y nombre */}
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-6xl">{pocket.emoji || '👛'}</span>
+            <PocketIcon iconId={pocket.emoji} className="w-16 h-16 text-gray-800" fallbackClassName="text-6xl" />
             <div>
               <h1 className="text-3xl font-bold text-gray-800">{pocket.name}</h1>
               <p className="text-sm text-gray-600">

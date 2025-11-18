@@ -1,5 +1,6 @@
 import { GlassField } from '@/components/IOSModal';
 import GlassDropdown from '@/components/GlassDropdown';
+import GlassToggle from '@/components/GlassToggle';
 import { PocketFieldsProps } from '../../types';
 import { useMemo, useEffect } from 'react';
 
@@ -63,31 +64,59 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
       {/* Selector de modo de entrada */}
       <div className="space-y-3">
         <label className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">¿Qué dato conoces?</label>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setState((prev) => ({ ...prev, debtInputMode: 'installments' }))}
-            className={`p-3 rounded-xl transition-all ${
-              state.debtInputMode === 'installments'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800'
-            }`}
-          >
-            <div className="text-sm font-semibold">Cantidad de cuotas</div>
-            <div className="text-xs mt-1 opacity-75">Se calcula el monto</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setState((prev) => ({ ...prev, debtInputMode: 'amount' }))}
-            className={`p-3 rounded-xl transition-all ${
-              state.debtInputMode === 'amount'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800'
-            }`}
-          >
-            <div className="text-sm font-semibold">Monto por cuota</div>
-            <div className="text-xs mt-1 opacity-75">Se calcula la cantidad</div>
-          </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            {
+              mode: 'installments' as const,
+              title: 'Cantidad de cuotas',
+              description: 'Calculamos el monto por cuota',
+            },
+            {
+              mode: 'amount' as const,
+              title: 'Monto por cuota',
+              description: 'Calculamos cuántas cuotas necesitas',
+            },
+          ].map((option) => {
+            const isSelected = state.debtInputMode === option.mode;
+            return (
+              <button
+                key={option.mode}
+                type="button"
+                onClick={() => setState((prev) => ({ ...prev, debtInputMode: option.mode }))}
+                className={`w-full text-left rounded-[20px] border px-5 py-4 transition-all ${
+                  isSelected
+                    ? 'border-[#67F690] bg-black/70 text-white shadow-[0_20px_45px_rgba(0,0,0,0.65)]'
+                    : 'border-white/12 bg-black/40 text-white/70 hover:border-white/30'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-monda text-[11px] tracking-[0.35em] uppercase">{option.title}</p>
+                    <p className="font-roboto text-[11px] text-white/60 mt-1">{option.description}</p>
+                  </div>
+                  <span
+                    className={`ml-3 flex h-7 w-7 items-center justify-center rounded-[12px] border transition-all ${
+                      isSelected
+                        ? 'bg-[#67F690] border-[#67F690] text-black shadow-[0_0_15px_rgba(103,246,144,0.45)]'
+                        : 'bg-black/20 border-white/15 text-white/40'
+                    }`}
+                  >
+                    {isSelected && (
+                      <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+                        <path
+                          d="M1 5L4.5 8.5L13 1"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -153,7 +182,8 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <GlassDropdown
           label="Día de vencimiento"
-          value={String(state.debtDueDay)}
+          placeholder="Seleccionar día"
+          value={state.debtDueDay ? String(state.debtDueDay) : undefined}
           onChange={(value) => setState((prev) => ({ ...prev, debtDueDay: parseInt(value, 10) }))}
           options={Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
         />
@@ -167,26 +197,21 @@ export function DebtFields({ state, setState }: PocketFieldsProps) {
         />
       </div>
 
-      <div className="flex items-center space-x-3">
-        <input
-          type="checkbox"
-          id="automaticPayment"
-          checked={state.automaticPayment}
-          onChange={(e) => setState((prev) => ({ ...prev, automaticPayment: e.target.checked }))}
-          className="w-5 h-5 rounded"
-          style={{ accentColor: '#0A84FF' }}
+      <div className="space-y-3">
+        <p className="font-monda text-[10px] tracking-[0.35em] text-white/60 uppercase">Pago automático</p>
+        <GlassToggle
+          label="Pago automático"
+          activeLabel="Pago automático activado"
+          inactiveLabel="Activar pago automático"
+          descriptionOn="Registraremos cada cuota en la fecha de vencimiento."
+          descriptionOff="Pulsa para que registremos los pagos automáticamente."
+          value={state.automaticPayment}
+          onChange={(value) => setState((prev) => ({ ...prev, automaticPayment: value }))}
         />
-        <label
-          htmlFor="automaticPayment"
-          className="font-monda text-[10px] tracking-[0.35em] text-white/70 uppercase"
-          style={{ marginBottom: 0 }}
-        >
-          Pago automático
-        </label>
       </div>
 
       <div className="text-[10px] font-roboto text-white/60">
-        ℹ️ El sistema calculará automáticamente la próxima fecha de vencimiento
+        ℹEl sistema calculará automáticamente la próxima fecha de vencimiento
       </div>
     </div>
   );

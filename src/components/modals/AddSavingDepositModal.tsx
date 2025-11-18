@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
 import { Pocket, isSavingPocket, Account, getAccountBalance } from '../../lib/types';
+import { getPocketIconLabel } from '@/components/PocketIcon';
 
 interface AddSavingDepositModalProps {
   isOpen: boolean;
@@ -182,7 +183,7 @@ export default function AddSavingDepositModal({ isOpen, onClose, onSuccess }: Ad
             const remaining = target - saved;
             return (
               <option key={pocket.id} value={pocket.id}>
-                {pocket.emoji} {pocket.name} - Ahorrado: ${saved.toFixed(2)} / ${target.toFixed(2)} {pocket.currency}
+                {getPocketIconLabel(pocket.emoji)} {pocket.name} - Ahorrado: ${saved.toFixed(2)} / ${target.toFixed(2)} {pocket.currency}
               </option>
             );
           })}

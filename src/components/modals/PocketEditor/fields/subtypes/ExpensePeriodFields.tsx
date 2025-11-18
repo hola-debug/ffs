@@ -115,7 +115,7 @@ export function ExpensePeriodFields({ state, setState }: PocketFieldsProps) {
 
       {state.periodDateMode === 'days' && (
         <div className="text-[10px] font-roboto text-white/60">
-          ℹ️ La bolsa comenzará hoy y durará {state.periodDaysDuration || '0'} días
+          ℹLa bolsa comenzará hoy y durará {state.periodDaysDuration || '0'} días
         </div>
       )}
     </div>

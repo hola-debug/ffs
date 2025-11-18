@@ -7,7 +7,7 @@ const initialState: PocketFormState = {
   name: '',
   pocketType: 'saving',
   pocketSubtype: null,
-  emoji: '💰',
+  emoji: 'wallet',
   accountId: '',
   linkedAccountId: '',
   currency: '',

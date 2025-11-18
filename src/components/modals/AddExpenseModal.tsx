@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
 import { Pocket, isExpensePocket } from '../../lib/types';
+import { getPocketIconLabel } from '@/components/PocketIcon';
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -136,7 +137,7 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
             const available = (pocket.allocated_amount || 0) - (pocket.spent_amount || 0);
             return (
               <option key={pocket.id} value={pocket.id}>
-                {pocket.emoji} {pocket.name} - Disponible: ${available.toFixed(2)} {pocket.currency}
+                {getPocketIconLabel(pocket.emoji)} {pocket.name} - Disponible: ${available.toFixed(2)} {pocket.currency}
               </option>
             );
           })}

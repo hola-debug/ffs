@@ -95,19 +95,12 @@ export default function FFSPreloader({ allowExit = false, onFinish }: FFSPreload
           animateBy="letters"
           delay={160}
           direction="top"
-          className="text-6xl font-semibold tracking-[1.5rem] sm:text-8xl md:text-9xl"
+          className="text-6xl font-bold font-monda tracking-[1.5rem] sm:text-8xl md:text-9xl"
           stepDuration={0.42}
         />
       </motion.div>
 
-      <motion.p
-        className="relative z-20 mt-12 text-sm uppercase tracking-[0.45em] text-white/60"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.6 }}
-      >
-        iniciando experiencia
-      </motion.p>
+ 
     </motion.div>
   );
 }

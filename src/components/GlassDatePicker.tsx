@@ -209,63 +209,68 @@ export const GlassDatePicker = ({
 
         {/* Calendar Dropdown */}
         {isOpen && (
-          <div
-            className="absolute mt-2 z-50 w-full"
-            style={{
-              animation: 'fadeIn 0.15s ease-out'
-            }}
-          >
-            <div className="rounded-[24px] border border-white/12 bg-black/90 shadow-[0_30px_80px_rgba(0,0,0,0.75)] overflow-hidden min-w-[260px]">
-              <div className="p-1">
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    type="button"
-                    onClick={handlePrevMonth}
-                    className="p-2 rounded-full text-white/70 hover:bg-white/10"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path 
-                        d="M12.5 15L7.5 10L12.5 5" 
-                        stroke="currentColor" 
-                        strokeWidth="1.5" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                  <div className="text-white font-monda text-[10px] tracking-[0.35em] uppercase">
-                    {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleNextMonth}
-                    className="p-2 rounded-full text-white/70 hover:bg-white/10"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path 
-                        d="M7.5 15L12.5 10L7.5 5" 
-                        stroke="currentColor" 
-                        strokeWidth="1.5" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {DAYS.map((day) => (
-                    <div
-                      key={day}
-                      className="text-center text-[8px] font-monda leading-none text-white/60 uppercase"
+          <div className="fixed inset-0 z-[999] flex items-center justify-center px-4">
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+              onClick={() => setIsOpen(false)}
+            />
+            <div
+              className="relative z-10 w-full max-w-[320px]"
+              style={{ animation: 'fadeIn 0.15s ease-out' }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="rounded-[24px] border border-white/12 bg-black/90 shadow-[0_30px_80px_rgba(0,0,0,0.75)] overflow-hidden min-w-[260px]">
+                <div className="p-1">
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      type="button"
+                      onClick={handlePrevMonth}
+                      className="p-2 rounded-full text-white/70 hover:bg-white/10"
                     >
-                      {day}
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path 
+                          d="M12.5 15L7.5 10L12.5 5" 
+                          stroke="currentColor" 
+                          strokeWidth="1.5" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <div className="text-white font-monda text-[10px] tracking-[0.35em] uppercase">
+                      {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                     </div>
-                  ))}
-                </div>
+                    <button
+                      type="button"
+                      onClick={handleNextMonth}
+                      className="p-2 rounded-full text-white/70 hover:bg-white/10"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path 
+                          d="M7.5 15L12.5 10L7.5 5" 
+                          stroke="currentColor" 
+                          strokeWidth="1.5" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
 
-                <div className="grid grid-cols-7 ">
-                  {renderCalendar()}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {DAYS.map((day) => (
+                      <div
+                        key={day}
+                        className="text-center text-[8px] font-monda leading-none text-white/60 uppercase"
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 ">
+                    {renderCalendar()}
+                  </div>
                 </div>
               </div>
             </div>
