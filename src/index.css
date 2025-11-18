@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Monda:wght@400;700&family=Roboto:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -36,4 +38,27 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+@layer components {
+  .ios-modal-surface {
+    font-family: 'Roboto', sans-serif;
+  }
+
+  .ios-modal-surface label,
+  .ios-modal-surface button,
+  .ios-modal-surface .modal-label,
+  .ios-modal-surface .modal-button {
+    font-family: 'Monda', sans-serif;
+    letter-spacing: 0.08em;
+  }
+  .ios-modal-surface .font-monda,
+  .ios-modal-surface .font-monda * {
+    font-family: 'Monda', sans-serif;
+  }
+
+  .modal-title {
+    font-family: 'Monda', sans-serif;
+    letter-spacing: 0.55em;
+  }
 }

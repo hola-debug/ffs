@@ -8,9 +8,10 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Albert Sans', 'sans-serif'],
+        roboto: ['Roboto', 'sans-serif'],
+        monda: ['Monda', 'sans-serif'],
       },
     },
   },
   plugins: [],
 }
-

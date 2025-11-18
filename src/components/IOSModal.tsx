@@ -60,9 +60,13 @@ const styles = `
 `;
 
 if (typeof document !== 'undefined') {
-  const styleEl = document.createElement('style');
-  styleEl.textContent = styles;
-  document.head.appendChild(styleEl);
+  const existingStyle = document.getElementById('ios-modal-style');
+  if (!existingStyle) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'ios-modal-style';
+    styleEl.textContent = styles;
+    document.head.appendChild(styleEl);
+  }
 }
 
 interface IOSModalProps {
@@ -119,7 +123,7 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
           position: 'fixed',
           inset: 0,
           zIndex: 9998,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backgroundColor: 'rgba(0, 0, 0, 0.93)',
           willChange: 'opacity',
           transform: 'translateZ(0)',
         }}
@@ -135,7 +139,7 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className="relative overflow-hidden rounded-[32px] border border-white/5 text-white shadow-[0_30px_80px_rgba(0,0,0,0.75)]"
+            className="ios-modal-surface relative overflow-hidden rounded-[32px] border border-white/5 text-white shadow-[0_30px_80px_rgba(0,0,0,0.75)]"
             style={{
               backgroundColor: '#040404',
               backgroundImage: ` url('/modal.bg.webp')`,
@@ -160,7 +164,7 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
                 className="relative px-6 pt-8 pb-5 border-b border-white/5"
               >
                 <h2 
-                  className="text-lg font-semibold uppercase tracking-[0.55em] text-[#53ff94] pr-12"
+                  className="modal-title text-lg font-semibold uppercase text-[#53ff94] pr-12"
                 >
                   {title}
                 </h2>
