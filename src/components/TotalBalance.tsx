@@ -111,7 +111,7 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
               </div>
             </div>
 
-            <div className="mt-6 flex justify-center">
+            <div className="mt-2 flex justify-center">
               <button
                 type="button"
                 onClick={toggleCurrency}
@@ -123,39 +123,35 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
             </div>
           </div>
 
-          <div className="flex flex-col justify-center items-center space-y-6">
-            <div className=" ">
-              <div className="font-monda text-[10px] uppercase text-white/60 sm:text-xs">
-                Cuentas
-              </div>
-              <div className="mt-4 space-y-3 font-monda text-[10px] text-white/80 sm:text-sm">
-                {isLoading && (
-                  <div className="animate-pulse text-white/60">Cargando...</div>
-                )}
-                {!isLoading && error && (
-                  <div className="text-red-300 text-xs">{error}</div>
-                )}
-                {!isLoading && !error && accountRows.length === 0 && (
-                  <div className="text-white/70">No hay cuentas con saldo.</div>
-                )}
-                {!isLoading &&
-                  accountRows.map((row) => (
-                    <div
-                      className="flex items-center justify-between border-b border-white/10 pb-2 last:border-b-0 last:pb-0"
-                      key={row.id}
-                    >
-                      <span className="text-white/80">
-                        {row.label}
-                      </span>
-                      <span className="font-semibold">
-                        {formatPlainNumber(row.amount)}
-                      </span>
-                    </div>
-                  ))}
+          <div className="flex flex-col items-center space-y- px-4">
+            <div className="flex w-full flex-col items-center">
+   
+              <div className="mt-3 w-full">
+                <div className="h-px w-full bg-white" aria-hidden="true" />
+                <div className="mt-3 space-y-3 px-2 font-monda text-xs text-white/80 sm:text-sm">
+                  {isLoading && (
+                    <div className="animate-pulse text-white/60">Cargando...</div>
+                  )}
+                  {!isLoading && error && (
+                    <div className="text-red-300 text-[10px]">{error}</div>
+                  )}
+                  {!isLoading && !error && accountRows.length === 0 && (
+                    <div className="text-white/70">No hay cuentas con saldo.</div>
+                  )}
+                  {!isLoading &&
+                    accountRows.map((row) => (
+                      <div
+                        className="flex items-center justify-between leading-none"
+                        key={row.id}
+                      >
+                        <span className="text-white text-[10px] font-Monda">{row.label}</span>
+                        <span className="font-bold  leading-none tracking-[-0.1em]  text-[10px] font-Mond">{formatPlainNumber(row.amount)}</span>
+                      </div>
+                    ))}
+                </div>
+                <div className="mt-3 h-px w-full bg-white" aria-hidden="true" />
               </div>
             </div>
-
-         
           </div>
         </div>
       </div>

@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import {
-  Account,
   Category,
   ActivePocketSummary,
   UserMonthlySummary,
 } from '../lib/types';
+import { useAccountsStore } from './useAccountsStore';
 
 export function useDashboardData() {
   const [loading, setLoading] = useState(true);
@@ -13,10 +13,10 @@ export function useDashboardData() {
   const [justUpdated, setJustUpdated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [pockets, setPockets] = useState<ActivePocketSummary[]>([]);
   const [monthlySummary, setMonthlySummary] = useState<UserMonthlySummary | null>(null);
+  const { accounts } = useAccountsStore();
 
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
@@ -35,16 +35,13 @@ export function useDashboardData() {
       setUserId(user.id);
 
       const [
-        accountsRes,
         categoriesRes,
         pocketsRes,
       ] = await Promise.all([
-        supabase.from('accounts').select('*').eq('user_id', user.id).order('is_primary', { ascending: false }).order('created_at', { ascending: false }),
         supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
         supabase.from('pockets').select('*').eq('user_id', user.id).eq('status', 'active').order('created_at', { ascending: false }),
       ]);
 
-      if (accountsRes.data) setAccounts(accountsRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (pocketsRes.data) {
         console.log('[Dashboard] Pockets updated:', pocketsRes.data.length);

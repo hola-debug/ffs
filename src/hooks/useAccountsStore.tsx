@@ -129,6 +129,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) return;
 
+    // Suscripción en tiempo real a Supabase para reflejar cambios de cuentas/balances
     const channel = supabase
       .channel('accounts-store')
       // Cuenta si misma
