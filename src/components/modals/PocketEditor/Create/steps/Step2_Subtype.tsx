@@ -10,6 +10,7 @@ interface Step2Props {
   onClose: () => void;
 }
 
+const ACCENT_COLOR = '#67F690';
 const EXPENSE_SUBTYPES: Array<{ value: PocketSubtype; label: string; emoji: string; description: string }> = [
   { value: 'period', label: 'Por Período', emoji: '📅', description: 'Presupuesto con inicio/fin (comida, viajes)' },
   { value: 'recurrent', label: 'Recurrente Variable', emoji: '🔄', description: 'Vence cada mes, monto varía (luz, agua)' },
@@ -18,49 +19,89 @@ const EXPENSE_SUBTYPES: Array<{ value: PocketSubtype; label: string; emoji: stri
 
 function Step2SubtypeComponent({ state, setState, onNext, onBack, onClose }: Step2Props) {
   return (
-    <div className="space-y-3">
-      <h3 className="font-semibold text-white mb-4">Tipo de gasto</h3>
-      {EXPENSE_SUBTYPES.map((subtype) => (
-        <label
-          key={subtype.value}
-          className="block p-4 rounded-2xl cursor-pointer transition-all"
-          style={{
-            background: state.pocketSubtype === subtype.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',
-            border: state.pocketSubtype === subtype.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-          }}
-        >
-          <div className="flex items-start">
-            <input
-              type="radio"
-              name="subtype"
-              value={subtype.value || ''}
-              checked={state.pocketSubtype === subtype.value}
-              onChange={(e) => setState((prev) => ({ ...prev, pocketSubtype: (e.target.value as PocketSubtype) || null }))}
-              className="mt-1 mr-3"
-              style={{ accentColor: '#0A84FF' }}
-            />
-            <div>
-              <div className="font-medium text-white flex items-center gap-2">
-                <span>{subtype.emoji}</span> {subtype.label}
-              </div>
-              <div className="text-sm mt-1" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                {subtype.description}
-              </div>
-            </div>
-          </div>
-        </label>
-      ))}
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <p className="font-monda text-xs tracking-[0.35em] text-white/60 uppercase">Tipo de gasto</p>
+        <div className="h-px w-16 bg-white/40" />
+      </div>
 
-      <div className="flex space-x-3 pt-4">
-        <button type="button" onClick={onBack} className="flex-1 ios-button-secondary">
+      <div className="space-y-3">
+        {EXPENSE_SUBTYPES.map((subtype) => {
+          const isSelected = state.pocketSubtype === subtype.value;
+          return (
+            <label
+              key={subtype.value}
+              className={`group flex cursor-pointer items-center gap-4 rounded-[20px] border px-5 py-4 transition-all ${
+                isSelected ? 'bg-black/80 shadow-[0_25px_55px_rgba(0,0,0,0.75)]' : 'bg-black/40'
+              }`}
+              style={{
+                borderColor: isSelected ? ACCENT_COLOR : 'rgba(255,255,255,0.08)',
+              }}
+            >
+              <input
+                type="radio"
+                name="subtype"
+                value={subtype.value || ''}
+                checked={isSelected}
+                onChange={(e) => setState((prev) => ({ ...prev, pocketSubtype: (e.target.value as PocketSubtype) || null }))}
+                className="sr-only"
+              />
+
+              <span
+                className="flex h-11 w-11 items-center justify-center rounded-full border transition-transform"
+                style={{
+                  borderColor: isSelected ? ACCENT_COLOR : 'rgba(255,255,255,0.18)',
+                  backgroundColor: 'rgba(0,0,0,0.45)',
+                  boxShadow: isSelected
+                    ? `0 0 25px ${ACCENT_COLOR}80, inset 0 -4px 10px rgba(0,0,0,0.6)`
+                    : 'inset 0 -4px 10px rgba(0,0,0,0.6)',
+                  transform: isSelected ? 'translateY(-2px)' : 'none',
+                }}
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{
+                    backgroundColor: ACCENT_COLOR,
+                    opacity: isSelected ? 1 : 0.25,
+                  }}
+                />
+              </span>
+
+              <div className="flex flex-col text-sm font-roboto">
+                <span className="font-monda font-semibold uppercase text-white text-xs" style={{ letterSpacing: '0.5em' }}>
+                  {subtype.label}
+                </span>
+                <span className="font-roboto text-white/70 text-sm">{subtype.description}</span>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+
+      <div className="flex space-x-3 pt-2 text-sm">
+        <button
+          type="button"
+          onClick={onBack}
+          className="font-roboto tracking-[0.08em] flex-1 rounded-[18px] border border-white/15 bg-black/60 px-4 py-3 text-white transition hover:border-white/40"
+        >
           Atrás
         </button>
-        <button type="button" onClick={onClose} className="flex-1 ios-button-secondary">
+        <button
+          type="button"
+          onClick={onClose}
+          className="font-roboto tracking-[0.08em] flex-1 rounded-[18px] border border-white/15 bg-black/60 px-4 py-3 text-white transition hover:border-white/40"
+        >
           Cancelar
         </button>
-        <button type="button" onClick={onNext} className="flex-1 ios-button">
+        <button
+          type="button"
+          onClick={onNext}
+          className="font-roboto tracking-[0.08em] flex-1 rounded-[18px] border-2 px-4 py-3 text-white transition"
+          style={{
+            borderColor: ACCENT_COLOR,
+            boxShadow: `0 12px 30px rgba(0,0,0,0.6), 0 0 15px ${ACCENT_COLOR}40`,
+          }}
+        >
           Siguiente
         </button>
       </div>
