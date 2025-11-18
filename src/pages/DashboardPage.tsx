@@ -11,6 +11,7 @@ import FadeContent from '../components/ui/FadeContent';
 import CircularGalleryWithModals from '../components/CircularGalleryWithModals';
 import { useImagePreload } from '../hooks/useImagePreload';
 import DynamicModal from '../components/DynamicModal';
+import TotalBalance from '../components/TotalBalance';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -20,11 +21,11 @@ export default function DashboardPage() {
   
   // Preload gallery images
   const galleryImages = useMemo(() => [
-    '/AGGREGAR INGRESO.png',
-    '/AGRREGAR CUENTAS.png',
-    '/AYUDA.png',
-    '/CREAR BOLSAS.png',
-    '/NUEVO GASTO.png'
+    '/AGGREGAR INGRESO.webp',
+    '/AGRREGAR CUENTAS.webp',
+    '/AYUDA.webp',
+    '/CREAR BOLSAS.webp',
+    '/NUEVO GASTO.webp'
   ], []);
   
   useImagePreload(galleryImages);
@@ -97,10 +98,22 @@ export default function DashboardPage() {
             </FadeContent>
           </div>
 
+          <div className="mt-10">
+            <FadeContent
+              blur={false}
+              duration={700}
+              easing="ease-out"
+              initialOpacity={0}
+              threshold={0.2}
+              delay={150}
+            >
+              <TotalBalance />
+            </FadeContent>
+          </div>
+
   
 
-          {/* Módulos Dinámicos Registrados - uno por fila completa */}
-          <div className="space-y-1">
+          {/* Módulos Dinámicos Registrados - uno por fila completa
             {moduleRegistry.getAllModules().map((module, index) => {
               const pocket = pockets.find(p => p.id === module.pocketId);
               if (!pocket) return null;
@@ -120,7 +133,8 @@ export default function DashboardPage() {
                   </FadeContent>
                 </div>
               );
-            })}
+            })} */}
+          <div className="space-y-1">
           </div>
         </div>
       </div>
