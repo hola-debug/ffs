@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { useAccountsStore } from '../../hooks/useAccountsStore';
 import IOSModal, { GlassField } from '../IOSModal';
 import GlassDropdown from '../GlassDropdown';
 
@@ -43,6 +44,7 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
   const [currencyBalances, setCurrencyBalances] = useState<CurrencyBalance[]>([
     { currency: 'ARS', balance: '', isPrimary: true },
   ]);
+  const { refetch } = useAccountsStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -188,6 +190,8 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
           console.warn('Cuenta creada pero no se pudieron registrar los movimientos iniciales:', movementError);
         }
       }
+
+      await refetch();
 
       // Reset form
       setName('');

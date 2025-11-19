@@ -13,7 +13,12 @@ interface AddIncomeModalProps {
 }
 
 export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncomeModalProps) {
-  const { accounts, loading: accountsLoading, refreshing: accountsRefreshing } = useAccountsStore();
+  const {
+    accounts,
+    loading: accountsLoading,
+    refreshing: accountsRefreshing,
+    refetch
+  } = useAccountsStore();
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState('');
   const [currency, setCurrency] = useState<CurrencyCode | ''>('');
@@ -102,6 +107,8 @@ export default function AddIncomeModal({ isOpen, onClose, onSuccess }: AddIncome
           // No lanzamos error porque el movimiento ya se creó
         }
       }
+
+      await refetch();
 
       // Reset form
       setAmount('');

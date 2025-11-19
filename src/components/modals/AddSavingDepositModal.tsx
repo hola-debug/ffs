@@ -13,7 +13,12 @@ interface AddSavingDepositModalProps {
 
 export default function AddSavingDepositModal({ isOpen, onClose, onSuccess }: AddSavingDepositModalProps) {
   const [pockets, setPockets] = useState<Pocket[]>([]);
-  const { accounts, loading: accountsLoading, refreshing: accountsRefreshing } = useAccountsStore();
+  const {
+    accounts,
+    loading: accountsLoading,
+    refreshing: accountsRefreshing,
+    refetch
+  } = useAccountsStore();
   const [amount, setAmount] = useState('');
   const [pocketId, setPocketId] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -115,6 +120,8 @@ export default function AddSavingDepositModal({ isOpen, onClose, onSuccess }: Ad
       }
 
       // El trigger update_saving_pocket_balance() actualizará amount_saved automáticamente
+
+      await refetch();
 
       // Reset form
       setAmount('');

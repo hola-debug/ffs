@@ -36,6 +36,7 @@ interface AccountsContextValue {
   accountBalances: AccountBalanceRow[];
   balancesByCurrency: Record<string, number>;
   totalBalanceInBase: number;
+  totalBalance: number;
   baseCurrency: string;
   convertAmount: (amount: number, fromCurrency: string, toCurrency: string) => number | null;
   getTotalBalance: (targetCurrency: string) => number;
@@ -118,8 +119,11 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!userId) {
+      setAccounts([]);
+      setExchangeRates([]);
       setLoading(false);
       setRefreshing(false);
+      setError(null);
       return;
     }
 
@@ -130,6 +134,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
     if (!userId) return;
 
     // Suscripción en tiempo real a Supabase para reflejar cambios de cuentas/balances
+    // El canal usa postgres_changes para mantener el store actualizado en tiempo real.
     const channel = supabase
       .channel('accounts-store')
       // Cuenta si misma
@@ -284,6 +289,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
       accountBalances,
       balancesByCurrency,
       totalBalanceInBase,
+      totalBalance: totalBalanceInBase,
       baseCurrency: BASE_CURRENCY,
       convertAmount,
       getTotalBalance,

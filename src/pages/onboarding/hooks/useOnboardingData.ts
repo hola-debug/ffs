@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Account, Category } from '../../../lib/types';
+import type { Account, AccountCurrency, Category } from '../../../lib/types';
 import { supabase } from '../../../lib/supabaseClient';
+import { useAccountsStore } from '../../../hooks/useAccountsStore';
 import { useSupabaseUser } from '../../../hooks/useSupabaseUser';
 import type {
   AccountFormState,
@@ -50,9 +51,41 @@ const createEmptyKindMap = <T,>(value: T) =>
     saving: value,
   }) as Record<CategoryRecord['kind'], T>;
 
+type OnboardingAccount = Account & {
+  balance: number;
+  currency: string;
+};
+
+const FALLBACK_CURRENCY = 'UYU';
+
+const mapAccountForOnboarding = (
+  account: Account,
+  overrides?: Partial<Pick<OnboardingAccount, 'balance' | 'currency'>>
+): OnboardingAccount => {
+  const normalizedCurrencies: AccountCurrency[] = account.currencies ?? [];
+  const primaryCurrency = normalizedCurrencies.find((entry) => entry.is_primary) ?? normalizedCurrencies[0];
+
+  return {
+    ...account,
+    currencies: normalizedCurrencies,
+    balance: primaryCurrency?.balance ?? overrides?.balance ?? 0,
+    currency: primaryCurrency?.currency ?? overrides?.currency ?? FALLBACK_CURRENCY,
+  };
+};
+
 export function useOnboardingData() {
   const { user } = useSupabaseUser();
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const { accounts: storeAccounts, getTotalBalance, loading: accountsLoading, refreshing: accountsRefreshing } =
+    useAccountsStore();
+  const normalizedAccounts = useMemo<OnboardingAccount[]>(
+    () => storeAccounts.map((account) => mapAccountForOnboarding(account)),
+    [storeAccounts]
+  );
+  const [accounts, setAccounts] = useState<OnboardingAccount[]>(() => normalizedAccounts);
+  useEffect(() => {
+    setAccounts(normalizedAccounts);
+  }, [normalizedAccounts]);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -73,83 +106,66 @@ export function useOnboardingData() {
   const [periodError, setPeriodError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (accounts.length === 0) {
+      return;
+    }
+    setPeriodForm((state) => ({
+      ...state,
+      accountId: state.accountId || accounts[0].id,
+    }));
+  }, [accounts, setPeriodForm]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setLoadingData(false);
+      return;
+    }
 
     let isMounted = true;
 
-    const loadData = async () => {
+    const loadCategories = async () => {
       setLoadingData(true);
       setErrorMessage(null);
 
-      const [{ data: accountsData, error: accountsError }, { data: categoriesData, error: categoriesError }] =
-        await Promise.all([
-          supabase.from('accounts').select('*').eq('user_id', user.id).order('created_at'),
-          supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
-        ]);
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('name');
 
-      if (!isMounted) {
-        return;
+        if (!isMounted) return;
+
+        if (error) {
+          setErrorMessage(error.message);
+        } else {
+          setCategories(data ?? []);
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setErrorMessage(err.message ?? 'No pudimos cargar tus datos.');
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingData(false);
+        }
       }
-
-      if (accountsError || categoriesError) {
-        setErrorMessage(
-          accountsError?.message ?? categoriesError?.message ?? 'No pudimos cargar tus datos.',
-        );
-      } else {
-        setAccounts(accountsData ?? []);
-        setCategories(categoriesData ?? []);
-        setPeriodForm((state) => ({
-          ...state,
-          accountId: state.accountId || accountsData?.[0]?.id || '',
-        }));
-      }
-
-      setLoadingData(false);
     };
 
-    loadData();
+    loadCategories();
 
-    // Suscribirse a cambios en tiempo real
     const channel = supabase
-      .channel('onboarding-changes')
+      .channel('onboarding-categories')
       .on(
         'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'accounts'
-        },
-        (payload) => {
-          console.log('🔄 [Onboarding] Account changed:', payload);
-          const record = payload.new as any;
-          if (record && record.user_id === user.id) {
-            console.log('✅ [Onboarding] Refetching accounts...');
-            loadData();
+        { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${user.id}` },
+        () => {
+          if (isMounted) {
+            loadCategories();
           }
         }
       )
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'categories'
-        },
-        (payload) => {
-          console.log('🔄 [Onboarding] Category changed:', payload);
-          const record = payload.new as any;
-          if (record && record.user_id === user.id) {
-            console.log('✅ [Onboarding] Refetching categories...');
-            loadData();
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 [Onboarding] Realtime subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ [Onboarding] Successfully subscribed to realtime changes');
-        }
-      });
+      .subscribe();
 
     return () => {
       isMounted = false;
@@ -157,10 +173,7 @@ export function useOnboardingData() {
     };
   }, [user]);
 
-  const totalBalance = useMemo(
-    () => accounts.reduce((sum, item) => sum + item.balance, 0),
-    [accounts],
-  );
+  const totalBalance = useMemo(() => getTotalBalance('UYU'), [getTotalBalance]);
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === periodForm.accountId) ?? accounts[0],
@@ -202,7 +215,14 @@ export function useOnboardingData() {
     if (error) {
       setErrorMessage(error.message);
     } else if (data) {
-      setAccounts((prev) => [...prev, data]);
+      const fallbackAccount = mapAccountForOnboarding(
+        { ...data, currencies: [] } as Account,
+        {
+          balance: Number(accountForm.balance) || 0,
+          currency: accountForm.currency || FALLBACK_CURRENCY,
+        }
+      );
+      setAccounts((prev) => [...prev, fallbackAccount]);
       setAccountForm((state) => ({
         ...state,
         name: '',
@@ -400,10 +420,12 @@ export function useOnboardingData() {
     return true;
   };
 
+  const isLoadingData = loadingData || accountsLoading || accountsRefreshing;
+
   return {
     accounts,
     categories,
-    loadingData,
+    loadingData: isLoadingData,
     errorMessage,
     totalBalance,
     accountForm,
