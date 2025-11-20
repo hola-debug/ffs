@@ -110,14 +110,14 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
         )}
 
         <div
-          className="relative z-10 grid"
+          className="relative z-10 grid mt-6"
           style={{ gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}
         >
-          <div className="flex flex-col justify-center items-center">
+          <div className="flex flex-col justify-center items-center  ">
             <div>
-              <p className="font-Monda text-[10px] text-center font-semibold uppercase text-white/80 sm:text-xs leading-none">
+              <p className="font-Monda  text-[10px] text-center  font-semibold uppercase text-white/80 sm:text-xs leading-none">
                 Plata disponible              </p>
-              <div className="mt-4 flex items-end gap-2">
+              <div className="  flex space-y-4  items-end gap-2">
                 <span className="font-Monda text-[10px]uppercase text-white/90 leading-none">
                   {selectedCurrency || '---'}
                 </span>
@@ -132,7 +132,7 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
               </div>
             </div>
 
-            <div className="mt-2 flex justify-center">
+            <div className=" flex justify-center">
               <button
                 type="button"
                 onClick={toggleCurrency}

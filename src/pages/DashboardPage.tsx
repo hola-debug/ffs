@@ -13,6 +13,7 @@ import { useImagePreload } from '../hooks/useImagePreload';
 import DynamicModal from '../components/DynamicModal';
 import TotalBalance, { noiseBackgroundStyle } from '../components/TotalBalance';
 import { useAccountsStore } from '../hooks/useAccountsStore';
+import { PocketProjectionModule } from '../components/modules/PocketProjection';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -84,12 +85,12 @@ export default function DashboardPage() {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       <div
-        className="pointer-events-none fixed inset-0 -z-10 opacity-80"
+        className="pointer-events-none fixed inset-0 -z-10 opacity-80 "
         style={noiseBackgroundStyle}
         aria-hidden="true"
       />
       
-      <div className="min-h-screen w-full overflow-x-hidden box-border pt-20">
+      <div className="min-h-screen w-full overflow-x-hidden box-border pt-20 px-2">
         <div className="max-w-4xl mx-auto w-full">
           <div className="relative z-10">
             <FadeContent
@@ -148,6 +149,7 @@ export default function DashboardPage() {
            
                   </div>
                   <div className="space-y-6">
+                 
                     {registeredModules.map((module, index) => {
                       const pocket = pockets.find(p => p.id === module.pocketId);
                       if (!pocket) return null;

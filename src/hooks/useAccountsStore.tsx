@@ -142,9 +142,21 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
 
     const channel = supabase
       .channel('accounts-store')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounts' }, () => fetchData('realtime'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'account_currencies' }, () => fetchData('realtime'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pockets' }, () => fetchData('realtime'))
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'accounts' },
+        () => fetchData('realtime')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'account_currencies' },
+        () => fetchData('realtime')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pockets' },
+        () => fetchData('realtime')
+      )
       .subscribe();
 
     return () => {
@@ -173,54 +185,71 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
 
   const accountBalances = useMemo((): AccountBalanceRow[] => {
     if (!accounts) return [];
-    return accounts.flatMap(account =>
-      account.currencies?.map(currency => ({
+    return accounts.flatMap((account) =>
+      account.currencies?.map((currency) => ({
         accountId: account.id,
         accountName: account.name,
         currency: currency.currency,
-        balance: currency.balance,
+        balance: currency.balance
       })) ?? []
     );
   }, [accounts]);
 
   const balancesByCurrency = useMemo(() => {
     const balances: Record<string, number> = {};
-    accountBalances.forEach(row => {
+    accountBalances.forEach((row) => {
       balances[row.currency] = (balances[row.currency] || 0) + row.balance;
     });
     return balances;
   }, [accountBalances]);
 
-  const getTotalBalance = useCallback(
-    (targetCurrency: string): number => {
-      let total = 0;
-      for (const currency in balancesByCurrency) {
-        const convertedAmount = convertAmount(balancesByCurrency[currency], currency, targetCurrency);
-        if (convertedAmount !== null) {
-          total += convertedAmount;
-        }
-      }
+  // Helper para entender cuánto "compromete" cada pocket sobre la plata global
+  const getPocketReservedAmount = useCallback((pocket: Pocket): number => {
+    // Ahorro: cuenta como plata "no disponible" (no tocar)
+    if (pocket.type === 'saving') {
+      return (
+        pocket.amount_saved ??
+        pocket.allocated_amount ??
+        0
+      );
+    }
 
-      let pocketsTotal = 0;
-      for (const pocket of pockets) {
-        const pocketAmount = pocket.type === 'saving' ? pocket.amount_saved : (pocket.allocated_amount || 0) - (pocket.spent_amount || 0);
-        const convertedAmount = convertAmount(pocketAmount, pocket.currency, targetCurrency);
-        if (convertedAmount !== null) {
-          pocketsTotal += convertedAmount;
-        }
-      }
+    // Presupuestos / gastos: lo reservado es el allocated_amount
+    return pocket.allocated_amount ?? 0;
+  }, []);
 
-      return total - pocketsTotal;
-    },
-    [balancesByCurrency, pockets, convertAmount]
-  );
+const getTotalBalance = useCallback(
+  (targetCurrency: string): number => {
+    // TOTAL = suma de TODAS las cuentas del usuario
+    let total = 0;
+
+    for (const currency in balancesByCurrency) {
+      const convertedAmount = convertAmount(
+        balancesByCurrency[currency],
+        currency,
+        targetCurrency
+      );
+
+      if (convertedAmount !== null && Number.isFinite(convertedAmount)) {
+        total += convertedAmount;
+      }
+    }
+
+    // NO restamos ninguna bolsa
+    // Las bolsas son organización, no afectan a la plata real del usuario
+
+    return total;
+  },
+  [balancesByCurrency, convertAmount]
+);
+
 
   const totalBalanceInBase = useMemo(
     () => getTotalBalance(BASE_CURRENCY),
     [getTotalBalance]
   );
 
-  const value = {
+  const value: AccountsContextValue = {
     accounts,
     exchangeRates,
     accountBalances,
@@ -233,7 +262,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
     loading,
     refreshing,
     error,
-    refetch: () => fetchData('initial'),
+    refetch: () => fetchData('initial')
   };
 
   return (
