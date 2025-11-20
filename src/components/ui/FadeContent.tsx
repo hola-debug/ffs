@@ -28,33 +28,39 @@ const FadeContent: React.FC<FadeContentProps> = ({
     const element = ref.current;
     if (!element) return;
 
+    const checkAndSetVisible = () => {
+      setTimeout(() => {
+        setInView(true);
+      }, delay);
+    };
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           observer.unobserve(element);
-          setTimeout(() => {
-            setInView(true);
-          }, delay);
+          checkAndSetVisible();
         }
       },
-      { threshold }
+      { threshold, rootMargin: '50px' } // Add margin to trigger earlier
     );
 
     observer.observe(element);
 
-    // Check if element is already in viewport on mount
+    // Check if element is already visible or partially in viewport on mount
     const rect = element.getBoundingClientRect();
-    const isInViewport = (
-      rect.top >= 0 &&
-      rect.left >= 0 &&
-      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    
+    // More lenient check: element is visible if any part is in viewport
+    const isVisible = (
+      rect.bottom > 0 &&
+      rect.right > 0 &&
+      rect.top < viewportHeight &&
+      rect.left < viewportWidth
     );
 
-    if (isInViewport) {
-      setTimeout(() => {
-        setInView(true);
-      }, delay);
+    if (isVisible) {
+      checkAndSetVisible();
     }
 
     return () => observer.disconnect();
