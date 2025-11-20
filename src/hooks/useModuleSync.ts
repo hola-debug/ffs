@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ActivePocketSummary } from '../lib/types';
 import { moduleRegistry, RegisteredModule } from '../lib/moduleRegistry';
-import { PocketProjectionModule } from '../components/modules/PocketProjection';
+import PocketSummaryModule from '../components/modules/PocketSummaryModule';
 
 /**
  * Hook que sincroniza las bolsas con el registro de módulos
@@ -15,9 +15,7 @@ export function useModuleSync(pockets: ActivePocketSummary[]) {
     // Crear un Set de IDs de módulos que deberían existir
     const expectedModuleIds = new Set<string>();
 
-    // Registrar/actualizar módulos para cada bolsa de gasto activa
     pockets.forEach((pocket) => {
-      if (pocket.type !== 'expense') return;
       const moduleId = `pocket-${pocket.id}`;
       expectedModuleIds.add(moduleId);
 
@@ -30,7 +28,7 @@ export function useModuleSync(pockets: ActivePocketSummary[]) {
           pocketId: pocket.id,
           type: pocket.type,
           name: `${pocket.name} Module`,
-          component: PocketProjectionModule,
+          component: PocketSummaryModule,
           createdAt: new Date(),
         };
 

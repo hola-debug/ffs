@@ -1,10 +1,9 @@
-import { ReactNode } from 'react';
 import { ActivePocketSummary } from './types';
 
 export interface RegisteredModule {
   id: string;
   pocketId: string;
-  type: 'expense' | 'saving';
+  type: 'expense' | 'saving' | 'debt';
   name: string;
   // El componente debe aceptar al menos la prop 'pocket' y opcionalmente 'pockets'
   component: React.ComponentType<{ pocket: ActivePocketSummary; pockets?: ActivePocketSummary[]; onRefresh?: () => void }>;
@@ -28,7 +27,7 @@ class ModuleRegistry {
     return this.modules.get(moduleId);
   }
 
-  getModulesByType(type: 'expense' | 'saving'): RegisteredModule[] {
+  getModulesByType(type: 'expense' | 'saving' | 'debt'): RegisteredModule[] {
     return Array.from(this.modules.values()).filter(m => m.type === type);
   }
 

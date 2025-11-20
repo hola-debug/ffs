@@ -45,7 +45,7 @@ export function useDashboardData() {
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (pocketsRes.data) {
         console.log('[Dashboard] Pockets updated:', pocketsRes.data.length);
-        setPockets(pocketsRes.data);
+        setPockets([...pocketsRes.data]);
       } else {
         setPockets([]);
       }

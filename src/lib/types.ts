@@ -394,10 +394,23 @@ export function isExpenseSharedPocket(pocket: Pocket): pocket is ExpenseSharedPo
 // ============================================
 
 export interface ActivePocketSummary extends Pocket {
+  // Campos adicionales calculados en la vista/dashboard
   days_elapsed?: number;
   days_remaining?: number;
   progress_percentage?: number;
   remaining_daily_allowance?: number;
+  current_balance?: number;
+  allocated_amount?: number;
+  daily_allowance?: number;
+  target_amount?: number;
+  amount_saved?: number;
+  remaining_amount?: number;
+  recommended_contribution?: number;
+  installment_amount?: number;
+  installment_current?: number;
+  installments_total?: number;
+  interest_rate?: number;
+  next_payment?: string;
 }
 
 export interface UserMonthlySummary {

@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
-import { BaseCard } from '../BaseCard';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { Account, Category } from '../../../lib/types';
-import AnimatedList from '../../ui/AnimatedList';
+import CountUp from '../../ui/CountUp';
 
 interface FixedExpensesModuleProps {
   accounts: Account[];
@@ -24,14 +23,58 @@ interface DailyExpenseGroup {
   count: number;
 }
 
-export function FixedExpensesModule({ 
-  accounts, 
-  categories, 
-  onRefresh 
+export function FixedExpensesModule({
+  accounts: _accounts,
+  categories: _categories,
+  onRefresh
 }: FixedExpensesModuleProps) {
   const [monthTotal, setMonthTotal] = useState(0);
   const [expenses, setExpenses] = useState<FixedExpense[]>([]);
   const [loading, setLoading] = useState(false);
+  const monthTotalRef = useRef(Math.round(0));
+  const dailyTotalsRef = useRef<Record<string, number>>({});
+
+  const groupedExpenses = useMemo(() => {
+    const map: Record<string, DailyExpenseGroup> = {};
+    expenses.forEach((expense) => {
+      const existing = map[expense.date];
+      if (existing) {
+        existing.total += expense.amount;
+        existing.count += 1;
+      } else {
+        map[expense.date] = {
+          date: expense.date,
+          total: expense.amount,
+          count: 1
+        };
+      }
+    });
+    const groups = Object.values(map);
+    groups.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+    return groups;
+  }, [expenses]);
+
+  const groupedWithPrevious = useMemo(
+    () =>
+      groupedExpenses.map((group) => ({
+        ...group,
+        roundedTotal: Math.round(group.total),
+        previousRoundedTotal: dailyTotalsRef.current[group.date] ?? Math.round(group.total)
+      })),
+    [groupedExpenses]
+  );
+
+  useEffect(() => {
+    const nextTotals: Record<string, number> = {};
+    groupedExpenses.forEach((group) => {
+      nextTotals[group.date] = Math.round(group.total);
+    });
+    dailyTotalsRef.current = nextTotals;
+  }, [groupedExpenses]);
+
+  useEffect(() => {
+    monthTotalRef.current = Math.round(monthTotal);
+  }, [monthTotal]);
 
   // Fetch fixed expenses for current month
   const fetchFixedExpenses = async () => {
@@ -113,6 +156,9 @@ export function FixedExpensesModule({
     };
   }, [onRefresh]);
 
+  const hasExpenses = expenses.length > 0;
+  const shouldShowLoader = loading && !hasExpenses;
+
   return (
     <div className="bg-black rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-white font-sans relative w-full overflow-x-hidden h-[269px]">
       {/* Header */}
@@ -123,11 +169,11 @@ export function FixedExpensesModule({
       </div>
 
       {/* Main Amount */}
-      {loading ? (
+      {shouldShowLoader ? (
         <div className="flex flex-col items-center justify-center h-[180px]">
           <p className="text-xs opacity-70">Cargando...</p>
         </div>
-      ) : expenses.length === 0 ? (
+      ) : !hasExpenses ? (
         <div className="flex flex-col items-center justify-center h-[180px]">
           <p className="text-xs opacity-70">No hay gastos fijos</p>
           <p className="text-[9px] opacity-50 mt-2">Este mes no hay gastos fijos registrados</p>
@@ -138,56 +184,53 @@ export function FixedExpensesModule({
             <div className="flex items-baseline justify-between mb-2 sm:mb-3">
               <div className="flex items-baseline">
                 <span className="text-[19px] font-bold">$</span>
-                <span className="text-[39px] font-bold leading-none text-center tracking-tighter">
-                  {Math.round(monthTotal).toLocaleString('es-UY')}
-                </span>
+                <CountUp
+                  to={Math.round(monthTotal)}
+                  from={monthTotalRef.current}
+                  duration={0.8}
+                  separator="."
+                  startWhen={!loading}
+                  className="text-[39px] font-bold leading-none text-center tracking-tighter"
+                />
               </div>
             </div>
           </div>
 
           {/* Expenses List */}
           <div className="relative">
-            <AnimatedList<DailyExpenseGroup>
-              items={(() => {
-                // Group expenses by date
-                const grouped = expenses.reduce((acc, expense) => {
-                  const existing = acc.find(g => g.date === expense.date);
-                  if (existing) {
-                    existing.total += expense.amount;
-                    existing.count += 1;
-                  } else {
-                    acc.push({
-                      date: expense.date,
-                      total: expense.amount,
-                      count: 1
-                    });
-                  }
-                  return acc;
-                }, [] as DailyExpenseGroup[]);
-                return grouped;
-              })()}
-              onItemSelect={(item, index) => console.log(item, index)}
-              showGradients={true}
-              enableArrowNavigation={true}
-              displayScrollbar={false}
-              className="w-full"
-              maxHeight="110px"
-              gradientColor="#000000"
-              renderItem={(group, index, isSelected) => {
-                const expDate = new Date(group.date + 'T00:00:00');
+            <div className="max-h-[110px] overflow-y-auto pr-2 space-y-2">
+              {groupedWithPrevious.map((group) => {
+                const expDate = new Date(`${group.date}T00:00:00`);
                 const dayNum = expDate.getDate();
                 const monthNum = expDate.getMonth() + 1;
-                
+
                 return (
-                  <div className="flex justify-between items-center py-1">
+                  <div key={group.date} className="flex justify-between items-center py-1">
                     <span className="text-[10px] sm:text-xs tracking-wide font-medium">
                       {dayNum}/{monthNum}
                     </span>
-                    <span className="text-sm sm:text-base font-semibold tabular-nums">
-                      {Math.round(Number(group.total) || 0).toLocaleString('es-UY', { minimumFractionDigits: 0 })}
-                    </span>
+                    <CountUp
+                      to={group.roundedTotal}
+                      from={group.previousRoundedTotal}
+                      duration={0.6}
+                      separator="."
+                      startWhen={!loading}
+                      className="text-sm sm:text-base font-semibold tabular-nums"
+                    />
                   </div>
                 );
+              })}
+            </div>
+            <div
+              className="absolute inset-x-0 top-0 h-[60px] pointer-events-none"
+              style={{
+                background: 'linear-gradient(to bottom, rgba(0,0,0,0.95), transparent)'
+              }}
+            />
+            <div
+              className="absolute inset-x-0 bottom-0 h-[80px] pointer-events-none"
+              style={{
+                background: 'linear-gradient(to top, rgba(0,0,0,0.95), transparent)'
               }}
             />
           </div>

@@ -9,7 +9,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import type { Account, AccountCurrency } from '../lib/types';
+import type { Account, AccountCurrency, Pocket } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 
 type AccountWithCurrencies = Omit<Account, 'currencies'> & {
@@ -54,6 +54,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [accounts, setAccounts] = useState<AccountWithCurrencies[]>([]);
+  const [pockets, setPockets] = useState<Pocket[]>([]);
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,6 +70,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
       if (!userId) {
         setAccounts([]);
         setExchangeRates([]);
+        setPockets([]);
         setLoading(false);
         setRefreshing(false);
         setError(null);
@@ -86,25 +88,29 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
       try {
         const [
           { data: accountsData, error: accountsError },
-          { data: ratesData, error: ratesError }
+          { data: ratesData, error: ratesError },
+          { data: pocketsData, error: pocketsError }
         ] = await Promise.all([
           supabase
             .from('accounts')
             .select('*, currencies:account_currencies(*)')
             .eq('user_id', userId)
             .order('name', { ascending: true }),
-          supabase.from('exchange_rates').select('from_currency, to_currency, rate, date')
+          supabase.from('exchange_rates').select('from_currency, to_currency, rate, date'),
+          supabase.from('pockets').select('*').eq('user_id', userId).eq('status', 'active')
         ]);
 
         if (accountsError) throw accountsError;
         if (ratesError) throw ratesError;
+        if (pocketsError) throw pocketsError;
 
         setAccounts((accountsData as AccountWithCurrencies[]) ?? []);
         setExchangeRates((ratesData as ExchangeRate[]) ?? []);
+        setPockets((pocketsData as Pocket[]) ?? []);
       } catch (err) {
-        console.error('[AccountsStore] Error fetching accounts/balances', err);
+        console.error('[AccountsStore] Error fetching data', err);
         const message =
-          err instanceof Error ? err.message : 'Error obteniendo cuentas y balances';
+          err instanceof Error ? err.message : 'Error obteniendo datos';
         setError(message);
       } finally {
         if (reason === 'initial') {
@@ -121,6 +127,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setAccounts([]);
       setExchangeRates([]);
+      setPockets([]);
       setLoading(false);
       setRefreshing(false);
       setError(null);
@@ -133,144 +140,79 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) return;
 
-    // Suscripción en tiempo real a Supabase para reflejar cambios de cuentas/balances
-    // El canal usa postgres_changes para mantener el store actualizado en tiempo real.
     const channel = supabase
       .channel('accounts-store')
-      // Cuenta si misma
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'accounts', filter: `user_id=eq.${userId}` },
-        () => {
-          fetchData('realtime');
-        }
-      )
-      // Balances por divisa
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'account_currencies' },
-        (payload) => {
-          const nextAccountId =
-            ((payload.new as { account_id?: string } | null)?.account_id) ??
-            ((payload.old as { account_id?: string } | null)?.account_id);
-          if (nextAccountId && accountIdsRef.current.has(nextAccountId)) {
-            fetchData('realtime');
-          }
-        }
-      )
-      // Movimientos que puedan impactar balances
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'movements', filter: `user_id=eq.${userId}` },
-        () => {
-          fetchData('realtime');
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[AccountsStore] Realtime channel issue', status);
-        }
-      });
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounts' }, () => fetchData('realtime'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'account_currencies' }, () => fetchData('realtime'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pockets' }, () => fetchData('realtime'))
+      .subscribe();
 
-  // Limpieza del canal para evitar fugas
     return () => {
       supabase.removeChannel(channel);
     };
   }, [userId, fetchData]);
 
-  const accountBalances = useMemo<AccountBalanceRow[]>(() => {
-    return accounts.flatMap((account) =>
-      (account.currencies ?? []).map((currency) => ({
-        accountId: account.id,
-        accountName: account.name,
-        currency: currency.currency,
-        balance: Number(currency.balance ?? 0)
-      }))
-    );
-  }, [accounts]);
-
-  const balancesByCurrency = useMemo<Record<string, number>>(() => {
-    return accountBalances.reduce<Record<string, number>>((acc, row) => {
-      acc[row.currency] = (acc[row.currency] ?? 0) + row.balance;
-      return acc;
-    }, {});
-  }, [accountBalances]);
-
-  const conversionGraph = useMemo(() => {
-    const graph: Record<string, Array<{ to: string; rate: number }>> = {};
-    const normalized = new Map<string, ExchangeRate>();
-
-    const registerEdge = (from: string, to: string, rate: number) => {
-      if (!graph[from]) graph[from] = [];
-      graph[from].push({ to, rate });
-    };
-
-    exchangeRates.forEach((rate) => {
-      if (!rate.from_currency || !rate.to_currency) return;
-      const key = `${rate.from_currency}-${rate.to_currency}`;
-      const prev = normalized.get(key);
-      const prevDate = prev?.date ? new Date(prev.date).getTime() : 0;
-      const nextDate = rate.date ? new Date(rate.date).getTime() : 0;
-
-      if (!prev || nextDate >= prevDate) {
-        normalized.set(key, rate);
-      }
-    });
-
-    normalized.forEach((rate) => {
-      const numericRate = Number(rate.rate);
-      if (!Number.isFinite(numericRate) || numericRate <= 0) return;
-      registerEdge(rate.from_currency, rate.to_currency, numericRate);
-      registerEdge(rate.to_currency, rate.from_currency, 1 / numericRate);
-    });
-
-    return graph;
-  }, [exchangeRates]);
-
   const convertAmount = useCallback(
-    (amount: number, fromCurrency: string, toCurrency: string) => {
-      if (!fromCurrency || !toCurrency) return null;
-      if (!Number.isFinite(amount)) return null;
+    (amount: number, fromCurrency: string, toCurrency: string): number | null => {
       if (fromCurrency === toCurrency) return amount;
 
-      const visited = new Set<string>([fromCurrency]);
-      const queue: Array<{ currency: string; factor: number }> = [
-        { currency: fromCurrency, factor: 1 }
-      ];
+      const rate = exchangeRates.find(
+        (r) => r.from_currency === fromCurrency && r.to_currency === toCurrency
+      );
+      if (rate) return amount * rate.rate;
 
-      for (let i = 0; i < queue.length; i += 1) {
-        const { currency, factor } = queue[i];
-        const edges = conversionGraph[currency] ?? [];
-
-        for (const edge of edges) {
-          if (edge.rate <= 0) continue;
-          const nextFactor = factor * edge.rate;
-
-          if (edge.to === toCurrency) {
-            return amount * nextFactor;
-          }
-
-          if (!visited.has(edge.to)) {
-            visited.add(edge.to);
-            queue.push({ currency: edge.to, factor: nextFactor });
-          }
-        }
-      }
+      const inverseRate = exchangeRates.find(
+        (r) => r.from_currency === toCurrency && r.to_currency === fromCurrency
+      );
+      if (inverseRate) return amount / inverseRate.rate;
 
       return null;
     },
-    [conversionGraph]
+    [exchangeRates]
   );
 
+  const accountBalances = useMemo((): AccountBalanceRow[] => {
+    if (!accounts) return [];
+    return accounts.flatMap(account =>
+      account.currencies?.map(currency => ({
+        accountId: account.id,
+        accountName: account.name,
+        currency: currency.currency,
+        balance: currency.balance,
+      })) ?? []
+    );
+  }, [accounts]);
+
+  const balancesByCurrency = useMemo(() => {
+    const balances: Record<string, number> = {};
+    accountBalances.forEach(row => {
+      balances[row.currency] = (balances[row.currency] || 0) + row.balance;
+    });
+    return balances;
+  }, [accountBalances]);
+
   const getTotalBalance = useCallback(
-    (targetCurrency: string) => {
-      if (!targetCurrency) return 0;
-      return accountBalances.reduce((sum, row) => {
-        const converted = convertAmount(row.balance, row.currency, targetCurrency);
-        return converted !== null ? sum + converted : sum;
-      }, 0);
+    (targetCurrency: string): number => {
+      let total = 0;
+      for (const currency in balancesByCurrency) {
+        const convertedAmount = convertAmount(balancesByCurrency[currency], currency, targetCurrency);
+        if (convertedAmount !== null) {
+          total += convertedAmount;
+        }
+      }
+
+      let pocketsTotal = 0;
+      for (const pocket of pockets) {
+        const pocketAmount = pocket.type === 'saving' ? pocket.amount_saved : (pocket.allocated_amount || 0) - (pocket.spent_amount || 0);
+        const convertedAmount = convertAmount(pocketAmount, pocket.currency, targetCurrency);
+        if (convertedAmount !== null) {
+          pocketsTotal += convertedAmount;
+        }
+      }
+
+      return total - pocketsTotal;
     },
-    [accountBalances, convertAmount]
+    [balancesByCurrency, pockets, convertAmount]
   );
 
   const totalBalanceInBase = useMemo(
@@ -278,48 +220,33 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
     [getTotalBalance]
   );
 
-  const refetch = useCallback(async () => {
-    await fetchData('realtime');
-  }, [fetchData]);
+  const value = {
+    accounts,
+    exchangeRates,
+    accountBalances,
+    balancesByCurrency,
+    totalBalanceInBase,
+    totalBalance: totalBalanceInBase,
+    baseCurrency: BASE_CURRENCY,
+    convertAmount,
+    getTotalBalance,
+    loading,
+    refreshing,
+    error,
+    refetch: () => fetchData('initial'),
+  };
 
-  const value = useMemo<AccountsContextValue>(
-    () => ({
-      accounts,
-      exchangeRates,
-      accountBalances,
-      balancesByCurrency,
-      totalBalanceInBase,
-      totalBalance: totalBalanceInBase,
-      baseCurrency: BASE_CURRENCY,
-      convertAmount,
-      getTotalBalance,
-      loading,
-      refreshing,
-      error,
-      refetch
-    }),
-    [
-      accounts,
-      exchangeRates,
-      accountBalances,
-      balancesByCurrency,
-      totalBalanceInBase,
-      convertAmount,
-      getTotalBalance,
-      loading,
-      refreshing,
-      error,
-      refetch
-    ]
+  return (
+    <AccountsContext.Provider value={value}>
+      {children}
+    </AccountsContext.Provider>
   );
-
-  return <AccountsContext.Provider value={value}>{children}</AccountsContext.Provider>;
 }
 
 export function useAccountsStore() {
   const context = useContext(AccountsContext);
-  if (!context) {
-    throw new Error('useAccountsStore debe usarse dentro de AccountsProvider');
+  if (context === undefined) {
+    throw new Error('useAccountsStore must be used within an AccountsProvider');
   }
   return context;
 }

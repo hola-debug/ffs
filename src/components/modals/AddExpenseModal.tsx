@@ -1,17 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField, GlassSelect } from '../IOSModal';
-import { Pocket, isExpensePocket } from '../../lib/types';
+import { ActivePocketSummary, isExpensePocket } from '../../lib/types';
 import { getPocketIconLabel } from '@/components/PocketIcon';
 
 interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  expensePockets: ActivePocketSummary[];
 }
 
-export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpenseModalProps) {
-  const [pockets, setPockets] = useState<Pocket[]>([]);
+export default function AddExpenseModal({ isOpen, onClose, onSuccess, expensePockets }: AddExpenseModalProps) {
   const [amount, setAmount] = useState('');
   const [pocketId, setPocketId] = useState('');
   const [description, setDescription] = useState('');
@@ -20,27 +20,10 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchPockets();
+    if (isOpen && expensePockets.length > 0 && !pocketId) {
+      setPocketId(expensePockets[0].id);
     }
-  }, [isOpen]);
-
-  const fetchPockets = async () => {
-    const { data, error } = await supabase
-      .from('pockets')
-      .select('*')
-      .eq('status', 'active')
-      .eq('type', 'expense')
-      .order('created_at', { ascending: false });
-    
-    if (data) {
-      setPockets(data);
-      if (data.length > 0) {
-        setPocketId(data[0].id);
-      }
-    }
-    if (error) console.error(error);
-  };
+  }, [isOpen, expensePockets, pocketId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,15 +34,14 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      const pocket = pockets.find(p => p.id === pocketId);
+      const pocket = expensePockets.find(p => p.id === pocketId);
       if (!pocket) throw new Error('Bolsa no encontrada');
       if (!isExpensePocket(pocket)) throw new Error('Debe ser una bolsa de gasto');
 
       const expenseAmount = parseFloat(amount);
-      
-      // Calcular saldo disponible: allocated_amount - spent_amount
+
       const availableBalance = (pocket.allocated_amount || 0) - (pocket.spent_amount || 0);
-      
+
       if (expenseAmount > availableBalance) {
         throw new Error(`El gasto supera el saldo disponible ($${availableBalance.toFixed(2)})`);
       }
@@ -78,11 +60,10 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
 
       if (insertError) throw insertError;
 
-      // Reset form
       setAmount('');
       setDescription('');
       setDate(new Date().toISOString().split('T')[0]);
-      
+
       onSuccess?.();
       onClose();
     } catch (err: any) {
@@ -100,7 +81,7 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
         </div>
       )}
 
-      {pockets.length === 0 && !loading && (
+      {expensePockets.length === 0 && !loading && (
         <div className="mb-4" style={{
           background: 'rgba(255, 159, 10, 0.15)',
           border: '1px solid rgba(255, 159, 10, 0.3)',
@@ -131,9 +112,9 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
           value={pocketId}
           onChange={(e) => setPocketId(e.target.value)}
           required
-          disabled={pockets.length === 0}
+          disabled={expensePockets.length === 0}
         >
-          {pockets.map((pocket) => {
+          {expensePockets.map((pocket) => {
             const available = (pocket.allocated_amount || 0) - (pocket.spent_amount || 0);
             return (
               <option key={pocket.id} value={pocket.id}>
@@ -170,7 +151,7 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }: AddExpen
           </button>
           <button
             type="submit"
-            disabled={loading || pockets.length === 0}
+            disabled={loading || expensePockets.length === 0}
             className="flex-1 ios-button"
           >
             {loading ? 'Guardando...' : 'Guardar'}
