@@ -411,6 +411,7 @@ export interface ActivePocketSummary extends Pocket {
   installments_total?: number;
   interest_rate?: number;
   next_payment?: string;
+  current_period_contribution?: number;
 }
 
 export interface UserMonthlySummary {

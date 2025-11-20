@@ -1,47 +1,159 @@
+import { useMemo, useState } from 'react';
 import { ActivePocketSummary } from '@/lib/types';
 import { usePocketSummary } from './usePocketSummary';
-import { StatItem } from './StatItem';
-import { PocketSummaryCard } from './PocketSummaryCard';
+import CountUp from '@/components/ui/CountUp';
+import AddSavingModal from '../../modals/AddSavingModal';
 
 interface PocketSummaryProps {
   pocket: ActivePocketSummary;
 }
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+const formatShortDate = (date: Date) =>
+  date.toLocaleDateString('es-UY', {
+    day: 'numeric',
+    month: 'numeric',
+  });
+
 export const SavingPocketSummary = ({ pocket }: PocketSummaryProps) => {
   const { config, format } = usePocketSummary(pocket);
+  const [isAddSavingModalOpen, setIsAddSavingModalOpen] = useState(false);
+
   const target = pocket.target_amount ?? 0;
   const saved = pocket.amount_saved ?? pocket.current_balance ?? 0;
-  const remaining = pocket.remaining_amount ?? Math.max(target - saved, 0);
-  const progress = pocket.progress_percentage ?? (target ? Math.min((saved / target) * 100, 100) : 0);
+  const remaining = Math.max(target - saved, 0);
+
+  const progress = target
+    ? Math.min((saved / target) * 100, 100)
+    : 0;
+
+  const startsAt = pocket.starts_at ? new Date(pocket.starts_at) : null;
+  const endsAt = pocket.ends_at ? new Date(pocket.ends_at) : null;
+
+  const { daysLeft, hasEnd } = useMemo(() => {
+    if (!endsAt) return { daysLeft: 0, hasEnd: false };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const end = new Date(endsAt);
+    end.setHours(0, 0, 0, 0);
+
+    const diff = end.getTime() - today.getTime();
+    const d = Math.max(0, Math.ceil(diff / MS_PER_DAY));
+    return { daysLeft: d, hasEnd: true };
+  }, [endsAt]);
+
+  const roundedProgress = Math.round(progress || 0);
+
+  let bottomText = '';
+  if (target > 0 && remaining > 0 && hasEnd) {
+    bottomText = `Te falta ${daysLeft} días ${format(
+      remaining
+    )} para llegar a tu objetivo`;
+  } else if (target > 0 && remaining > 0) {
+    bottomText = `Te falta ${format(remaining)} para llegar a tu objetivo`;
+  } else if (target > 0 && remaining === 0) {
+    bottomText = '¡Objetivo alcanzado!';
+  }
 
   return (
-    <PocketSummaryCard pocket={pocket}>
-      <div className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <StatItem label="Ahorrado" value={format(saved)} hint="Lo que ya llevas acompañado" />
-          <StatItem label="Meta" value={format(target)} hint="Objetivo planeado" />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <StatItem label="Falta" value={format(remaining)} hint="Monto restante" />
-          <StatItem
-            label="Recomendado"
-            value={pocket.recommended_contribution ? format(pocket.recommended_contribution) : 'No definido'}
-            hint="Contribución sugerida (si la hay)"
-          />
-        </div>
-        <div className="space-y-1">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">Progreso</p>
-          <div className="h-2 w-full rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.min(progress, 100)}%`,
-                backgroundColor: config.accent,
-              }}
+    <div
+      className="relative w-full h-[260px] text-white font-[Monda]"
+      style={{
+        backgroundImage: "url('/saving_expenses.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        borderRadius: '18px',
+        overflow: 'hidden',
+      }}
+    >
+      {/* LADO IZQUIERDO */}
+      <div className="absolute inset-y-0 left-0 w-[50%] flex flex-col justify-between px-6 py-6">
+
+        <p className="text-[10px] uppercase tracking-[0.25em] opacity-90">
+          Vas recaudando un
+        </p>
+
+        <div className="-mt-2">
+          <div className="flex items-end gap-1">
+            <CountUp
+              from={0}
+              to={roundedProgress}
+              duration={1}
+              className="text-[72px] font-bold"
             />
+            <span className="text-[40px] font-bold mb-1">%</span>
           </div>
         </div>
+
+        <p className="text-[11px] leading-tight uppercase tracking-[0.12em] max-w-[210px] opacity-90">
+          {bottomText}
+        </p>
       </div>
-    </PocketSummaryCard>
+
+      {/* LADO DERECHO */}
+      <div className="absolute inset-y-0 right-0 w-[50%] p-6 flex flex-col justify-between">
+
+        {/* Nombre */}
+        <div>
+          <p className="text-[10px] uppercase opacity-70 mb-1 tracking-[0.15em]">
+            Nombre de tu bolsa
+          </p>
+          <h3 className="text-[20px] font-bold leading-none text-white">
+            {pocket.name || 'Bolsa Objetivo'}
+          </h3>
+        </div>
+
+        {/* Objetivos */}
+        <div className="space-y-1 text-[11px]">
+          <div className="flex justify-between">
+            <span className="opacity-70">Contribuido este periodo / Objetivo mensual</span>
+            <span className="font-semibold">
+              {format(pocket.current_period_contribution || 0)} / {format(pocket.recommended_contribution || 0)}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="opacity-70">Objetivo</span>
+            <span className="font-semibold">USD {target}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="opacity-70">Inicio</span>
+            <span className="font-semibold">
+              {startsAt ? formatShortDate(startsAt) : '-'}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="opacity-70">Fin</span>
+            <span className="font-semibold">
+              {endsAt ? formatShortDate(endsAt) : '-'}
+            </span>
+          </div>
+        </div>
+
+        {/* BOTÓN */}
+        <button
+          type="button"
+          onClick={() => setIsAddSavingModalOpen(true)}
+          className="w-full text-white uppercase tracking-[0.25em] text-[11px] font-semibold py-2 rounded-full"
+          style={{
+            backgroundColor: '#1E1614',
+          }}
+        >
+          Ahorrar
+        </button>
+      </div>
+
+      <AddSavingModal
+        isOpen={isAddSavingModalOpen}
+        onClose={() => setIsAddSavingModalOpen(false)}
+        onSuccess={() => setIsAddSavingModalOpen(false)} // Just close the modal on success for now
+        savingPockets={[pocket]}
+      />
+    </div>
   );
 };
