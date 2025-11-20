@@ -108,7 +108,6 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
     position: 'fixed',
     inset: 0,
     zIndex: 9999,
-    pointerEvents: 'none',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

@@ -42,6 +42,21 @@ const FadeContent: React.FC<FadeContentProps> = ({
 
     observer.observe(element);
 
+    // Check if element is already in viewport on mount
+    const rect = element.getBoundingClientRect();
+    const isInViewport = (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+
+    if (isInViewport) {
+      setTimeout(() => {
+        setInView(true);
+      }, delay);
+    }
+
     return () => observer.disconnect();
   }, [threshold, delay]);
 
