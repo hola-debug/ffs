@@ -3,7 +3,8 @@ import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField } from '../IOSModal';
 import GlassDropdown from '../GlassDropdown';
 import { ActivePocketSummary, isSavingPocket } from '../../lib/types';
-import { PocketIcon } from '@/components/PocketIcon'; // Changed from getPocketIconLabel
+import { PocketIcon } from '@/components/PocketIcon';
+import { useAccountsStore } from '../../hooks/useAccountsStore';
 
 interface AddSavingModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface AddSavingModalProps {
 }
 
 export default function AddSavingModal({ isOpen, onClose, onSuccess, savingPockets }: AddSavingModalProps) {
+  const { accounts, refetch: refetchAccounts } = useAccountsStore();
   const [amount, setAmount] = useState('');
   const [pocketId, setPocketId] = useState('');
   const [description, setDescription] = useState('');
@@ -45,8 +47,9 @@ export default function AddSavingModal({ isOpen, onClose, onSuccess, savingPocke
         throw new Error('El monto debe ser mayor que cero.');
       }
 
+      // 1. Insertar el movimiento
       const { error: insertError } = await supabase
-        .from('movements')
+        .from('movements' as any)
         .insert({
           user_id: user.id,
           type: 'saving_deposit',
@@ -58,6 +61,31 @@ export default function AddSavingModal({ isOpen, onClose, onSuccess, savingPocke
         });
 
       if (insertError) throw insertError;
+
+      // 2. Descontar de la cuenta asociada
+      if (pocket.account_id) {
+        const account = accounts.find(a => a.id === pocket.account_id);
+        if (account) {
+          const accountCurrency = account.currencies?.find(c => c.currency === pocket.currency);
+
+          if (accountCurrency) {
+            const newBalance = (accountCurrency.balance || 0) - savingAmount;
+
+            const { error: updateError } = await supabase
+              .from('account_currencies' as any)
+              .update({ balance: newBalance })
+              .eq('id', accountCurrency.id);
+
+            if (updateError) {
+              console.error('Error updating account balance:', updateError);
+              // No lanzamos error fatal para no revertir el movimiento, pero avisamos
+              // Podríamos implementar rollback aquí si fuera crítico
+            } else {
+              await refetchAccounts();
+            }
+          }
+        }
+      }
 
       setAmount('');
       setDescription('');
@@ -117,7 +145,6 @@ export default function AddSavingModal({ isOpen, onClose, onSuccess, savingPocke
           options={pocketOptions}
           value={pocketId}
           onChange={(value) => setPocketId(value)}
-          required
         />
 
         <GlassField

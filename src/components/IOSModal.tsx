@@ -102,7 +102,7 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
     }, TOTAL_EXIT_DURATION);
   };
 
-  if (!mounted && !isOpen) return null;
+  if (!isOpen) return null;
 
   const containerStyle: CSSProperties = {
     position: 'fixed',
@@ -129,7 +129,7 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
         onClick={handleClose}
       />
 
-      <div 
+      <div
         style={containerStyle}
         onClick={handleClose}
       >
@@ -153,16 +153,16 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -40px 80px rgba(0,0,0,0.85)',
               }}
             />
-            <div 
+            <div
               className="relative w-full overflow-y-auto scrollbar-hide"
               style={{
                 maxHeight: 'calc(100vh - 4rem)',
               }}
             >
-              <div 
+              <div
                 className="relative px-6 pt-8 pb-5"
               >
-                <h2 
+                <h2
                   className="modal-title text[15px] font-semibold uppercase text-[#53ff94] pr-12"
                 >
                   {title}

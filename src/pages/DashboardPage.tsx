@@ -11,7 +11,7 @@ import FadeContent from '../components/ui/FadeContent';
 import CircularGalleryWithModals from '../components/CircularGalleryWithModals';
 import { useImagePreload } from '../hooks/useImagePreload';
 import DynamicModal from '../components/DynamicModal';
-import TotalBalance, { noiseBackgroundStyle } from '../components/TotalBalance';
+import TotalBalance from '../components/TotalBalance';
 import { useAccountsStore } from '../hooks/useAccountsStore';
 import { PocketProjectionModule } from '../components/modules/PocketProjection';
 
@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const { toasts, removeToast } = useToast();
   const { refetch: refetchAccounts } = useAccountsStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
-  
+
   // Preload gallery images
   const galleryImages = useMemo(() => [
     '/AGGREGAR INGRESO.webp',
@@ -30,9 +30,9 @@ export default function DashboardPage() {
     '/CREAR BOLSAS.webp',
     '/NUEVO GASTO.webp'
   ], []);
-  
+
   useImagePreload(galleryImages);
-  
+
   // Sincronizar bolsas con módulos dinámicos
   useModuleSync(pockets);
 
@@ -84,12 +84,6 @@ export default function DashboardPage() {
       <Header />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 opacity-80 "
-        style={noiseBackgroundStyle}
-        aria-hidden="true"
-      />
-      
       <div className="min-h-screen w-full overflow-x-hidden box-border pt-20 px-2">
         <div className="max-w-4xl mx-auto w-full">
           <div className="relative z-10">
@@ -122,7 +116,7 @@ export default function DashboardPage() {
                 threshold={0.2}
                 delay={150}
               >
-                <TotalBalance showNoiseBackground={false} />
+                <TotalBalance showNoiseBackground={true} />
               </FadeContent>
             </div>
           </div>
@@ -146,10 +140,10 @@ export default function DashboardPage() {
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between gap-4">
-           
+
                   </div>
                   <div className="space-y-6">
-                 
+
                     {registeredModules.map((module, index) => {
                       const pocket = pockets.find(p => p.id === module.pocketId);
                       if (!pocket) return null;

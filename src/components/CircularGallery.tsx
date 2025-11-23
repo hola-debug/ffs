@@ -37,40 +37,40 @@ function checkPlaneIntersection(
 ): { intersects: boolean; centerDistance: number } {
   mesh.updateMatrixWorld();
   const worldMatrix = mesh.worldMatrix;
-  
+
   const worldX = worldMatrix[12];
   const worldY = worldMatrix[13];
   const worldZ = worldMatrix[14];
-  
+
   // Project to screen space
   const fov = (camera.fov * Math.PI) / 180;
   const distance = camera.position.z - worldZ;
   const viewHeight = 2 * Math.tan(fov / 2) * distance;
   const viewWidth = viewHeight * camera.aspect;
-  
+
   const ndcX = (worldX / (viewWidth / 2));
   const ndcY = (worldY / (viewHeight / 2));
-  
+
   // Simple bounding box check without rotation complexity
   const scaleX = mesh.scale.x;
   const scaleY = mesh.scale.y;
-  
+
   const halfWidth = (scaleX / (viewWidth / 2)) * 0.9; // Reduce to 90% for more precise clicks
   const halfHeight = (scaleY / (viewHeight / 2)) * 0.9;
-  
+
   const intersects = (
     mouseNDC.x >= ndcX - halfWidth &&
     mouseNDC.x <= ndcX + halfWidth &&
     mouseNDC.y >= ndcY - halfHeight &&
     mouseNDC.y <= ndcY + halfHeight
   );
-  
+
   // Calculate distance from click to card center (in NDC space)
   const centerDistance = Math.sqrt(
     Math.pow(mouseNDC.x - ndcX, 2) +
     Math.pow(mouseNDC.y - ndcY, 2)
   );
-  
+
   return { intersects, centerDistance };
 }
 
@@ -236,7 +236,7 @@ class Media {
     img.decoding = 'async';
     img.loading = 'eager';
     img.src = this.image;
-    
+
     // Use decode() API for faster rendering
     img.decode()
       .then(() => {
@@ -400,7 +400,9 @@ class App {
     });
     this.gl = this.renderer.gl;
     this.gl.clearColor(0, 0, 0, 0);
-    this.container.appendChild(this.renderer.gl.canvas as HTMLCanvasElement);
+    const canvas = this.renderer.gl.canvas as HTMLCanvasElement;
+    canvas.classList.add('w-full', 'h-full');
+    this.container.appendChild(canvas);
   }
 
   createCamera() {
@@ -498,7 +500,7 @@ class App {
   onTouchUp(e: MouseEvent | TouchEvent) {
     this.isDown = false;
     this.onCheck();
-    
+
     // Handle touch end as a click if no movement occurred
     if (!this.hasMoved && 'changedTouches' in e) {
       const touch = e.changedTouches[0];
@@ -513,15 +515,15 @@ class App {
     const rect = this.container.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    
+
     const mouseNDC = screenToNDC(x, y, rect.width, rect.height);
-    
+
     // Find all cards that intersect and pick the one closest to click center
     const candidates: Array<{ media: Media; centerDistance: number }> = [];
-    
+
     this.medias.forEach(media => {
       const result = checkPlaneIntersection(media.plane, mouseNDC, this.camera, this.viewport);
-      
+
       if (result.intersects) {
         candidates.push({
           media,
@@ -529,12 +531,12 @@ class App {
         });
       }
     });
-    
+
     // Sort by distance to center (closest center = most likely intended target)
     candidates.sort((a, b) => a.centerDistance - b.centerDistance);
-    
+
     const clickedMedia = candidates.length > 0 ? candidates[0].media : null;
-    
+
     if (clickedMedia && clickedMedia.link) {
       const event = new CustomEvent('gallery-card-click', {
         detail: { link: clickedMedia.link },
@@ -570,6 +572,11 @@ class App {
       height: this.container.clientHeight
     };
     this.renderer.setSize(this.screen.width, this.screen.height);
+    const canvas = this.renderer.gl.canvas as HTMLCanvasElement;
+    if (canvas.style) {
+      canvas.style.width = '';
+      canvas.style.height = '';
+    }
     this.camera.perspective({
       aspect: this.screen.width / this.screen.height
     });
@@ -600,10 +607,10 @@ class App {
     this.boundOnTouchMove = this.onTouchMove.bind(this);
     this.boundOnTouchUp = this.onTouchUp.bind(this);
     this.boundOnClick = this.onClick.bind(this);
-    
+
     // Window events
     window.addEventListener('resize', this.boundOnResize);
-    
+
     // Container events only
     this.container.addEventListener('mousewheel', this.boundOnWheel);
     this.container.addEventListener('wheel', this.boundOnWheel);
@@ -619,10 +626,10 @@ class App {
 
   destroy() {
     window.cancelAnimationFrame(this.raf);
-    
+
     // Window events
     window.removeEventListener('resize', this.boundOnResize);
-    
+
     // Container events
     this.container.removeEventListener('mousewheel', this.boundOnWheel);
     this.container.removeEventListener('wheel', this.boundOnWheel);
@@ -633,7 +640,7 @@ class App {
     this.container.removeEventListener('touchstart', this.boundOnTouchDown as EventListener);
     this.container.removeEventListener('touchmove', this.boundOnTouchMove as EventListener);
     this.container.removeEventListener('touchend', this.boundOnTouchUp as EventListener);
-    
+
     if (this.renderer && this.renderer.gl && this.renderer.gl.canvas.parentNode) {
       this.renderer.gl.canvas.parentNode.removeChild(this.renderer.gl.canvas as HTMLCanvasElement);
     }
@@ -662,10 +669,10 @@ export default function CircularGallery({
   onCardClick
 }: CircularGalleryProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (!containerRef.current) return;
-    
+
     const app = new App(containerRef.current, {
       items,
       bend,
@@ -675,7 +682,7 @@ export default function CircularGallery({
       scrollSpeed,
       scrollEase
     });
-    
+
     // Listen for card click events
     const handleCardClick = (e: Event) => {
       const customEvent = e as CustomEvent<{ link: string }>;
@@ -683,19 +690,19 @@ export default function CircularGallery({
         onCardClick(customEvent.detail.link);
       }
     };
-    
+
     containerRef.current.addEventListener('gallery-card-click', handleCardClick);
-    
+
     return () => {
       containerRef.current?.removeEventListener('gallery-card-click', handleCardClick);
       app.destroy();
     };
   }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase, onCardClick]);
   return (
-    <div 
-      className="w-full h-full overflow-hidden cursor-pointer" 
+    <div
+      className="w-full h-[206px] overflow-hidden cursor-pointer"
       ref={containerRef}
-      style={{ touchAction: 'none', userSelect: 'none' }}
+      style={{ touchAction: 'none', userSelect: 'none', height: '206px' }}
       draggable={false}
     />
   );

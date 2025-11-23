@@ -34,18 +34,62 @@ export function useDashboardData() {
       }
       setUserId(user.id);
 
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const startOfMonthStr = startOfMonth.toISOString();
+
       const [
         categoriesRes,
         pocketsRes,
+        movementsRes
       ] = await Promise.all([
         supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
-        supabase.from('pockets').select('*').eq('user_id', user.id).eq('status', 'active').order('created_at', { ascending: false }),
+        supabase.from('pockets' as any).select('*').eq('user_id', user.id).eq('status', 'active').order('created_at', { ascending: false }),
+        supabase
+          .from('movements' as any)
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('date', startOfMonthStr)
+          .eq('type', 'saving_deposit')
       ]);
 
-      if (categoriesRes.data) setCategories(categoriesRes.data);
+      if (categoriesRes.data) setCategories(categoriesRes.data as any);
+      
       if (pocketsRes.data) {
         console.log('[Dashboard] Pockets updated:', pocketsRes.data.length);
-        setPockets([...pocketsRes.data]);
+        
+        const processedPockets = pocketsRes.data.map((pocket: any) => {
+          // Calcular contribución del periodo actual
+          const periodMovements = (movementsRes.data as any[])?.filter((m: any) => m.pocket_id === pocket.id) || [];
+          const currentPeriodContribution = periodMovements.reduce((sum: number, m: any) => sum + Number(m.amount), 0);
+          
+          // Calcular contribución recomendada
+          let recommendedContribution = 0;
+          if (pocket.type === 'saving' && pocket.target_amount && pocket.ends_at) {
+            const target = Number(pocket.target_amount);
+            const saved = Number(pocket.amount_saved || 0); // Asumiendo que amount_saved viene de BD o deberíamos recalcularlo?
+            // Por ahora confiamos en BD, si no, habría que sumar TODOS los movimientos históricos
+            
+            const remaining = Math.max(0, target - saved);
+            const today = new Date();
+            const endDate = new Date(pocket.ends_at);
+            
+            // Diferencia en meses
+            const monthsDiff = (endDate.getFullYear() - today.getFullYear()) * 12 + (endDate.getMonth() - today.getMonth());
+            const monthsLeft = Math.max(1, monthsDiff); // Al menos 1 mes para evitar división por 0
+            
+            recommendedContribution = remaining / monthsLeft;
+          }
+
+          return {
+            ...pocket,
+            current_period_contribution: currentPeriodContribution,
+            recommended_contribution: recommendedContribution,
+          };
+        });
+
+        setPockets(processedPockets);
       } else {
         setPockets([]);
       }

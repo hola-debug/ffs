@@ -59,32 +59,23 @@ export const SavingPocketSummary = ({ pocket }: PocketSummaryProps) => {
   }
 
   return (
-    <div
-      className="relative w-full h-[260px] text-white font-[Monda]"
-      style={{
-        backgroundImage: "url('/saving_expenses.webp')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        borderRadius: '18px',
-        overflow: 'hidden',
-      }}
-    >
-      {/* LADO IZQUIERDO */}
-      <div className="absolute inset-y-0 left-0 w-[50%] flex flex-col justify-between px-6 py-6">
-
+    <div className="relative w-full h-[269px] flex rounded-[18px] overflow-hidden font-[Monda] bg-black">
+      {/* LADO IZQUIERDO - FONDO NEGRO */}
+      <div className="w-1/2 flex flex-col justify-between px-6 py-6 text-white">
         <p className="text-[10px] uppercase tracking-[0.25em] opacity-90">
           Vas recaudando un
         </p>
 
         <div className="-mt-2">
           <div className="flex items-end gap-1">
-            <CountUp
-              from={0}
-              to={roundedProgress}
-              duration={1}
-              className="text-[72px] font-bold"
-            />
-            <span className="text-[40px] font-bold mb-1">%</span>
+            <span style={{ color: '#4F0E42' }} className="text-[72px] font-bold leading-none">
+              <CountUp
+                from={0}
+                to={roundedProgress}
+                duration={1}
+              />
+            </span>
+            <span className="text-[40px] font-bold mb-2" style={{ color: '#4F0E42' }}>%</span>
           </div>
         </div>
 
@@ -93,9 +84,15 @@ export const SavingPocketSummary = ({ pocket }: PocketSummaryProps) => {
         </p>
       </div>
 
-      {/* LADO DERECHO */}
-      <div className="absolute inset-y-0 right-0 w-[50%] p-6 flex flex-col justify-between">
-
+      {/* LADO DERECHO - IMAGEN DE FONDO */}
+      <div
+        className="w-1/2 relative flex flex-col justify-between p-6 text-white rounded-[18px] overflow-hidden"
+        style={{
+          backgroundImage: "url('/saving_expenses.webp')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
         {/* Nombre */}
         <div>
           <p className="text-[10px] uppercase opacity-70 mb-1 tracking-[0.15em]">
@@ -109,9 +106,16 @@ export const SavingPocketSummary = ({ pocket }: PocketSummaryProps) => {
         {/* Objetivos */}
         <div className="space-y-1 text-[11px]">
           <div className="flex justify-between">
-            <span className="opacity-70">Contribuido este periodo / Objetivo mensual</span>
+            <span className="opacity-70">Ahorrado mes</span>
             <span className="font-semibold">
-              {format(pocket.current_period_contribution || 0)} / {format(pocket.recommended_contribution || 0)}
+              {format(pocket.current_period_contribution || 0)}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="opacity-70">Meta mensual</span>
+            <span className="font-semibold">
+              {format(pocket.recommended_contribution || 0)}
             </span>
           </div>
 
@@ -139,7 +143,7 @@ export const SavingPocketSummary = ({ pocket }: PocketSummaryProps) => {
         <button
           type="button"
           onClick={() => setIsAddSavingModalOpen(true)}
-          className="w-full text-white uppercase tracking-[0.25em] text-[11px] font-semibold py-2 rounded-full"
+          className="w-full text-white uppercase tracking-[0.25em] text-[11px] font-semibold py-2 rounded-full transition-transform active:scale-95"
           style={{
             backgroundColor: '#1E1614',
           }}

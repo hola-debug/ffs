@@ -105,14 +105,25 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
   return (
     <div className={containerClass}>
       <div className="relative text-white">
-        {showNoiseBackground && (
-          <div className="absolute inset-0" style={noiseBackgroundStyle} aria-hidden="true" />
-        )}
-
         <div
-          className="relative z-10 grid mt-6"
+          className="relative z-10 grid mt-6 overflow-visible"
           style={{ gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}
         >
+          {showNoiseBackground && (
+            <div
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl"
+              style={{
+                backgroundImage: 'url(/noise.bg.webp)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                width: '100%',
+                height: '500px',
+                zIndex: -100
+              }}
+              aria-hidden="true"
+            />
+          )}
           <div className="flex flex-col justify-center items-center  ">
             <div>
               <p className="font-Monda  text-[10px] text-center  font-semibold uppercase text-white/80 sm:text-xs leading-none">
