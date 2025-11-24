@@ -3,6 +3,7 @@ import {
   DebtPocketSummary,
   ExpensePocketSummary,
   SavingPocketSummary,
+  FixedExpensePocketSummary,
 } from './PocketSummary';
 
 interface PocketSummaryModuleProps {
@@ -13,6 +14,11 @@ interface PocketSummaryModuleProps {
 
 export function PocketSummaryModule({ pocket }: PocketSummaryModuleProps) {
   if (pocket.type === 'expense') {
+    // Check if it's a fixed expense pocket
+    if (pocket.subtype === 'fixed') {
+      return <FixedExpensePocketSummary pocket={pocket} />;
+    }
+    // For other expense types (period, recurrent, shared)
     return <ExpensePocketSummary pocket={pocket} />;
   }
   if (pocket.type === 'saving') {
@@ -25,3 +31,4 @@ export function PocketSummaryModule({ pocket }: PocketSummaryModuleProps) {
 }
 
 export default PocketSummaryModule;
+

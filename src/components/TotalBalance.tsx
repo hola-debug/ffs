@@ -106,7 +106,7 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
     <div className={containerClass}>
       <div className="relative text-white">
         <div
-          className="relative z-10 grid mt-6 overflow-visible"
+          className="relative z-10 grid mt-6"
           style={{ gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}
         >
           {showNoiseBackground && (
@@ -118,8 +118,8 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
                 width: '100%',
-                height: '500px',
-                zIndex: -100
+                height: '180px',
+                zIndex: -1
               }}
               aria-hidden="true"
             />
