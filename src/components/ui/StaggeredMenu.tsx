@@ -25,6 +25,7 @@ export interface StaggeredMenuProps {
   accentColor?: string;
   isFixed: boolean;
   changeMenuColorOnOpen?: boolean;
+  defaultOpen?: boolean;
   onMenuOpen?: () => void;
   onMenuClose?: () => void;
 }
@@ -43,6 +44,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
   changeMenuColorOnOpen = true,
   accentColor = '#5227FF',
   isFixed = false,
+  defaultOpen = false,
   onMenuOpen,
   onMenuClose
 }: StaggeredMenuProps) => {
@@ -344,6 +346,19 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
     animateColor(target);
     animateText(target);
   }, [playOpen, playClose, animateIcon, animateColor, animateText, onMenuOpen, onMenuClose]);
+
+  // Open menu on mount when requested
+  React.useEffect(() => {
+    if (defaultOpen && !openRef.current) {
+      openRef.current = true;
+      setOpen(true);
+      onMenuOpen?.();
+      playOpen();
+      animateIcon(true);
+      animateColor(true);
+      animateText(true);
+    }
+  }, [defaultOpen, animateColor, animateIcon, animateText, onMenuOpen, playOpen]);
 
   return (
     <div

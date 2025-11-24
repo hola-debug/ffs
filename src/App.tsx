@@ -16,11 +16,13 @@ declare global {
   }
 }
 
+const buildPreloaderKey = (userId?: string | null) =>
+  userId ? `ffs_preloader_${userId}` : 'ffs_preloader';
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useSupabaseUser();
-  const [introFinished, setIntroFinished] = useState(() =>
-    typeof window !== 'undefined' ? Boolean(window.__FFSPreloaderPlayed) : false
-  );
+  const storageKey = buildPreloaderKey(user?.id);
+  const [introFinished, setIntroFinished] = useState(false);
   const [allowExit, setAllowExit] = useState(false);
 
   useEffect(() => {
@@ -33,7 +35,18 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (window.__FFSPreloaderPlayed) {
+    const hasPlayed = (() => {
+      if (window.__FFSPreloaderPlayed) return true;
+      try {
+        return window.localStorage.getItem(storageKey) === 'true';
+      } catch (err) {
+        console.warn('[FFSPreloader] Unable to read storage flag', err);
+        return false;
+      }
+    })();
+
+    if (hasPlayed) {
+      window.__FFSPreloaderPlayed = true;
       setIntroFinished(true);
       return;
     }
@@ -47,10 +60,15 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     }, 2500);
 
     return () => window.clearTimeout(allowExitTimer);
-  }, [user]);
+  }, [user, storageKey]);
 
   const handlePreloaderFinish = () => {
     window.__FFSPreloaderPlayed = true;
+    try {
+      window.localStorage.setItem(storageKey, 'true');
+    } catch (err) {
+      console.warn('[FFSPreloader] Unable to persist storage flag', err);
+    }
     setIntroFinished(true);
   };
 

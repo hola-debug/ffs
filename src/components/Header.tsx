@@ -24,20 +24,20 @@ export default function Header() {
   return (
     <>
       {/* Barra negra fija */}
-      <motion.div 
+      <motion.div
         className="fixed top-0 left-0 right-0 h-20 bg-black z-40"
         initial={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-        animate={{ 
-          opacity: mounted ? 1 : 0, 
+        animate={{
+          opacity: mounted ? 1 : 0,
           y: mounted ? 0 : -20,
           filter: mounted ? 'blur(0px)' : 'blur(10px)'
         }}
         transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
       />
-      
+
       {/* Menu que ocupa toda la pantalla */}
-      <motion.div 
-        className="custom-menu-wrapper" 
+      <motion.div
+        className="custom-menu-wrapper"
         style={{ pointerEvents: 'none', position: 'relative', zIndex: 50 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: mounted ? 1 : 0 }}
@@ -60,7 +60,7 @@ export default function Header() {
           onMenuClose={() => console.log('Menu closed')}
         />
       </motion.div>
-      
+
       <style>{`
         .custom-menu-wrapper .staggered-menu-header {
           align-items: center !important;
