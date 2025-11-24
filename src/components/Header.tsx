@@ -5,6 +5,7 @@ import logoSvg from '../assets/logo.svg';
 
 const menuItems = [
   { label: 'Dashboard', ariaLabel: 'Go to dashboard', link: '/' },
+  { label: 'Movimientos', ariaLabel: 'Ver movimientos', link: '/app/transactions' },
   { label: 'Configuración', ariaLabel: 'Settings', link: '/settings' }
 ];
 

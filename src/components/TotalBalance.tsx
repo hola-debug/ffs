@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CountUp from './ui/CountUp';
 import { useAccountsStore } from '../hooks/useAccountsStore';
+import AnimatedList from './ui/AnimatedList';
 
 interface TotalBalanceProps {
   className?: string;
@@ -160,29 +161,38 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
 
               <div className="mt-3 w-full">
                 <div className="h-px w-full bg-white" aria-hidden="true" />
-                <div className="mt-3 space-y-3 px-2 font-monda text-xs text-white/80 sm:text-sm">
+                <div className="mt-3 px-2">
                   {!loading && error && (
                     <div className="text-red-300 text-[10px]">{error}</div>
                   )}
                   {!loading && !error && accountRows.length === 0 && (
-                    <div className="text-white/70">No hay cuentas con saldo.</div>
+                    <div className="text-white/70 text-[10px]">No hay cuentas con saldo.</div>
                   )}
-                  {accountRowsWithPrevious.map((row) => (
-                    <div
-                      className="flex items-center justify-between leading-none"
-                      key={row.id}
-                    >
-                      <span className="text-white text-[10px] font-Monda">{row.label}</span>
-                      <CountUp
-                        to={row.displayAmount}
-                        from={row.previousDisplayAmount}
-                        direction={row.displayAmount < row.previousDisplayAmount ? 'down' : 'up'}
-                        duration={0.6}
-                        startWhen={shouldAnimate}
-                        className="font-bold leading-none tracking-[-0.1em] text-[10px] font-Mond"
-                      />
-                    </div>
-                  ))}
+                  {!loading && !error && accountRows.length > 0 && (
+                    <AnimatedList
+                      items={accountRowsWithPrevious}
+                      maxHeight="120px"
+                      showGradients={false}
+                      enableArrowNavigation={false}
+                      displayScrollbar={false}
+                      containerClassName="space-y-3"
+                      renderItem={(row, index, isSelected) => (
+                        <div
+                          className="flex items-center justify-between leading-none"
+                        >
+                          <span className="text-white text-[10px] font-Monda">{row.label}</span>
+                          <CountUp
+                            to={row.displayAmount}
+                            from={row.previousDisplayAmount}
+                            direction={row.displayAmount < row.previousDisplayAmount ? 'down' : 'up'}
+                            duration={0.6}
+                            startWhen={shouldAnimate}
+                            className="font-bold leading-none tracking-[-0.1em] text-[10px] font-Monda"
+                          />
+                        </div>
+                      )}
+                    />
+                  )}
                 </div>
                 <div className="mt-3 h-px w-full bg-white" aria-hidden="true" />
               </div>

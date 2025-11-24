@@ -51,7 +51,7 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
   const handleAddCurrency = () => {
     const newCurrency = currencyBalances[0].currency === 'ARS' ? 'USD' : 'ARS';
     const alreadyExists = currencyBalances.some(cb => cb.currency === newCurrency);
-    
+
     if (!alreadyExists) {
       setCurrencyBalances([
         ...currencyBalances,
@@ -63,12 +63,12 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
   const handleRemoveCurrency = (index: number) => {
     if (currencyBalances.length > 1) {
       const newBalances = currencyBalances.filter((_, i) => i !== index);
-      
+
       // Si removemos la primaria, marcar la primera como primaria
       if (currencyBalances[index].isPrimary && newBalances.length > 0) {
         newBalances[0].isPrimary = true;
       }
-      
+
       setCurrencyBalances(newBalances);
     }
   };
@@ -122,9 +122,9 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
         console.error('Error insertando cuenta:', insertError);
         throw new Error(`Error al crear cuenta: ${insertError.message}`);
       }
-      
+
       if (!accountsData?.id) throw new Error('No se pudo crear la cuenta');
-      
+
       const newAccountId = accountsData.id;
 
       // 2. Insertar todas las divisas en account_currencies con sus balances
@@ -132,23 +132,23 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
         account_id: newAccountId,
         currency: cb.currency,
         is_primary: cb.isPrimary,
-        balance: parseFloat(cb.balance) || 0, // Guardar el balance aquí
+        balance: 0, // El balance se actualizará via trigger cuando se cree el movimiento
       }));
 
       let currenciesError = null;
-      
+
       console.log('Insertando divisas para account_id:', newAccountId);
       console.log('Registros a insertar:', currencyRecords);
-      
+
       // Insertar una por una para mejor diagnostico
       for (const record of currencyRecords) {
         console.log('Insertando record:', record);
         const result = await supabase
           .from('account_currencies')
           .insert([record]);
-        
+
         console.log('Resultado del insert:', result);
-        
+
         if (result.error) {
           console.error('Error insertando divisa', record.currency, ':', result.error);
           console.error('Error details:', {
@@ -197,7 +197,7 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
       setName('');
       setType('bank');
       setCurrencyBalances([{ currency: 'ARS', balance: '', isPrimary: true }]);
-      
+
       onSuccess?.();
       onClose();
     } catch (err: any) {

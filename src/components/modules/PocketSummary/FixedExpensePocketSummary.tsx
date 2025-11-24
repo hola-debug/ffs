@@ -155,7 +155,7 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
     return (
         <div className="relative w-full h-[269px] flex rounded-[18px] overflow-hidden font-[Monda] bg-black">
             {/* LADO IZQUIERDO - LISTA DE GASTOS */}
-            <div className="w-1/2 flex flex-col p-6 text-white overflow-hidden">
+            <div className="w-3/5 flex flex-col p-6 text-white overflow-hidden">
                 <p className="text-[10px] uppercase tracking-[0.25em] opacity-90 mb-4">
                     GASTOS FIJOS
                 </p>
@@ -194,7 +194,7 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
 
             {/* LADO DERECHO - TOTAL Y FONDO */}
             <div
-                className="w-1/2 relative flex flex-col justify-center items-center p-6 text-white rounded-[18px] overflow-hidden group cursor-pointer"
+                className="w-2/5 relative flex flex-col justify-center items-center  text-white rounded-[18px] overflow-hidden group cursor-pointer"
                 style={{
                     backgroundImage: "url('/fixed_expense.webp')",
                     backgroundSize: 'cover',
