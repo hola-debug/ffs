@@ -9,66 +9,58 @@ import DashboardPage from './pages/DashboardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PocketDetailPage from './pages/PocketDetailPage';
 import FFSPreloader from './components/preloaders/FFSPreloader';
-
-declare global {
-  interface Window {
-    __FFSPreloaderPlayed?: boolean;
-  }
-}
-
-const buildPreloaderKey = (userId?: string | null) =>
-  userId ? `ffs_preloader_${userId}` : 'ffs_preloader';
+import { preloaderManager } from './utils/PreloaderManager';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useSupabaseUser();
-  const storageKey = buildPreloaderKey(user?.id);
   const [introFinished, setIntroFinished] = useState(false);
   const [allowExit, setAllowExit] = useState(false);
 
+  // Initialize session on mount
+  useEffect(() => {
+    preloaderManager.initializeSession();
+  }, []);
+
+  // Handle user changes and preloader logic
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Reset on logout
     if (!user) {
-      window.__FFSPreloaderPlayed = false;
+      preloaderManager.reset();
       setIntroFinished(false);
       setAllowExit(false);
       return;
     }
 
-    const hasPlayed = (() => {
-      if (window.__FFSPreloaderPlayed) return true;
-      try {
-        return window.localStorage.getItem(storageKey) === 'true';
-      } catch (err) {
-        console.warn('[FFSPreloader] Unable to read storage flag', err);
-        return false;
-      }
-    })();
+    // Set user ID in manager
+    preloaderManager.setUserId(user.id);
 
-    if (hasPlayed) {
-      window.__FFSPreloaderPlayed = true;
+    // Check if preloader should show
+    const { shouldShow, reason } = preloaderManager.shouldShowPreloader();
+
+    // Debug logging (can be removed in production)
+    console.log('[PreloaderManager]', { shouldShow, reason, debug: preloaderManager.getDebugInfo() });
+
+    if (!shouldShow) {
       setIntroFinished(true);
       return;
     }
 
+    // Show preloader
     setIntroFinished(false);
     setAllowExit(false);
-    
-    // Esperar a que las letras FFS aparezcan antes de permitir salida
+
+    // Allow exit after animations complete (Apple-style timing)
     const allowExitTimer = window.setTimeout(() => {
       setAllowExit(true);
-    }, 2500);
+    }, 2800); // Slightly longer for smoother feel
 
     return () => window.clearTimeout(allowExitTimer);
-  }, [user, storageKey]);
+  }, [user]);
 
   const handlePreloaderFinish = () => {
-    window.__FFSPreloaderPlayed = true;
-    try {
-      window.localStorage.setItem(storageKey, 'true');
-    } catch (err) {
-      console.warn('[FFSPreloader] Unable to persist storage flag', err);
-    }
+    preloaderManager.markAsShown();
     setIntroFinished(true);
   };
 

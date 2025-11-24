@@ -96,7 +96,7 @@ export default function DashboardPage() {
       <Header />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <div className="min-h-screen w-full overflow-x-hidden box-border pt-20 px-2">
+      <div className="min-h-screen w-full overflow-x-hidden box-border pt-20 px-1">
         <div className="max-w-4xl mx-auto w-full">
           <div className="relative z-10">
             <FadeContent
@@ -112,14 +112,14 @@ export default function DashboardPage() {
                   bend={-0.5}
                   textColor="#333333"
                   borderRadius={0.05}
-                  scrollEase={0.02}
+                  scrollEase={0.4}
                   scrollSpeed={10}
                   onCardClick={handleCardClick}
                 />
               </div>
             </FadeContent>
 
-            <div className="mt-10">
+            <div className="">
               <FadeContent
                 blur={false}
                 duration={700}
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           />
 
           {registeredModules.length > 0 && (
-            <div className="mt-10 space-y-2">
+            <div className="space-y-1 pb-1">
               <FadeContent
                 blur={false}
                 duration={700}

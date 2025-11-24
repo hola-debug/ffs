@@ -106,7 +106,7 @@ export default function TotalBalance({ className, showNoiseBackground = true }: 
     <div className={containerClass}>
       <div className="relative text-white">
         <div
-          className="relative z-10 grid mt-6"
+          className="relative z-10 grid mt-1"
           style={{ gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}
         >
           {showNoiseBackground && (

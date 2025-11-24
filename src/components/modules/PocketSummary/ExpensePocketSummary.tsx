@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
-import { ActivePocketSummary } from '@/lib/types';
+import { useMemo, useState, useEffect } from 'react';
+import { ActivePocketSummary, Movement } from '@/lib/types';
 import AnimatedList from '@/components/ui/AnimatedList';
 import CountUp from '@/components/ui/CountUp';
 import { usePocketSummary } from './usePocketSummary';
-import { useAccountsStore } from '@/hooks/useAccountsStore'; // 👈 NUEVO
+import { useAccountsStore } from '@/hooks/useAccountsStore';
+import { supabase } from '@/lib/supabaseClient';
+import AddExpenseModal from '@/components/modals/AddExpenseModal';
 
 interface PocketSummaryProps {
   pocket: ActivePocketSummary;
@@ -31,7 +33,12 @@ function EyeIcon({ isOpen }: { isOpen: boolean }) {
 
 export const ExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
   const { format } = usePocketSummary(pocket);
-  const { convertAmount } = useAccountsStore(); // 👈 usamos el store
+  const { convertAmount } = useAccountsStore();
+
+  // Estado para movimientos
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [loadingMovements, setLoadingMovements] = useState(true);
+  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
 
   // Moneda seleccionada (entre UYU y USD)
   const [selectedCurrency, setSelectedCurrency] = useState<string>(
@@ -42,6 +49,31 @@ export const ExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
   };
 
   const currencySymbol = selectedCurrency === 'USD' ? 'US$' : '$';
+
+  // Fetch de movimientos pocket_expense
+  const fetchMovements = async () => {
+    try {
+      setLoadingMovements(true);
+      const { data, error } = await supabase
+        .from('movements')
+        .select('*')
+        .eq('pocket_id', pocket.id)
+        .eq('type', 'pocket_expense')
+        .order('date', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setMovements((data as Movement[]) || []);
+    } catch (error) {
+      console.error('Error fetching movements:', error);
+    } finally {
+      setLoadingMovements(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMovements();
+  }, [pocket.id]);
 
   // Helper para convertir montos a la moneda elegida
   const toDisplay = (amount: number): number => {
@@ -244,49 +276,92 @@ export const ExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
             )}
           </div>
 
-          {/* COLUMNA DERECHA - Tarjeta con detalles del periodo (sin "Destino") */}
+          {/* COLUMNA DERECHA - Lista de transacciones */}
           <div
-            className="w-1/2 relative flex flex-col justify-between p-6 text-white rounded-[18px] overflow-hidden"
-            style={{
-              backgroundImage: "url('/period_expense.webp')",
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
+            className="w-1/2 flex flex-col p-6 text-white bg-gradient-to-br from-black/90 to-black/70 rounded-[18px] overflow-hidden backdrop-blur-sm border border-white/5"
           >
-            {/* Nombre de la bolsa */}
-            <div className="mb-4">
-              <p className="text-[10px] uppercase opacity-70 mb-2">
-                Nombre de tu bolsa
-              </p>
-              <h3 className="text-[20px] leading-none font-bold break-words">
+            {/* Header - Clickeable para agregar gasto */}
+            <div
+              className="mb-4 cursor-pointer group/header hover:opacity-80 transition-opacity"
+              onClick={() => setShowAddExpenseModal(true)}
+            >
+              <p className="text-[10px] uppercase tracking-[0.25em] opacity-70 mb-1">
                 {pocket.name}
+              </p>
+              <h3 className="text-[14px] font-bold opacity-90 flex items-center gap-2">
+                Transacciones Recientes
+                <span className="text-[9px] opacity-0 group-hover/header:opacity-100 transition-opacity">
+                  + Agregar
+                </span>
               </h3>
             </div>
 
-            {/* Detalles del periodo */}
-            <div className="mb-2 space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="opacity-70">Inicio</span>
-                <span className="font-semibold">
-                  {startsAt
-                    ? startsAt.toLocaleDateString('es-UY')
-                    : '-'}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="opacity-70">Fin</span>
-                <span className="font-semibold">
-                  {endsAt ? endsAt.toLocaleDateString('es-UY') : '-'}
-                </span>
-              </div>
-            </div>
+            {/* Lista de movimientos */}
+            <div className="flex-1 overflow-hidden">
+              {loadingMovements ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-xs opacity-50">Cargando...</p>
+                </div>
+              ) : movements.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-xs opacity-50 text-center">
+                    No hay gastos registrados
+                  </p>
+                </div>
+              ) : (
+                <AnimatedList<Movement>
+                  items={movements}
+                  onItemSelect={() => { }}
+                  showGradients={true}
+                  enableArrowNavigation={false}
+                  displayScrollbar={false}
+                  className="w-full h-full"
+                  maxHeight="100%"
+                  gradientColor="rgba(0,0,0,0.9)"
+                  renderItem={(movement) => {
+                    const movDate = new Date(movement.date);
+                    const dayNum = movDate.getDate();
+                    const monthNum = movDate.getMonth() + 1;
+                    const displayAmount = Math.round(
+                      toDisplay(movement.amount)
+                    );
 
-            {/* CTA simple */}
-            <button className="w-full bg-black/80 hover:bg-black text-white text-xs uppercase font-semibold py-2 px-4 rounded-full transition">
-              Agregar gasto
-            </button>
+                    return (
+                      <div className="flex flex-col py-2 border-b border-white/5 last:border-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-medium text-white/90 truncate">
+                              {movement.description || 'Sin descripción'}
+                            </p>
+                            <p className="text-[8px] text-white/50 mt-0.5">
+                              {dayNum}/{monthNum}/{movDate.getFullYear().toString().slice(-2)}
+                            </p>
+                          </div>
+                          <span className="text-[11px] font-bold text-red-400 tabular-nums whitespace-nowrap">
+                            -{currencySymbol}{displayAmount.toLocaleString('es-UY')}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
+              )}
+            </div>
           </div>
         </>
+      )}
+
+      {/* Modal para agregar gastos */}
+      {showAddExpenseModal && (
+        <AddExpenseModal
+          isOpen={showAddExpenseModal}
+          onClose={() => setShowAddExpenseModal(false)}
+          onSuccess={() => {
+            fetchMovements();
+            setShowAddExpenseModal(false);
+          }}
+          expensePockets={[pocket]}
+        />
       )}
     </div>
   );

@@ -417,6 +417,8 @@ export interface ActivePocketSummary extends Pocket {
   remaining_daily_allowance?: number;
   current_balance?: number;
   allocated_amount?: number;
+  spent_amount?: number;
+  remaining_amount_expense?: number;
   daily_allowance?: number;
   target_amount?: number;
   amount_saved?: number;
