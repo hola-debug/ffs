@@ -222,6 +222,21 @@ export interface DebtPocket extends Pocket {
 }
 
 // ============================================
+// FIXED EXPENSES (ITEMS)
+// ============================================
+
+export interface FixedExpenseItem {
+  id: string;
+  pocket_id: string;
+  name: string;
+  amount: number;
+  currency: CurrencyCode;
+  due_day: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
 // MOVEMENTS
 // ============================================
 
@@ -245,6 +260,7 @@ export interface Movement {
   account_id: string | null;
   category_id: string | null;
   pocket_id: string | null;
+  fixed_expense_id?: string | null; // Nuevo campo
   
   // Montos
   amount: number;

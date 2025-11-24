@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import type { WheelEvent } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import IOSModal, { GlassField } from '../IOSModal';
-import { PocketType } from '../../lib/types';
+import { PocketType, PocketSubtype } from '../../lib/types';
 import { PocketIcon, POCKET_ICON_OPTIONS } from '@/components/PocketIcon';
 
 interface CreatePocketModalProps {
@@ -11,14 +11,18 @@ interface CreatePocketModalProps {
   onSuccess?: () => void;
 }
 
-const POCKET_TYPES: { value: PocketType; label: string; description: string }[] = [
+// Extended type for UI selection
+type UiPocketType = PocketType | 'fixed_expense';
+
+const POCKET_TYPES: { value: UiPocketType; label: string; description: string }[] = [
   { value: 'expense', label: 'Gasto', description: 'Para gastos diarios con límite temporal' },
+  { value: 'fixed_expense', label: 'Gastos Fijos', description: 'Para gastos recurrentes (Luz, Internet, Alquiler)' },
   { value: 'saving', label: 'Ahorro', description: 'Para ahorrar con objetivo específico' },
 ];
 
 export default function CreatePocketModal({ isOpen, onClose, onSuccess }: CreatePocketModalProps) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<PocketType>('expense');
+  const [uiType, setUiType] = useState<UiPocketType>('expense');
   const [emoji, setEmoji] = useState('wallet');
   const [allocatedAmount, setAllocatedAmount] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -53,24 +57,43 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Validar fechas
-      if (new Date(endsAt) <= new Date(startsAt)) {
+      // Validar fechas solo si no es fixed_expense (o si se requiere)
+      if (uiType !== 'fixed_expense' && endsAt && new Date(endsAt) <= new Date(startsAt)) {
         throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
+      }
+
+      let type: PocketType = 'expense';
+      let subtype: PocketSubtype = null;
+
+      if (uiType === 'fixed_expense') {
+        type = 'expense';
+        subtype = 'fixed';
+      } else {
+        type = uiType as PocketType;
+        if (type === 'expense') subtype = 'period'; // Default subtype for generic expense
       }
 
       const pocketData: any = {
         user_id: user.id,
         name,
         type,
+        subtype,
         emoji,
-        allocated_amount: parseFloat(allocatedAmount),
-        current_balance: parseFloat(allocatedAmount), // Inicia con el monto asignado
         currency: 'ARS', // TODO: get from user profile or selection
         starts_at: startsAt,
-        ends_at: endsAt,
         status: 'active',
-        auto_return_remaining: autoReturnRemaining,
       };
+
+      if (uiType === 'fixed_expense') {
+        // Fixed expenses don't have allocated amount initially (sum of items)
+        pocketData.monthly_amount = 0;
+        pocketData.auto_register = false; // Default
+      } else {
+        pocketData.allocated_amount = parseFloat(allocatedAmount) || 0;
+        pocketData.current_balance = parseFloat(allocatedAmount) || 0;
+        pocketData.ends_at = endsAt;
+        pocketData.auto_return_remaining = autoReturnRemaining;
+      }
 
       // Solo agregar target_amount para bolsas de ahorro
       if (type === 'saving') {
@@ -88,14 +111,14 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
 
       // Reset form
       setName('');
-      setType('expense');
+      setUiType('expense');
       setEmoji('wallet');
       setAllocatedAmount('');
       setTargetAmount('');
       setStartsAt(new Date().toISOString().split('T')[0]);
       setEndsAt('');
       setAutoReturnRemaining(true);
-      
+
       onSuccess?.();
       onClose();
     } catch (err: any) {
@@ -134,8 +157,8 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
                   alignItems: 'start',
                   padding: '12px',
                   borderRadius: '12px',
-                  border: type === pt.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
-                  background: type === pt.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',
+                  border: uiType === pt.value ? '2px solid rgba(10, 132, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.12)',
+                  background: uiType === pt.value ? 'rgba(10, 132, 255, 0.15)' : 'rgba(120, 120, 128, 0.16)',
                   cursor: 'pointer',
                   transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                   backdropFilter: 'blur(20px)',
@@ -146,8 +169,8 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
                   type="radio"
                   name="type"
                   value={pt.value}
-                  checked={type === pt.value}
-                  onChange={(e) => setType(e.target.value as PocketType)}
+                  checked={uiType === pt.value}
+                  onChange={(e) => setUiType(e.target.value as UiPocketType)}
                   className="mt-1 mr-3"
                   style={{ accentColor: '#0A84FF' }}
                 />
@@ -176,11 +199,10 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
                     key={key}
                     type="button"
                     onClick={() => setEmoji(option.id)}
-                    className={`flex flex-col items-center gap-1 rounded-2xl border px-3 py-2 min-w-[84px] shrink-0 transition-all ${
-                      isSelected
+                    className={`flex flex-col items-center gap-1 rounded-2xl border px-3 py-2 min-w-[84px] shrink-0 transition-all ${isSelected
                         ? 'border-[#67F690] bg-black/70 text-white shadow-[0_12px_30px_rgba(0,0,0,0.55)]'
                         : 'border-white/12 bg-black/30 text-white/70 hover:border-white/30'
-                    }`}
+                      }`}
                   >
                     <PocketIcon iconId={option.id} className="w-5 h-5" />
                     <span className="text-[9px] text-center font-roboto tracking-[0.08em] leading-tight">{option.label}</span>
@@ -191,24 +213,26 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
           </div>
         </div>
 
-        <GlassField
-          label="Monto a asignar"
-          type="number"
-          step="0.01"
-          value={allocatedAmount}
-          onChange={(e) => setAllocatedAmount(e.target.value)}
-          required
-          placeholder="0.00"
-        />
+        {uiType !== 'fixed_expense' && (
+          <GlassField
+            label="Monto a asignar"
+            type="number"
+            step="0.01"
+            value={allocatedAmount}
+            onChange={(e) => setAllocatedAmount(e.target.value)}
+            required
+            placeholder="0.00"
+          />
+        )}
 
-        {type === 'saving' && (
+        {uiType === 'saving' && (
           <GlassField
             label="Monto objetivo"
             type="number"
             step="0.01"
             value={targetAmount}
             onChange={(e) => setTargetAmount(e.target.value)}
-            required={type === 'saving'}
+            required={uiType === 'saving'}
             placeholder="0.00"
           />
         )}
@@ -221,28 +245,32 @@ export default function CreatePocketModal({ isOpen, onClose, onSuccess }: Create
             onChange={(e) => setStartsAt(e.target.value)}
             required
           />
-          <GlassField
-            label="Fecha fin"
-            type="date"
-            value={endsAt}
-            onChange={(e) => setEndsAt(e.target.value)}
-            required
-          />
+          {uiType !== 'fixed_expense' && (
+            <GlassField
+              label="Fecha fin"
+              type="date"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+              required
+            />
+          )}
         </div>
 
-        <div className="flex items-center space-x-3">
-          <input
-            type="checkbox"
-            id="autoReturn"
-            checked={autoReturnRemaining}
-            onChange={(e) => setAutoReturnRemaining(e.target.checked)}
-            className="w-5 h-5 rounded"
-            style={{ accentColor: '#0A84FF' }}
-          />
-          <label htmlFor="autoReturn" className="ios-label" style={{ marginBottom: 0 }}>
-            Devolver saldo restante automáticamente al finalizar
-          </label>
-        </div>
+        {uiType !== 'fixed_expense' && (
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="autoReturn"
+              checked={autoReturnRemaining}
+              onChange={(e) => setAutoReturnRemaining(e.target.checked)}
+              className="w-5 h-5 rounded"
+              style={{ accentColor: '#0A84FF' }}
+            />
+            <label htmlFor="autoReturn" className="ios-label" style={{ marginBottom: 0 }}>
+              Devolver saldo restante automáticamente al finalizar
+            </label>
+          </div>
+        )}
 
         <div className="flex space-x-3 pt-4">
           <button

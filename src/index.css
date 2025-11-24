@@ -6,7 +6,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   @apply min-h-screen overflow-x-hidden;
   margin: 0;
   padding: 0;
@@ -50,10 +51,12 @@ body {
     font-family: 'Monda', sans-serif;
     letter-spacing: 0.08em;
   }
+
   .ios-modal-surface .font-monda,
   .ios-modal-surface .font-monda * {
     font-family: 'Monda', sans-serif;
   }
+
   .ios-modal-surface .font-roboto,
   .ios-modal-surface .font-roboto * {
     font-family: 'Roboto', sans-serif;

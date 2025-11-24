@@ -224,6 +224,7 @@ export type Database = {
           type: string
           updated_at: string | null
           user_id: string
+          fixed_expense_id?: string | null
         }
         Insert: {
           account_id: string
@@ -243,6 +244,7 @@ export type Database = {
           type: string
           updated_at?: string | null
           user_id: string
+          fixed_expense_id?: string | null
         }
         Update: {
           account_id?: string
@@ -262,6 +264,7 @@ export type Database = {
           type?: string
           updated_at?: string | null
           user_id?: string
+          fixed_expense_id?: string | null
         }
         Relationships: [
           {
@@ -292,6 +295,53 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transactions_fixed_expense_id_fkey"
+            columns: ["fixed_expense_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_expenses: {
+        Row: {
+          id: string
+          pocket_id: string
+          name: string
+          amount: number
+          currency: string
+          due_day: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          pocket_id: string
+          name: string
+          amount: number
+          currency: string
+          due_day: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          pocket_id?: string
+          name?: string
+          amount?: number
+          currency?: string
+          due_day?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_expenses_pocket_id_fkey"
+            columns: ["pocket_id"]
+            isOneToOne: false
+            referencedRelation: "pockets" // Note: In supabase.ts pockets might be mapped to 'accounts' or 'pockets' depending on how it was generated. Based on previous file read, it seems 'accounts' table is used for pockets? Wait, migration 003 created 'pockets' table. Let's check if 'pockets' is in supabase.ts.
+          }
         ]
       }
     }

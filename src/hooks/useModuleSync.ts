@@ -12,8 +12,11 @@ import PocketSummaryModule from '../components/modules/PocketSummaryModule';
  */
 export function useModuleSync(pockets: ActivePocketSummary[]) {
   useEffect(() => {
+    console.log(`[useModuleSync] Sincronizando ${pockets.length} bolsas con módulos`);
+    
     // Crear un Set de IDs de módulos que deberían existir
     const expectedModuleIds = new Set<string>();
+    let newModulesCount = 0;
 
     pockets.forEach((pocket) => {
       const moduleId = `pocket-${pocket.id}`;
@@ -33,17 +36,23 @@ export function useModuleSync(pockets: ActivePocketSummary[]) {
         };
 
         moduleRegistry.registerModule(newModule);
-        console.log(`[useModuleSync] Nuevo módulo registrado para bolsa: ${pocket.name}`);
+        newModulesCount++;
+        console.log(`[useModuleSync] ✓ Nuevo módulo registrado: ${pocket.name} (${pocket.type})`);
       }
     });
 
     // Eliminar módulos para bolsas que ya no existen
     const registeredModules = moduleRegistry.getAllModules();
+    let removedModulesCount = 0;
+    
     registeredModules.forEach((module) => {
       if (!expectedModuleIds.has(module.id)) {
         moduleRegistry.unregisterModule(module.id);
-        console.log(`[useModuleSync] Módulo eliminado: ${module.id}`);
+        removedModulesCount++;
+        console.log(`[useModuleSync] ✗ Módulo eliminado: ${module.id}`);
       }
     });
+
+    console.log(`[useModuleSync] Resumen: ${newModulesCount} nuevos, ${removedModulesCount} eliminados, ${moduleRegistry.getAllModules().length} total`);
   }, [pockets]);
 }

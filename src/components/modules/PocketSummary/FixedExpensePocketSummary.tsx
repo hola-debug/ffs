@@ -1,18 +1,14 @@
-import { useMemo, useState } from 'react';
-import { ActivePocketSummary } from '@/lib/types';
+import { useMemo, useState, useEffect } from 'react';
+import { ActivePocketSummary, FixedExpenseItem, Movement } from '@/lib/types';
 import { usePocketSummary } from './usePocketSummary';
 import CountUp from '@/components/ui/CountUp';
 import { useAccountsStore } from '@/hooks/useAccountsStore';
+import { supabase } from '@/lib/supabaseClient';
+import ManageFixedExpensesModal from '@/components/modals/ManageFixedExpensesModal';
 
 interface PocketSummaryProps {
     pocket: ActivePocketSummary;
 }
-
-const formatShortDate = (date: Date) =>
-    date.toLocaleDateString('es-UY', {
-        day: 'numeric',
-        month: 'numeric',
-    });
 
 // Icono del ojo
 const EYE_ICON_URL = '/ojo.svg';
@@ -32,6 +28,12 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
     const { format } = usePocketSummary(pocket);
     const { convertAmount } = useAccountsStore();
 
+    // Estado para ítems y movimientos
+    const [items, setItems] = useState<FixedExpenseItem[]>([]);
+    const [movements, setMovements] = useState<Movement[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showManageModal, setShowManageModal] = useState(false);
+
     // Moneda seleccionada (entre UYU y USD)
     const [selectedCurrency, setSelectedCurrency] = useState<string>(
         pocket.currency || 'UYU'
@@ -42,149 +44,170 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
 
     const currencySymbol = selectedCurrency === 'USD' ? 'US$' : '$';
 
+    // Fetch de datos
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+
+                // 1. Obtener definiciones de gastos fijos
+                const { data: expensesData } = await supabase
+                    .from('fixed_expenses')
+                    .select('*')
+                    .eq('pocket_id', pocket.id);
+
+                if (expensesData) {
+                    setItems(expensesData as any);
+                }
+
+                // 2. Obtener movimientos del mes actual para este pocket
+                const startOfMonth = new Date();
+                startOfMonth.setDate(1);
+                startOfMonth.setHours(0, 0, 0, 0);
+
+                const { data: movementsData } = await supabase
+                    .from('movements' as any)
+                    .select('*')
+                    .eq('pocket_id', pocket.id)
+                    .gte('date', startOfMonth.toISOString());
+
+                if (movementsData) {
+                    setMovements(movementsData as any);
+                }
+
+            } catch (error) {
+                console.error('Error fetching fixed expenses:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [pocket.id]);
+
     // Helper para convertir montos a la moneda elegida
-    const toDisplay = (amount: number): number => {
+    const toDisplay = (amount: number, currency: string): number => {
         const safe = Number(amount) || 0;
-        if (!selectedCurrency || selectedCurrency === pocket.currency) {
+        if (!selectedCurrency || selectedCurrency === currency) {
             return safe;
         }
-        const converted = convertAmount(safe, pocket.currency, selectedCurrency);
+        const converted = convertAmount(safe, currency as any, selectedCurrency);
         return converted ?? safe;
     };
 
-    // Campos específicos de EXPENSE.FIXED
-    const monthlyAmount = Number((pocket as any).monthly_amount) || 0;
-    const dueDay = Number((pocket as any).due_day) || 1;
-    const lastPayment = (pocket as any).last_payment ? new Date((pocket as any).last_payment) : null;
-    const nextPayment = (pocket as any).next_payment ? new Date((pocket as any).next_payment) : null;
+    // Calcular total mensual (suma de todos los ítems definidos)
+    const totalMonthlyAmount = useMemo(() => {
+        return items.reduce((sum, item) => {
+            return sum + toDisplay(item.amount, item.currency);
+        }, 0);
+    }, [items, selectedCurrency, convertAmount]);
 
-    // Calcular días hasta el próximo pago
-    const daysUntilPayment = useMemo(() => {
-        if (!nextPayment) return 0;
+    // Procesar lista para display
+    const processedItems = useMemo(() => {
+        return items.map(item => {
+            // Buscar si está pagado este mes
+            // Un movimiento cuenta como pago si tiene el fixed_expense_id O si el nombre coincide (fallback)
+            const isPaid = movements.some(m =>
+                m.fixed_expense_id === item.id ||
+                (m.description && m.description.toLowerCase().includes(item.name.toLowerCase()))
+            );
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const next = new Date(nextPayment);
-        next.setHours(0, 0, 0, 0);
-
-        const diff = next.getTime() - today.getTime();
-        const MS_PER_DAY = 1000 * 60 * 60 * 24;
-        return Math.max(0, Math.ceil(diff / MS_PER_DAY));
-    }, [nextPayment]);
-
-    // Valores convertidos a la moneda seleccionada
-    const displayMonthlyAmount = toDisplay(monthlyAmount);
-
-    // Determinar el estado del pago
-    const paymentStatus = useMemo(() => {
-        if (daysUntilPayment === 0) return 'Vence hoy';
-        if (daysUntilPayment === 1) return 'Vence mañana';
-        if (daysUntilPayment <= 7) return `Vence en ${daysUntilPayment} días`;
-        return `Próximo pago: día ${dueDay}`;
-    }, [daysUntilPayment, dueDay]);
+            return {
+                ...item,
+                isPaid,
+                displayAmount: toDisplay(item.amount, item.currency)
+            };
+        });
+    }, [items, movements, selectedCurrency, convertAmount]);
 
     return (
         <div className="relative w-full h-[269px] flex rounded-[18px] overflow-hidden font-[Monda] bg-black">
-            {/* LADO IZQUIERDO - FONDO NEGRO */}
-            <div className="w-1/2 flex flex-col justify-between px-6 py-6 text-white">
-                <p className="text-[10px] uppercase tracking-[0.25em] opacity-90">
-                    Gasto fijo mensual
+            {/* LADO IZQUIERDO - LISTA DE GASTOS */}
+            <div className="w-1/2 flex flex-col p-6 text-white overflow-hidden">
+                <p className="text-[10px] uppercase tracking-[0.25em] opacity-90 mb-4">
+                    GASTOS FIJOS
                 </p>
 
-                <div className="-mt-2">
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-[19px] font-bold">
-                            {currencySymbol}
-                        </span>
-                        <span style={{ color: '#2BA9E4' }} className="text-[52px] font-bold leading-none tracking-tighter">
-                            <CountUp
-                                from={0}
-                                to={Math.round(displayMonthlyAmount)}
-                                duration={1}
-                                separator="."
-                            />
-                        </span>
-
-                        {/* Botón del ojo → cambia moneda */}
-                        <button
-                            type="button"
-                            onClick={toggleCurrency}
-                            className="ml-1 flex items-center justify-center transition hover:opacity-80"
-                        >
-                            <EyeIcon isOpen={selectedCurrency === 'USD'} />
-                        </button>
-                    </div>
+                <div className="flex-1 overflow-y-auto pr-2 space-y-2 scrollbar-hide">
+                    {loading ? (
+                        <div className="text-xs opacity-50">Cargando...</div>
+                    ) : items.length === 0 ? (
+                        <div className="text-xs opacity-50">No hay gastos definidos</div>
+                    ) : (
+                        processedItems.map((item) => (
+                            <div key={item.id} className="flex justify-between items-center text-[11px] group">
+                                <span className={`font-medium tracking-wide transition-colors ${item.isPaid ? 'text-green-400' : 'text-white/70 group-hover:text-white'}`}>
+                                    {item.name.toUpperCase()}
+                                </span>
+                                <span className={`font-semibold ${item.isPaid ? 'text-green-400' : 'text-white/70'}`}>
+                                    {currencySymbol}{Math.round(item.displayAmount)}
+                                </span>
+                            </div>
+                        ))
+                    )}
                 </div>
-
-                <p className="text-[11px] leading-tight uppercase tracking-[0.12em] max-w-[210px] opacity-90">
-                    {paymentStatus}
-                </p>
             </div>
 
-            {/* LADO DERECHO - IMAGEN DE FONDO */}
+            {/* LADO DERECHO - TOTAL Y FONDO */}
             <div
-                className="w-1/2 relative flex flex-col justify-between p-6 text-white rounded-[18px] overflow-hidden"
+                className="w-1/2 relative flex flex-col justify-center items-center p-6 text-white rounded-[18px] overflow-hidden group cursor-pointer"
                 style={{
                     backgroundImage: "url('/fixed_expense.webp')",
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                 }}
+                onClick={() => setShowManageModal(true)}
             >
-                {/* Nombre */}
-                <div>
-                    <p className="text-[10px] uppercase opacity-70 mb-1 tracking-[0.15em]">
-                        Nombre de tu gasto
+                {/* Overlay oscuro para mejorar legibilidad */}
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+
+                <div className="relative z-10 flex flex-col items-center">
+                    <p className="text-[10px] uppercase tracking-[0.25em] opacity-90 mb-2">
+                        TOTAL MES
                     </p>
-                    <h3 className="text-[20px] font-bold leading-none text-white">
-                        {pocket.name || 'Gasto Fijo'}
-                    </h3>
-                </div>
 
-                {/* Detalles */}
-                <div className="space-y-1 text-[11px]">
-                    <div className="flex justify-between">
-                        <span className="opacity-70">Monto mensual</span>
-                        <span className="font-semibold">
-                            {format(monthlyAmount)}
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-[16px] font-bold opacity-80">
+                            {currencySymbol}
                         </span>
+                        <span className="text-[42px] font-bold leading-none tracking-tighter text-white drop-shadow-lg">
+                            <CountUp
+                                from={0}
+                                to={Math.round(totalMonthlyAmount)}
+                                duration={1}
+                                separator="."
+                            />
+                        </span>
+
+                        {/* Botón del ojo */}
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleCurrency();
+                            }}
+                            className="ml-1 flex items-center justify-center transition hover:opacity-80"
+                        >
+                            <EyeIcon isOpen={selectedCurrency === 'USD'} />
+                        </button>
                     </div>
 
-                    <div className="flex justify-between">
-                        <span className="opacity-70">Día de vencimiento</span>
-                        <span className="font-semibold">{dueDay}</span>
-                    </div>
-
-                    {lastPayment && (
-                        <div className="flex justify-between">
-                            <span className="opacity-70">Último pago</span>
-                            <span className="font-semibold">
-                                {formatShortDate(lastPayment)}
-                            </span>
-                        </div>
-                    )}
-
-                    {nextPayment && (
-                        <div className="flex justify-between">
-                            <span className="opacity-70">Próximo pago</span>
-                            <span className="font-semibold">
-                                {formatShortDate(nextPayment)}
-                            </span>
-                        </div>
-                    )}
+                    <p className="mt-4 text-[9px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-3 py-1 rounded-full">
+                        Administrar Gastos
+                    </p>
                 </div>
-
-                {/* BOTÓN */}
-                <button
-                    type="button"
-                    className="w-full text-white uppercase tracking-[0.25em] text-[11px] font-semibold py-2 rounded-full transition-transform active:scale-95"
-                    style={{
-                        backgroundColor: '#1E1614',
-                    }}
-                >
-                    Registrar pago
-                </button>
             </div>
+
+            {showManageModal && (
+                <ManageFixedExpensesModal
+                    pocket={pocket}
+                    onClose={() => setShowManageModal(false)}
+                    onSuccess={() => {
+                        // Forzar recarga de datos
+                        // Simple refresh for now, ideally use a callback to refetch
+                    }}
+                />
+            )}
         </div>
     );
 };

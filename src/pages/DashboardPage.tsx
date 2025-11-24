@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const { toasts, removeToast } = useToast();
   const { refetch: refetchAccounts } = useAccountsStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [moduleUpdateTrigger, setModuleUpdateTrigger] = useState(0);
 
   // Preload gallery images
   const galleryImages = useMemo(() => [
@@ -36,12 +37,23 @@ export default function DashboardPage() {
   // Sincronizar bolsas con módulos dinámicos
   useModuleSync(pockets);
 
+  // Force re-render when pockets change to ensure modules are registered
+  useEffect(() => {
+    if (pockets.length > 0) {
+      // Small delay to ensure useModuleSync has completed
+      const timer = setTimeout(() => {
+        setModuleUpdateTrigger(prev => prev + 1);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [pockets]);
+
   const registeredModules = useMemo(() => {
     return moduleRegistry
       .getAllModules()
       .slice()
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  }, [pockets]);
+  }, [pockets, moduleUpdateTrigger]);
 
   const handleCardClick = useCallback((modalId: string) => {
     setActiveModal(modalId);
@@ -129,7 +141,7 @@ export default function DashboardPage() {
           />
 
           {registeredModules.length > 0 && (
-            <div className="mt-10 space-y-6">
+            <div className="mt-10 space-y-2">
               <FadeContent
                 blur={false}
                 duration={700}
@@ -142,7 +154,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between gap-4">
 
                   </div>
-                  <div className="space-y-6">
+                  <div className="space-y-2 ">
 
                     {registeredModules.map((module, index) => {
                       const pocket = pockets.find(p => p.id === module.pocketId);
