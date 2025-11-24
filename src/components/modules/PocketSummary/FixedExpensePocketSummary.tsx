@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
 import { ActivePocketSummary, FixedExpenseItem, Movement } from '@/lib/types';
-import { usePocketSummary } from './usePocketSummary';
 import CountUp from '@/components/ui/CountUp';
 import { useAccountsStore } from '@/hooks/useAccountsStore';
 import { supabase } from '@/lib/supabaseClient';
@@ -25,7 +24,6 @@ function EyeIcon({ isOpen }: { isOpen: boolean }) {
 }
 
 export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
-    const { format } = usePocketSummary(pocket);
     const { convertAmount } = useAccountsStore();
 
     // Estado para ítems y movimientos
@@ -33,6 +31,7 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
     const [movements, setMovements] = useState<Movement[]>([]);
     const [loading, setLoading] = useState(true);
     const [showManageModal, setShowManageModal] = useState(false);
+    const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
 
     // Moneda seleccionada (entre UYU y USD)
     const [selectedCurrency, setSelectedCurrency] = useState<string>(
@@ -45,45 +44,78 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
     const currencySymbol = selectedCurrency === 'USD' ? 'US$' : '$';
 
     // Fetch de datos
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
+    const fetchData = async () => {
+        try {
+            setLoading(true);
 
-                // 1. Obtener definiciones de gastos fijos
-                const { data: expensesData } = await supabase
-                    .from('fixed_expenses')
-                    .select('*')
-                    .eq('pocket_id', pocket.id);
+            // 1. Obtener definiciones de gastos fijos
+            const { data: expensesData } = await supabase
+                .from('fixed_expenses')
+                .select('*')
+                .eq('pocket_id', pocket.id);
 
-                if (expensesData) {
-                    setItems(expensesData as any);
-                }
-
-                // 2. Obtener movimientos del mes actual para este pocket
-                const startOfMonth = new Date();
-                startOfMonth.setDate(1);
-                startOfMonth.setHours(0, 0, 0, 0);
-
-                const { data: movementsData } = await supabase
-                    .from('movements' as any)
-                    .select('*')
-                    .eq('pocket_id', pocket.id)
-                    .gte('date', startOfMonth.toISOString());
-
-                if (movementsData) {
-                    setMovements(movementsData as any);
-                }
-
-            } catch (error) {
-                console.error('Error fetching fixed expenses:', error);
-            } finally {
-                setLoading(false);
+            if (expensesData) {
+                setItems(expensesData as any);
             }
-        };
 
+            // 2. Obtener movimientos del mes actual para este pocket
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+
+            const { data: movementsData } = await supabase
+                .from('movements' as any)
+                .select('*')
+                .eq('pocket_id', pocket.id)
+                .gte('date', startOfMonth.toISOString());
+
+            if (movementsData) {
+                setMovements(movementsData as any);
+            }
+
+        } catch (error) {
+            console.error('Error fetching fixed expenses:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchData();
     }, [pocket.id]);
+
+    // Función para marcar un gasto como pagado
+    const handlePayExpense = async (expense: FixedExpenseItem) => {
+        try {
+            setPayingExpenseId(expense.id);
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Usuario no autenticado');
+
+            // Crear un movimiento de tipo "fixed_expense"
+            const { error } = await supabase.from('movements' as any).insert({
+                user_id: user.id,
+                account_id: pocket.account_id,
+                pocket_id: pocket.id,
+                fixed_expense_id: expense.id,
+                type: 'fixed_expense',
+                amount: expense.amount,
+                currency: expense.currency,
+                description: `Pago ${expense.name}`,
+                date: new Date().toISOString(),
+            });
+
+            if (error) throw error;
+
+            // Refrescar datos
+            await fetchData();
+        } catch (error: any) {
+            console.error('Error paying expense:', error);
+            alert(`Error al registrar el pago: ${error.message}`);
+        } finally {
+            setPayingExpenseId(null);
+        }
+    };
 
     // Helper para convertir montos a la moneda elegida
     const toDisplay = (amount: number, currency: string): number => {
@@ -135,13 +167,25 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
                         <div className="text-xs opacity-50">No hay gastos definidos</div>
                     ) : (
                         processedItems.map((item) => (
-                            <div key={item.id} className="flex justify-between items-center text-[11px] group">
-                                <span className={`font-medium tracking-wide transition-colors ${item.isPaid ? 'text-green-400' : 'text-white/70 group-hover:text-white'}`}>
+                            <div key={item.id} className="flex justify-between items-center text-[11px] group gap-2">
+                                <span className={`font-medium tracking-wide transition-colors flex-1 ${item.isPaid ? 'text-green-400' : 'text-white/70 group-hover:text-white'}`}>
                                     {item.name.toUpperCase()}
                                 </span>
                                 <span className={`font-semibold ${item.isPaid ? 'text-green-400' : 'text-white/70'}`}>
                                     {currencySymbol}{Math.round(item.displayAmount)}
                                 </span>
+                                {!item.isPaid && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handlePayExpense(item);
+                                        }}
+                                        disabled={payingExpenseId === item.id}
+                                        className="ml-2 px-2 py-0.5 text-[9px] rounded-md bg-[#67F690]/20 text-[#67F690] border border-[#67F690]/40 hover:bg-[#67F690]/30 transition-colors disabled:opacity-50"
+                                    >
+                                        {payingExpenseId === item.id ? '...' : 'PAGAR'}
+                                    </button>
+                                )}
                             </div>
                         ))
                     )}
@@ -203,8 +247,8 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
                     pocket={pocket}
                     onClose={() => setShowManageModal(false)}
                     onSuccess={() => {
-                        // Forzar recarga de datos
-                        // Simple refresh for now, ideally use a callback to refetch
+                        fetchData();
+                        setShowManageModal(false);
                     }}
                 />
             )}
