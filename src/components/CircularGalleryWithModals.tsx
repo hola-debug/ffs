@@ -31,18 +31,12 @@ function CircularGalleryWithModals({
       image: '/AGRREGAR CUENTAS.webp',
       link: '#agregar-cuentas'
     },
-    {
-      image: '/AYUDA.webp',
-      link: '#ayuda'
-    },
+
     {
       image: '/CREAR BOLSAS.webp',
       link: '#crear-bolsas'
     },
-    {
-      image: '/NUEVO GASTO.webp',
-      link: '#nuevo-gasto'
-    }
+
   ], []);
 
   const handleCardClickInternal = useCallback((link: string) => {
