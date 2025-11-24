@@ -109,12 +109,12 @@ export default function DashboardPage() {
             >
               <div className="relative sm:h-[100px] md:h-[250px]">
                 <CircularGalleryWithModals
-                  bend={-0.5}
-                  textColor="#333333"
-                  borderRadius={0.05}
-                  scrollEase={0.4}
-                  scrollSpeed={10}
+                  bend={-0.1}
+                  borderRadius={0.1}
+                  scrollEase={0.002}
+                  scrollSpeed={20}
                   onCardClick={handleCardClick}
+
                 />
               </div>
             </FadeContent>
