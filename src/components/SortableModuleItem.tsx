@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ReactNode } from 'react';
+import { ReactNode, CSSProperties } from 'react';
 
 interface SortableModuleItemProps {
     id: string;
@@ -17,39 +17,70 @@ export function SortableModuleItem({ id, children }: SortableModuleItemProps) {
         isDragging,
     } = useSortable({ id });
 
-    const style = {
+    // Enhanced transform with scale effect during drag
+    const style: CSSProperties = {
         transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
+        transition: transition || 'transform 200ms ease',
+        // Enhanced shadow and elevation during drag
+        filter: isDragging ? 'brightness(1.05)' : undefined,
+        zIndex: isDragging ? 50 : undefined,
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="relative group">
-            {/* Drag Handle - Visible on hover */}
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            className={`
+        relative 
+        cursor-grab 
+        active:cursor-grabbing
+        touch-none
+        transition-all
+        duration-200
+        ${isDragging ? 'scale-[1.02] shadow-2xl opacity-90' : 'hover:scale-[1.005]'}
+      `}
+        >
+            {/* Visual indicator - subtle dots on the right side */}
             <div
-                {...attributes}
-                {...listeners}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/10 backdrop-blur-sm rounded-lg p-2 hover:bg-white/20"
-                title="Arrastra para reordenar"
+                className={`
+          absolute 
+          right-3 
+          top-1/2 
+          -translate-y-1/2 
+          z-10
+          pointer-events-none
+          transition-opacity 
+          duration-300
+          ${isDragging ? 'opacity-0' : 'opacity-0 group-hover:opacity-60'}
+        `}
             >
                 <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                 >
-                    <circle cx="5" cy="4" r="1.5" fill="currentColor" className="text-white/70" />
-                    <circle cx="11" cy="4" r="1.5" fill="currentColor" className="text-white/70" />
-                    <circle cx="5" cy="8" r="1.5" fill="currentColor" className="text-white/70" />
-                    <circle cx="11" cy="8" r="1.5" fill="currentColor" className="text-white/70" />
-                    <circle cx="5" cy="12" r="1.5" fill="currentColor" className="text-white/70" />
-                    <circle cx="11" cy="12" r="1.5" fill="currentColor" className="text-white/70" />
+                    <circle cx="6" cy="5" r="1.5" fill="currentColor" className="text-white/60" />
+                    <circle cx="14" cy="5" r="1.5" fill="currentColor" className="text-white/60" />
+                    <circle cx="6" cy="10" r="1.5" fill="currentColor" className="text-white/60" />
+                    <circle cx="14" cy="10" r="1.5" fill="currentColor" className="text-white/60" />
+                    <circle cx="6" cy="15" r="1.5" fill="currentColor" className="text-white/60" />
+                    <circle cx="14" cy="15" r="1.5" fill="currentColor" className="text-white/60" />
                 </svg>
             </div>
 
+            {/* Dragging overlay effect */}
+            {isDragging && (
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg pointer-events-none" />
+            )}
+
             {/* Module Content */}
-            {children}
+            <div className="relative z-0">
+                {children}
+            </div>
         </div>
     );
 }

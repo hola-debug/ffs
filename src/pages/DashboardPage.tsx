@@ -74,11 +74,13 @@ export default function DashboardPage() {
       .filter(Boolean) as typeof registeredModules;
   }, [registeredModules, orderedIds]);
 
-  // DnD sensors - pointer sensor with distance threshold to avoid conflicts with clicks
+  // DnD sensors - optimized for both desktop and mobile
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px of movement before drag starts
+        distance: 10, // Require 10px of movement before drag starts (prevents accidental drags)
+        delay: 100, // Small delay to distinguish between click and drag
+        tolerance: 5, // Tolerance for movement during delay
       },
     })
   );
