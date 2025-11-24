@@ -14,6 +14,10 @@ import DynamicModal from '../components/DynamicModal';
 import TotalBalance from '../components/TotalBalance';
 import { useAccountsStore } from '../hooks/useAccountsStore';
 import { PocketProjectionModule } from '../components/modules/PocketProjection';
+import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableModuleItem } from '../components/SortableModuleItem';
+import { useModuleOrder } from '../hooks/useModuleOrder';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -54,6 +58,39 @@ export default function DashboardPage() {
       .slice()
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }, [pockets, moduleUpdateTrigger]);
+
+  // Get module IDs for ordering
+  const moduleIds = useMemo(() => registeredModules.map(m => m.id), [registeredModules]);
+
+  // Module ordering hook
+  const { orderedIds, handleReorder } = useModuleOrder(moduleIds);
+
+  // Order modules according to user preference
+  const orderedModules = useMemo(() => {
+    if (orderedIds.length === 0) return registeredModules;
+
+    return orderedIds
+      .map(id => registeredModules.find(m => m.id === id))
+      .filter(Boolean) as typeof registeredModules;
+  }, [registeredModules, orderedIds]);
+
+  // DnD sensors - pointer sensor with distance threshold to avoid conflicts with clicks
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before drag starts
+      },
+    })
+  );
+
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      handleReorder(active.id as string, over.id as string);
+    }
+  };
 
   const handleCardClick = useCallback((modalId: string) => {
     setActiveModal(modalId);
@@ -140,7 +177,7 @@ export default function DashboardPage() {
             pockets={pockets}
           />
 
-          {registeredModules.length > 0 && (
+          {orderedModules.length > 0 && (
             <div className="space-y-1 pb-1">
               <FadeContent
                 blur={false}
@@ -154,32 +191,44 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between gap-4">
 
                   </div>
-                  <div className="space-y-2 ">
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={orderedModules.map(m => m.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-2">
+                        {orderedModules.map((module, index) => {
+                          const pocket = pockets.find(p => p.id === module.pocketId);
+                          if (!pocket) return null;
+                          const ModuleComponent = module.component;
 
-                    {registeredModules.map((module, index) => {
-                      const pocket = pockets.find(p => p.id === module.pocketId);
-                      if (!pocket) return null;
-                      const ModuleComponent = module.component;
-
-                      return (
-                        <FadeContent
-                          key={module.id}
-                          blur={false}
-                          duration={600}
-                          easing="ease-out"
-                          initialOpacity={0}
-                          threshold={0.3}
-                          delay={250 + index * 60}
-                        >
-                          <ModuleComponent
-                            pocket={pocket}
-                            pockets={pockets}
-                            onRefresh={refetch}
-                          />
-                        </FadeContent>
-                      );
-                    })}
-                  </div>
+                          return (
+                            <FadeContent
+                              key={module.id}
+                              blur={false}
+                              duration={600}
+                              easing="ease-out"
+                              initialOpacity={0}
+                              threshold={0.3}
+                              delay={250 + index * 60}
+                            >
+                              <SortableModuleItem id={module.id}>
+                                <ModuleComponent
+                                  pocket={pocket}
+                                  pockets={pockets}
+                                  onRefresh={refetch}
+                                />
+                              </SortableModuleItem>
+                            </FadeContent>
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 </div>
               </FadeContent>
             </div>
