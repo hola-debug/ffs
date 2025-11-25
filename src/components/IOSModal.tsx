@@ -1,4 +1,5 @@
 import { memo, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import GlassField, { GlassSelect } from './GlassField';
 
@@ -78,12 +79,10 @@ interface IOSModalProps {
 
 function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) {
   const [isClosing, setIsClosing] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      setMounted(true);
       setIsClosing(false);
     } else {
       document.body.style.overflow = '';
@@ -114,7 +113,7 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
     padding: '1rem',
   };
 
-  return (
+  const modalContent = (
     <>
       <div
         className={isClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'}
@@ -185,6 +184,8 @@ function IOSModalComponent({ isOpen, onClose, title, children }: IOSModalProps) 
       </div>
     </>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
 export default memo(IOSModalComponent);

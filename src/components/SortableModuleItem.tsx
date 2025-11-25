@@ -1,13 +1,20 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { ReactNode, CSSProperties } from 'react';
+import { ReactNode, CSSProperties, useRef } from 'react';
 
 interface SortableModuleItemProps {
     id: string;
     children: ReactNode;
+    isEditMode: boolean;
+    onEnableEditMode: () => void;
 }
 
-export function SortableModuleItem({ id, children }: SortableModuleItemProps) {
+export function SortableModuleItem({
+    id,
+    children,
+    isEditMode,
+    onEnableEditMode,
+}: SortableModuleItemProps) {
     const {
         attributes,
         listeners,
@@ -15,18 +22,43 @@ export function SortableModuleItem({ id, children }: SortableModuleItemProps) {
         transform,
         transition,
         isDragging,
-    } = useSortable({ id });
+    } = useSortable({ id, disabled: !isEditMode });
+
+    const timeoutRef = useRef<number | null>(null);
+    const pressedRef = useRef(false);
 
     const style: CSSProperties = {
-        // ✅ CSS.Translate es más rápido que CSS.Transform
         transform: transform ? CSS.Translate.toString(transform) : undefined,
-        // ✅ Sin transición durante drag para evitar vibración
         transition: isDragging ? undefined : transition,
-        // ✅ willChange optimiza el rendering del navegador
         willChange: isDragging ? 'transform' : undefined,
         zIndex: isDragging ? 10 : undefined,
-        // ✅ Necesario para que funcione touch en mobile
         touchAction: 'none',
+    };
+
+    // --- LONG PRESS (para entrar en edit mode) ---
+    const startLongPress = (e: React.PointerEvent) => {
+        // Si ya estamos en editMode, que el overlay no moleste
+        if (isEditMode) return;
+
+        pressedRef.current = true;
+
+        // Evitamos que se dispare click raro al soltar
+        e.preventDefault();
+
+        // 700–800ms se siente más “iOS” que 2000ms
+        timeoutRef.current = window.setTimeout(() => {
+            if (!pressedRef.current) return;
+            onEnableEditMode();
+            // Una vez entra en edit mode, el overlay pasa a pointer-events:none
+        }, 800);
+    };
+
+    const cancelLongPress = () => {
+        pressedRef.current = false;
+        if (timeoutRef.current !== null) {
+            window.clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
     };
 
     return (
@@ -34,16 +66,27 @@ export function SortableModuleItem({ id, children }: SortableModuleItemProps) {
             ref={setNodeRef}
             style={style}
             {...attributes}
-            {...listeners} // 👉 manejamos drag directamente en el wrapper
+            {...(isEditMode ? listeners : {})} // 👈 listeners sólo en edit mode
             className={`
         relative
-        cursor-grab
-        active:cursor-grabbing
         transition-transform
         duration-200
         ${isDragging ? 'scale-[1.02] shadow-2xl opacity-90' : 'hover:scale-[1.005]'}
+        ${isEditMode && !isDragging ? 'animate-jiggle cursor-grab' : ''}
       `}
         >
+            {/* Overlay para detectar long-press cuando NO estamos en edit mode */}
+            <div
+                className={`
+          absolute inset-0 z-20
+          ${isEditMode ? 'pointer-events-none' : 'cursor-pointer'}
+        `}
+                onPointerDown={startLongPress}
+                onPointerUp={cancelLongPress}
+                onPointerLeave={cancelLongPress}
+                onPointerCancel={cancelLongPress}
+            />
+
             {/* Overlay visual cuando se está arrastrando */}
             {isDragging && (
                 <div className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10" />

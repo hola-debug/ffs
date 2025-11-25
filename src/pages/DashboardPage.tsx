@@ -24,6 +24,17 @@ export default function DashboardPage() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalData, setModalData] = useState<{ pocketId?: string }>({});
   const [moduleUpdateTrigger, setModuleUpdateTrigger] = useState(0);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const enableEditMode = useCallback(() => {
+    setIsEditMode(true);
+    // Optional: Add haptic feedback here if available
+    if (navigator.vibrate) navigator.vibrate(50);
+  }, []);
+
+  const disableEditMode = useCallback(() => {
+    setIsEditMode(false);
+  }, []);
 
   // Preload gallery images
   const galleryImages = useMemo(() => [
@@ -142,7 +153,15 @@ export default function DashboardPage() {
       <Header />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <div className="min-h-screen w-full overflow-x-hidden box-border pt-20 px-1">
+      <div
+        className="min-h-screen w-full overflow-x-hidden box-border pt-20 px-1"
+        onClick={(e) => {
+          // If clicking the background and in edit mode, exit edit mode
+          if (isEditMode && e.target === e.currentTarget) {
+            disableEditMode();
+          }
+        }}
+      >
         <div className="max-w-4xl mx-auto w-full">
           <div className="relative z-10">
             <FadeContent
@@ -227,7 +246,11 @@ export default function DashboardPage() {
                               threshold={0.3}
                               delay={250 + index * 60}
                             >
-                              <SortableModuleItem id={module.id}>
+                              <SortableModuleItem
+                                id={module.id}
+                                isEditMode={isEditMode}
+                                onEnableEditMode={enableEditMode}
+                              >
                                 <ModuleComponent
                                   pocket={pocket}
                                   pockets={pockets}
