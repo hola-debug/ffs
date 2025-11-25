@@ -11,7 +11,8 @@ import { useImagePreload } from '../hooks/useImagePreload';
 import DynamicModal from '../components/DynamicModal';
 import TotalBalance from '../components/TotalBalance';
 import { useAccountsStore } from '../hooks/useAccountsStore';
-import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableModuleItem } from '../components/SortableModuleItem';
 import { useModuleOrder } from '../hooks/useModuleOrder';
@@ -74,6 +75,11 @@ export default function DashboardPage() {
   // DnD sensors - optimized for both desktop and mobile
   const sensors = useSensors(
     useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
       activationConstraint: {
         distance: 8,
       },
@@ -199,6 +205,7 @@ export default function DashboardPage() {
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={handleDragEnd}
+                    modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
                   >
                     <SortableContext
                       items={orderedModules.map(m => m.id)}

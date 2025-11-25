@@ -18,13 +18,15 @@ export function SortableModuleItem({ id, children }: SortableModuleItemProps) {
     } = useSortable({ id });
 
     const style: CSSProperties = {
-        // Aseguramos que no explote si transform es null
-        transform: transform ? CSS.Transform.toString(transform) : undefined,
-        // Cuando estás arrastrando, conviene quitar la transición para que no se vea “elástica”
-        transition: isDragging ? undefined : transition ?? 'transform 200ms ease',
-        filter: isDragging ? 'brightness(1.05)' : undefined,
+        // ✅ CSS.Translate es más rápido que CSS.Transform
+        transform: transform ? CSS.Translate.toString(transform) : undefined,
+        // ✅ Sin transición durante drag para evitar vibración
+        transition: isDragging ? undefined : transition,
+        // ✅ willChange optimiza el rendering del navegador
+        willChange: isDragging ? 'transform' : undefined,
         zIndex: isDragging ? 10 : undefined,
-        touchAction: 'none', // importante para mobile, evita scroll raro
+        // ✅ Necesario para que funcione touch en mobile
+        touchAction: 'none',
     };
 
     return (
