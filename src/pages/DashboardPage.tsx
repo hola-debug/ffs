@@ -240,39 +240,39 @@ export default function DashboardPage() {
                       items={orderedModules.map(m => m.id)}
                       strategy={verticalListSortingStrategy}
                     >
-                      <div className="space-y-2">
-                        {orderedModules.map((module, index) => {
-                          const pocket = pockets.find(p => p.id === module.pocketId);
-                          if (!pocket) return null;
-                          const ModuleComponent = module.component;
 
-                          return (
-                            <FadeContent
-                              key={module.id}
-                              blur={false}
-                              duration={600}
-                              easing="ease-out"
-                              initialOpacity={0}
-                              threshold={0.3}
-                              delay={250 + index * 60}
+                      <div className="flex flex-col gap-2">{orderedModules.map((module, index) => {
+                        const pocket = pockets.find(p => p.id === module.pocketId);
+                        if (!pocket) return null;
+                        const ModuleComponent = module.component;
+
+                        return (
+                          <FadeContent
+                            key={module.id}
+                            blur={false}
+                            duration={600}
+                            easing="ease-out"
+                            initialOpacity={0}
+                            threshold={0.3}
+                            delay={250 + index * 60}
+                          >
+                            <SortableModuleItem
+                              id={module.id}
+                              isEditMode={isEditMode}
+                              onEnableEditMode={enableEditMode}
+                              onDisableEditMode={disableEditMode}
+                              index={index}
                             >
-                              <SortableModuleItem
-                                id={module.id}
-                                isEditMode={isEditMode}
-                                onEnableEditMode={enableEditMode}
-                                onDisableEditMode={disableEditMode}
-                                index={index}
-                              >
-                                <ModuleComponent
-                                  pocket={pocket}
-                                  pockets={pockets}
-                                  onRefresh={refetch}
-                                  openModal={openModal}
-                                />
-                              </SortableModuleItem>
-                            </FadeContent>
-                          );
-                        })}
+                              <ModuleComponent
+                                pocket={pocket}
+                                pockets={pockets}
+                                onRefresh={refetch}
+                                openModal={openModal}
+                              />
+                            </SortableModuleItem>
+                          </FadeContent>
+                        );
+                      })}
                       </div>
                     </SortableContext>
 
@@ -300,8 +300,8 @@ export default function DashboardPage() {
               </FadeContent>
             </div>
           )}
-        </div>
-      </div>
+        </div >
+      </div >
     </>
   );
 }

@@ -57,8 +57,8 @@ export function SortableModuleItem({
         transition: isDragging ? undefined : transition,
         willChange: isDragging ? 'transform' : undefined,
         zIndex: isDragging ? 10 : undefined,
-        touchAction: 'none',
-        opacity: isDragging ? 0 : 1, // dejar hueco libre mientras usamos el DragOverlay
+        touchAction: isEditMode ? 'none' : 'manipulation',
+        visibility: isDragging ? 'hidden' : 'visible', // dejar hueco libre mientras usamos el DragOverlay
         animationDelay: isEditMode && !isDragging ? `${index * 40}ms` : undefined,
     };
 
@@ -79,7 +79,7 @@ export function SortableModuleItem({
 
         if (!isEditMode) {
             pressedRef.current = true;
-            e.preventDefault();
+            // e.preventDefault(); // Removed to allow clicks to propagate
             timeoutRef.current = window.setTimeout(() => {
                 if (!pressedRef.current) return;
                 enableEditMode();
@@ -156,15 +156,8 @@ export function SortableModuleItem({
         ${isEditMode && !isDragging ? 'edit-mode-active cursor-grab' : ''}
       `}
         >
-            {/* Overlay para detectar long-press cuando NO estamos en edit mode */}
-            <div
-                className={`
-          absolute inset-0 z-20
-          ${isEditMode ? 'pointer-events-none' : 'cursor-pointer'}
-        `}
-                style={{ touchAction: 'none' }}
-                onContextMenu={(e) => e.preventDefault()}
-            />
+            {/* Overlay eliminado para permitir clicks en el contenido */}
+            {/* El long-press se detecta en el div contenedor */}
 
             {/* Overlay visual cuando se está arrastrando */}
             {isDragging && (
