@@ -11,7 +11,7 @@ import { useImagePreload } from '../hooks/useImagePreload';
 import DynamicModal from '../components/DynamicModal';
 import TotalBalance from '../components/TotalBalance';
 import { useAccountsStore } from '../hooks/useAccountsStore';
-import { DndContext, closestCenter, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, DragEndEvent, DragStartEvent, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableModuleItem } from '../components/SortableModuleItem';
@@ -25,11 +25,10 @@ export default function DashboardPage() {
   const [modalData, setModalData] = useState<{ pocketId?: string }>({});
   const [moduleUpdateTrigger, setModuleUpdateTrigger] = useState(0);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const enableEditMode = useCallback(() => {
     setIsEditMode(true);
-    // Optional: Add haptic feedback here if available
-    if (navigator.vibrate) navigator.vibrate(50);
   }, []);
 
   const disableEditMode = useCallback(() => {
@@ -87,12 +86,12 @@ export default function DashboardPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
     })
   );
@@ -100,10 +99,19 @@ export default function DashboardPage() {
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (over && active.id !== over.id) {
       handleReorder(active.id as string, over.id as string);
     }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
   };
 
   const handleCardClick = useCallback((modalId: string) => {
@@ -223,7 +231,9 @@ export default function DashboardPage() {
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
+                    onDragCancel={handleDragCancel}
                     modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
                   >
                     <SortableContext
@@ -250,6 +260,8 @@ export default function DashboardPage() {
                                 id={module.id}
                                 isEditMode={isEditMode}
                                 onEnableEditMode={enableEditMode}
+                                onDisableEditMode={disableEditMode}
+                                index={index}
                               >
                                 <ModuleComponent
                                   pocket={pocket}
@@ -263,6 +275,26 @@ export default function DashboardPage() {
                         })}
                       </div>
                     </SortableContext>
+
+                    <DragOverlay dropAnimation={null}>
+                      {activeId && (() => {
+                        const module = orderedModules.find(m => m.id === activeId);
+                        if (!module) return null;
+                        const pocket = pockets.find(p => p.id === module.pocketId);
+                        if (!pocket) return null;
+                        const ModuleComponent = module.component;
+                        return (
+                          <div className="pointer-events-none">
+                            <ModuleComponent
+                              pocket={pocket}
+                              pockets={pockets}
+                              onRefresh={refetch}
+                              openModal={openModal}
+                            />
+                          </div>
+                        );
+                      })()}
+                    </DragOverlay>
                   </DndContext>
                 </div>
               </FadeContent>
