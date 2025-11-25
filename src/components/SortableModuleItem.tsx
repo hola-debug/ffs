@@ -153,7 +153,7 @@ export function SortableModuleItem({
         transition-transform
         duration-200
         ${isDragging ? 'scale-[1.02] shadow-2xl opacity-90' : 'hover:scale-[1.005]'}
-        ${isEditMode && !isDragging ? 'animate-jiggle cursor-grab' : ''}
+        ${isEditMode && !isDragging ? 'edit-mode-active cursor-grab' : ''}
       `}
         >
             {/* Overlay para detectar long-press cuando NO estamos en edit mode */}
