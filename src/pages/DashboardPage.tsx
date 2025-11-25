@@ -1,6 +1,4 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useToast } from '../hooks/useToast';
@@ -13,14 +11,12 @@ import { useImagePreload } from '../hooks/useImagePreload';
 import DynamicModal from '../components/DynamicModal';
 import TotalBalance from '../components/TotalBalance';
 import { useAccountsStore } from '../hooks/useAccountsStore';
-import { PocketProjectionModule } from '../components/modules/PocketProjection';
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableModuleItem } from '../components/SortableModuleItem';
 import { useModuleOrder } from '../hooks/useModuleOrder';
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
   const { loading, error, pockets, refetch } = useDashboardData();
   const { toasts, removeToast } = useToast();
   const { refetch: refetchAccounts } = useAccountsStore();
@@ -78,9 +74,7 @@ export default function DashboardPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 10, // Require 10px of movement before drag starts (prevents accidental drags)
-        delay: 100, // Small delay to distinguish between click and drag
-        tolerance: 5, // Tolerance for movement during delay
+        distance: 8,
       },
     })
   );
@@ -107,11 +101,6 @@ export default function DashboardPage() {
     refetch();
     refetchAccounts();
   }, [refetch, refetchAccounts]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
 
   if (error) {
     return (

@@ -30,10 +30,20 @@ export function useModuleOrder(moduleIds: string[]) {
     }
   }, [moduleIds.join(',')]);
 
-  // Save order to localStorage
+  // Save order to localStorage with debounce
+  useEffect(() => {
+    if (orderedIds.length === 0) return;
+
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(orderedIds));
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [orderedIds]);
+
+  // Update state without immediate save
   const saveOrder = useCallback((newOrder: string[]) => {
     setOrderedIds(newOrder);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
   }, []);
 
   // Handle reorder when drag ends
@@ -47,9 +57,6 @@ export function useModuleOrder(moduleIds: string[]) {
       const newOrder = [...current];
       newOrder.splice(oldIndex, 1);
       newOrder.splice(newIndex, 0, activeId);
-
-      // Save to localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newOrder));
 
       return newOrder;
     });

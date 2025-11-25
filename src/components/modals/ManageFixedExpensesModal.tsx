@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { ActivePocketSummary, FixedExpenseItem } from '@/lib/types';
 import { useToast } from '@/hooks/useToast';
@@ -94,7 +95,7 @@ export default function ManageFixedExpensesModal({ pocket, onClose, onSuccess }:
         }
     };
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="w-full max-w-md bg-[#1E1E1E] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
                 {/* Header */}
@@ -173,6 +174,7 @@ export default function ManageFixedExpensesModal({ pocket, onClose, onSuccess }:
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
