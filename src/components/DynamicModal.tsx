@@ -7,20 +7,29 @@ const AddAccountModal = lazy(() => import('@/components/modals/AddAccountModal')
 const PocketEditor = lazy(() => import('@/components/modals/PocketEditor'));
 const AddExpenseModal = lazy(() => import('@/components/modals/AddExpenseModal'));
 const HelpModal = lazy(() => import('@/components/modals/HelpModal'));
+const ManageFixedExpensesModal = lazy(() => import('@/components/modals/ManageFixedExpensesModal'));
 
 interface DynamicModalProps {
   activeModal: string | null;
   onClose: () => void;
   onSuccess: () => void;
   pockets: ActivePocketSummary[];
+  modalData?: {
+    pocketId?: string;
+  };
 }
 
 /**
  * DynamicModal - Only renders the active modal, improving performance
  * Uses React.lazy for code splitting
  */
-export default function DynamicModal({ activeModal, onClose, onSuccess, pockets }: DynamicModalProps) {
+export default function DynamicModal({ activeModal, onClose, onSuccess, pockets, modalData }: DynamicModalProps) {
   if (!activeModal) return null;
+
+  // Find the specific pocket if modalData.pocketId is provided
+  const targetPocket = modalData?.pocketId
+    ? pockets.find(p => p.id === modalData.pocketId)
+    : undefined;
 
   return (
     <Suspense fallback={null}>
@@ -62,6 +71,24 @@ export default function DynamicModal({ activeModal, onClose, onSuccess, pockets 
         <HelpModal
           isOpen={true}
           onClose={onClose}
+        />
+      )}
+
+      {/* Module-specific modals */}
+      {activeModal === 'add-expense-to-pocket' && targetPocket && (
+        <AddExpenseModal
+          isOpen={true}
+          onClose={onClose}
+          onSuccess={onSuccess}
+          expensePockets={[targetPocket]}
+        />
+      )}
+
+      {activeModal === 'manage-fixed-expenses' && targetPocket && (
+        <ManageFixedExpensesModal
+          pocket={targetPocket}
+          onClose={onClose}
+          onSuccess={onSuccess}
         />
       )}
     </Suspense>

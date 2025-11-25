@@ -6,6 +6,7 @@ import AddSavingModal from '../../modals/AddSavingModal';
 
 interface PocketSummaryProps {
   pocket: ActivePocketSummary;
+  openModal?: (modalId: string, data?: { pocketId?: string }) => void;
 }
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;

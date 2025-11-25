@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const { toasts, removeToast } = useToast();
   const { refetch: refetchAccounts } = useAccountsStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [modalData, setModalData] = useState<{ pocketId?: string }>({});
   const [moduleUpdateTrigger, setModuleUpdateTrigger] = useState(0);
 
   // Preload gallery images
@@ -94,13 +95,24 @@ export default function DashboardPage() {
 
   const handleModalClose = useCallback(() => {
     setActiveModal(null);
+    setModalData({});
   }, []);
 
   const handleModalSuccess = useCallback(() => {
     setActiveModal(null);
+    setModalData({});
     refetch();
     refetchAccounts();
   }, [refetch, refetchAccounts]);
+
+  // Helper function for modules to open modals
+  const openModal = useCallback((modalId: string, data?: { pocketId?: string }) => {
+    setActiveModal(modalId);
+    if (data) {
+      setModalData(data);
+    }
+  }, []);
+
 
   if (error) {
     return (
@@ -166,6 +178,7 @@ export default function DashboardPage() {
             onClose={handleModalClose}
             onSuccess={handleModalSuccess}
             pockets={pockets}
+            modalData={modalData}
           />
 
           {orderedModules.length > 0 && (
@@ -212,6 +225,7 @@ export default function DashboardPage() {
                                   pocket={pocket}
                                   pockets={pockets}
                                   onRefresh={refetch}
+                                  openModal={openModal}
                                 />
                               </SortableModuleItem>
                             </FadeContent>

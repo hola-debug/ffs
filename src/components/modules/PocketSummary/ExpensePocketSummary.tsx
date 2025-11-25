@@ -5,10 +5,10 @@ import CountUp from '@/components/ui/CountUp';
 import { usePocketSummary } from './usePocketSummary';
 import { useAccountsStore } from '@/hooks/useAccountsStore';
 import { supabase } from '@/lib/supabaseClient';
-import AddExpenseModal from '@/components/modals/AddExpenseModal';
 
 interface PocketSummaryProps {
   pocket: ActivePocketSummary;
+  openModal?: (modalId: string, data?: { pocketId?: string }) => void;
 }
 
 interface DailyProjection {
@@ -31,14 +31,13 @@ function EyeIcon({ isOpen }: { isOpen: boolean }) {
   );
 }
 
-export const ExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
+export const ExpensePocketSummary = ({ pocket, openModal }: PocketSummaryProps) => {
   const { format } = usePocketSummary(pocket);
   const { convertAmount } = useAccountsStore();
 
   // Estado para movimientos
   const [movements, setMovements] = useState<Movement[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(true);
-  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
 
   // Moneda seleccionada (entre UYU y USD)
   const [selectedCurrency, setSelectedCurrency] = useState<string>(
@@ -283,7 +282,7 @@ export const ExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
             {/* Header - Clickeable para agregar gasto */}
             <div
               className="mb-4 cursor-pointer group/header hover:opacity-80 transition-opacity"
-              onClick={() => setShowAddExpenseModal(true)}
+              onClick={() => openModal?.('add-expense-to-pocket', { pocketId: pocket.id })}
             >
               <p className="text-[10px] uppercase tracking-[0.25em] opacity-70 mb-1">
                 {pocket.name}
@@ -349,19 +348,6 @@ export const ExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
             </div>
           </div>
         </>
-      )}
-
-      {/* Modal para agregar gastos */}
-      {showAddExpenseModal && (
-        <AddExpenseModal
-          isOpen={showAddExpenseModal}
-          onClose={() => setShowAddExpenseModal(false)}
-          onSuccess={() => {
-            fetchMovements();
-            setShowAddExpenseModal(false);
-          }}
-          expensePockets={[pocket]}
-        />
       )}
     </div>
   );

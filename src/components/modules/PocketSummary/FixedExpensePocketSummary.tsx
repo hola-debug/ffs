@@ -3,10 +3,10 @@ import { ActivePocketSummary, FixedExpenseItem, Movement } from '@/lib/types';
 import CountUp from '@/components/ui/CountUp';
 import { useAccountsStore } from '@/hooks/useAccountsStore';
 import { supabase } from '@/lib/supabaseClient';
-import ManageFixedExpensesModal from '@/components/modals/ManageFixedExpensesModal';
 
 interface PocketSummaryProps {
     pocket: ActivePocketSummary;
+    openModal?: (modalId: string, data?: { pocketId?: string }) => void;
 }
 
 // Icono del ojo
@@ -23,14 +23,13 @@ function EyeIcon({ isOpen }: { isOpen: boolean }) {
     );
 }
 
-export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
+export const FixedExpensePocketSummary = ({ pocket, openModal }: PocketSummaryProps) => {
     const { convertAmount } = useAccountsStore();
 
     // Estado para ítems y movimientos
     const [items, setItems] = useState<FixedExpenseItem[]>([]);
     const [movements, setMovements] = useState<Movement[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showManageModal, setShowManageModal] = useState(false);
     const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
 
     // Moneda seleccionada (entre UYU y USD)
@@ -200,7 +199,7 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                 }}
-                onClick={() => setShowManageModal(true)}
+                onClick={() => openModal?.('manage-fixed-expenses', { pocketId: pocket.id })}
             >
                 {/* Overlay oscuro para mejorar legibilidad */}
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
@@ -241,17 +240,6 @@ export const FixedExpensePocketSummary = ({ pocket }: PocketSummaryProps) => {
                     </p>
                 </div>
             </div>
-
-            {showManageModal && (
-                <ManageFixedExpensesModal
-                    pocket={pocket}
-                    onClose={() => setShowManageModal(false)}
-                    onSuccess={() => {
-                        fetchData();
-                        setShowManageModal(false);
-                    }}
-                />
-            )}
         </div>
     );
 };

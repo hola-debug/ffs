@@ -8,6 +8,7 @@ interface PocketProjectionModuleProps {
   pockets?: ActivePocketSummary[];
   pocket?: ActivePocketSummary;
   onRefresh?: () => void;
+  openModal?: (modalId: string, data?: { pocketId?: string }) => void;
 }
 
 interface DailyProjection {
@@ -26,20 +27,20 @@ export function PocketProjectionModule({ pockets, pocket, onRefresh }: PocketPro
 
     const dailyAllowance = Number(activeExpensePocket.daily_allowance) || 0;
     const allocatedAmount = Number(activeExpensePocket.allocated_amount) || 0;
-    
+
     // Parsear fechas
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const startsAt = new Date(activeExpensePocket.starts_at);
     startsAt.setHours(0, 0, 0, 0);
-    
+
     const endsAt = new Date(activeExpensePocket.ends_at);
     endsAt.setHours(0, 0, 0, 0);
-    
+
     // Calcular días disponibles sin exceder ends_at
     const maxDays = Math.max(0, Math.ceil((endsAt.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-    
+
     const projectionsList: DailyProjection[] = [];
     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -47,18 +48,18 @@ export function PocketProjectionModule({ pockets, pocket, onRefresh }: PocketPro
     for (let i = 0; i <= maxDays; i++) {
       const projectionDate = new Date(today);
       projectionDate.setDate(today.getDate() + i);
-      
+
       // No exceder ends_at
       if (projectionDate > endsAt) break;
-      
+
       // Calcular días desde el inicio de la bolsa hasta la fecha de proyección
       const daysFromStart = Math.ceil((projectionDate.getTime() - startsAt.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       // Saldo teórico acumulado: (daily_allowance * días desde inicio) - gastos realizados
       // Los gastos realizados = allocated_amount - current_balance
       const spentAmount = allocatedAmount - Number(activeExpensePocket.current_balance);
       const accumulatedBalance = (dailyAllowance * daysFromStart) - spentAmount;
-      
+
       projectionsList.push({
         date: projectionDate.toISOString().split('T')[0],
         day_name: dayNames[projectionDate.getDay()],
@@ -76,19 +77,19 @@ export function PocketProjectionModule({ pockets, pocket, onRefresh }: PocketPro
     const dailyAllowance = Number(activeExpensePocket.daily_allowance) || 0;
     const allocatedAmount = Number(activeExpensePocket.allocated_amount) || 0;
     const currentBalance = Number(activeExpensePocket.current_balance) || 0;
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const startsAt = new Date(activeExpensePocket.starts_at);
     startsAt.setHours(0, 0, 0, 0);
-    
+
     // Días desde el inicio hasta hoy
     const daysFromStart = Math.ceil((today.getTime() - startsAt.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     // Gastos realizados
     const spentAmount = allocatedAmount - currentBalance;
-    
+
     // Saldo acumulado hoy: (daily_allowance * días desde inicio) - gastos realizados
     return (dailyAllowance * daysFromStart) - spentAmount;
   }, [activeExpensePocket]);
@@ -162,9 +163,8 @@ export function PocketProjectionModule({ pockets, pocket, onRefresh }: PocketPro
                       const monthNum = projDate.getMonth() + 1;
                       return (
                         <div
-                          className={`flex justify-between items-center ${
-                            isToday ? 'border px-2 -mx-2 rounded' : 'py-0'
-                          }`}
+                          className={`flex justify-between items-center ${isToday ? 'border px-2 -mx-2 rounded' : 'py-0'
+                            }`}
                           style={isToday ? { borderColor: '#FF0000' } : undefined}
                         >
                           <span className="text-[10px] sm:text-xs tracking-wide font-medium">

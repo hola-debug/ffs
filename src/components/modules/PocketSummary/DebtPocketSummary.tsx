@@ -5,6 +5,7 @@ import { PocketSummaryCard } from './PocketSummaryCard';
 
 interface PocketSummaryProps {
   pocket: ActivePocketSummary;
+  openModal?: (modalId: string, data?: { pocketId?: string }) => void;
 }
 
 export const DebtPocketSummary = ({ pocket }: PocketSummaryProps) => {

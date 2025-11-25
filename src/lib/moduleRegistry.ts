@@ -5,8 +5,13 @@ export interface RegisteredModule {
   pocketId: string;
   type: 'expense' | 'saving' | 'debt';
   name: string;
-  // El componente debe aceptar al menos la prop 'pocket' y opcionalmente 'pockets'
-  component: React.ComponentType<{ pocket: ActivePocketSummary; pockets?: ActivePocketSummary[]; onRefresh?: () => void }>;
+  // El componente debe aceptar al menos la prop 'pocket' y opcionalmente 'pockets', 'onRefresh', 'openModal'
+  component: React.ComponentType<{ 
+    pocket: ActivePocketSummary; 
+    pockets?: ActivePocketSummary[]; 
+    onRefresh?: () => void;
+    openModal?: (modalId: string, data?: { pocketId?: string }) => void;
+  }>;
   createdAt: Date;
 }
 
