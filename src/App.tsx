@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'motion/react';
 import { AuthProvider } from './contexts/AuthContext';
 import { useSupabaseUser } from './hooks/useSupabaseUser';
@@ -10,7 +10,8 @@ import OnboardingPage from './pages/OnboardingPage';
 import PocketDetailPage from './pages/PocketDetailPage';
 import FFSPreloader from './components/preloaders/FFSPreloader';
 import TransactionsPage from './pages/TransactionsPage';
-import RestoPage from './pages/RestoPage';
+
+import InvoiceAIPage from './pages/InvoiceAIPage';
 import { preloaderManager } from './utils/PreloaderManager';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -90,7 +91,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AccountsProvider>
-        <BrowserRouter>
+        <Router>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route
@@ -129,13 +130,13 @@ export default function App() {
               path="/app/resto/*"
               element={
                 <ProtectedRoute>
-                  <RestoPage />
+                  <InvoiceAIPage />
                 </ProtectedRoute>
               }
             />
             <Route path="*" element={<Navigate to="/app" replace />} />
           </Routes>
-        </BrowserRouter>
+        </Router>
       </AccountsProvider>
     </AuthProvider>
   );

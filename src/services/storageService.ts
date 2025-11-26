@@ -7,7 +7,7 @@ export const storageService = {
       .from('invoices')
       .upload(path, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: true // Allow overwriting existing files
       });
 
     if (error) throw error;

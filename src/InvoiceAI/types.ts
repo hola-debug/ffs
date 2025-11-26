@@ -5,9 +5,12 @@ export interface InvoiceItem {
   unitPrice: number;
   total: number;
   linkedInventoryId?: string; // ID of the inventory item this maps to
+  unitType?: string; // Unit type (kg, liters, units, etc.)
 }
 
-export type InvoiceCategory = 'Materia Prima' | 'Insumos' | 'Servicios' | 'Mantenimiento' | 'Impuestos' | 'Otros';
+export type InvoiceCategory = 'Materials' | 'Supplies' | 'Services' | 'Maintenance' | 'Taxes' | 'Other';
+export type CompanyType = 'restaurant' | 'warehouse' | 'transport' | 'retail' | 'services' | 'other';
+export type StockStatus = 'available' | 'low' | 'depleted';
 
 export interface Invoice {
   id: string;
@@ -23,6 +26,8 @@ export interface Invoice {
   createdAt: number;
   isSmartMatch?: boolean; // Flag to indicate if vendor template was applied
   matchedOrderId?: string; // ID of the purchase order this invoice fulfills
+  suggestedCompanyType?: CompanyType; // AI-suggested company type
+  detectedUnits?: string[]; // AI-detected unit types
 }
 
 export interface ReferencePrice {
@@ -49,6 +54,8 @@ export interface InventoryItem {
   unit: string;
   category: string;
   minStock: number;
+  stockStatus?: StockStatus;
+  unitPrice?: number;
 }
 
 export interface PurchaseOrder {
@@ -70,6 +77,37 @@ export interface UploadJob {
   error?: string;
 }
 
-export type AppView = 'dashboard' | 'upload' | 'review' | 'prices' | 'inventory' | 'orders';
+export type AppView = 'dashboard' | 'upload' | 'review' | 'inventory' | 'orders';
 
 export type PriceStatus = 'ok' | 'low' | 'high' | 'unknown';
+
+// New types for generic invoice system
+export interface Company {
+  id: string;
+  owner_id: string;
+  name: string;
+  company_type: CompanyType;
+  created_at: string;
+}
+
+export interface InvoiceItemDB {
+  id: string;
+  company_id: string;
+  item_name: string;
+  current_stock: number;
+  stock_consumed: number;
+  stock_status: StockStatus;
+  unit_type: string;
+  unit_price: number;
+  last_updated: string;
+  created_at: string;
+}
+
+export interface ItemMatch {
+  id: string;
+  invoice_item_id: string;
+  matched_existing_item_id: string;
+  confidence_score: number;
+  match_method: 'ai' | 'manual';
+  created_at: string;
+}
