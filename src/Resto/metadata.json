@@ -1,0 +1,5 @@
+{
+  "name": "FacturaInteligente AI",
+  "description": "Gestión de facturas potenciada por IA. Sube imágenes, extrae datos automáticamente con Gemini, valida precios y organiza tus gastos.",
+  "requestFramePermissions": []
+}

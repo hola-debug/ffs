@@ -10,6 +10,7 @@ import OnboardingPage from './pages/OnboardingPage';
 import PocketDetailPage from './pages/PocketDetailPage';
 import FFSPreloader from './components/preloaders/FFSPreloader';
 import TransactionsPage from './pages/TransactionsPage';
+import RestoPage from './pages/RestoPage';
 import { preloaderManager } from './utils/PreloaderManager';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -121,6 +122,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <OnboardingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/resto/*"
+              element={
+                <ProtectedRoute>
+                  <RestoPage />
                 </ProtectedRoute>
               }
             />

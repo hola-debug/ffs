@@ -1,0 +1,27 @@
+
+> ffs.finance@0.0.0 build
+> vite build
+
+vite v7.2.4 building client environment for production...
+transforming...
+✓ 3621 modules transformed.
+✗ Build failed in 36.59s
+error during build:
+[vite-plugin-pwa:build] There was an error during the build:
+  src/services/geminiService.ts (1:22): "SchemaType" is not exported by "node_modules/@google/genai/dist/web/index.mjs", imported by "src/services/geminiService.ts".
+Additionally, handling the error in the 'buildEnd' hook caused the following error:
+  src/services/geminiService.ts (1:22): "SchemaType" is not exported by "node_modules/@google/genai/dist/web/index.mjs", imported by "src/services/geminiService.ts".
+file: /home/fran/Documents/DTE/ffs.finance/src/services/geminiService.ts:1:22
+
+1: import { GoogleGenAI, SchemaType } from "@google/genai";
+                         ^
+2: import { Invoice } from "../Resto/types";
+
+    at getRollupError (file:///home/fran/Documents/DTE/ffs.finance/node_modules/vite/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at file:///home/fran/Documents/DTE/ffs.finance/node_modules/vite/node_modules/rollup/dist/es/shared/node-entry.js:23333:39
+    at async catchUnfinishedHookActions (file:///home/fran/Documents/DTE/ffs.finance/node_modules/vite/node_modules/rollup/dist/es/shared/node-entry.js:22791:16)
+    at async rollupInternal (file:///home/fran/Documents/DTE/ffs.finance/node_modules/vite/node_modules/rollup/dist/es/shared/node-entry.js:23316:5)
+    at async buildEnvironment (file:///home/fran/Documents/DTE/ffs.finance/node_modules/vite/dist/node/chunks/config.js:34189:12)
+    at async Object.build (file:///home/fran/Documents/DTE/ffs.finance/node_modules/vite/dist/node/chunks/config.js:34548:19)
+    at async Object.buildApp (file:///home/fran/Documents/DTE/ffs.finance/node_modules/vite/dist/node/chunks/config.js:34545:153)
+    at async CAC.<anonymous> (file:///home/fran/Documents/DTE/ffs.finance/node_modules/vite/dist/node/cli.js:629:3)
