@@ -127,7 +127,7 @@ const UploadProcessor: React.FC<UploadProcessorProps> = ({ onAnalysisComplete, o
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Minimal Progress Bar */}
       {totalJobs > 0 && (
         <div className="fixed top-0 left-0 right-0 z-30 h-1 bg-black/50 backdrop-blur">
@@ -135,8 +135,8 @@ const UploadProcessor: React.FC<UploadProcessorProps> = ({ onAnalysisComplete, o
         </div>
       )}
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-        <div className="rounded-3xl border border-dashed border-violet-500/30 bg-slate-900/30 backdrop-blur-xl p-8 md:p-12 flex flex-col items-center justify-center text-center shadow-inner shadow-slate-900/60 min-h-[50vh]">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 md:p-8 items-stretch">
+        <div className="md:col-span-2 rounded-3xl border border-dashed border-violet-500/30 bg-slate-900/30 backdrop-blur-xl p-8 md:p-12 flex flex-col items-center justify-center text-center shadow-inner shadow-slate-900/60 min-h-[60vh] h-full">
           <div className="h-24 w-24 rounded-full bg-gradient-to-br from-violet-500/20 via-fuchsia-500/20 to-cyan-500/20 border border-white/10 flex items-center justify-center text-white shadow-lg shadow-violet-500/40 mb-6 animate-pulse-slow">
             <UploadCloud className="w-12 h-12" />
           </div>
@@ -159,7 +159,7 @@ const UploadProcessor: React.FC<UploadProcessorProps> = ({ onAnalysisComplete, o
         </div>
 
         {/* Processing Queue */}
-        <div className="md:w-1/3 rounded-2xl border border-white/10 bg-slate-900/50 shadow-inner shadow-slate-900/60 flex flex-col max-h-[50vh] md:max-h-full">
+        <div className="rounded-2xl border border-white/10 bg-slate-900/50 shadow-inner shadow-slate-900/60 flex flex-col h-full min-h-[60vh]">
           <div className="p-4 border-b border-white/5 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-white">Cola de procesamiento</h3>
             <span className="text-xs text-slate-400">{completedCount}/{totalJobs}</span>

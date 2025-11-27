@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Invoice } from '../types';
 import { invoiceService } from '../../services/invoiceService';
 import { useInvoice } from '../contexts/InvoiceContext';
-import { Search, Trash2, FileText, Calendar, DollarSign, ScanLine, Loader2, ChevronRight } from 'lucide-react';
+import { Search, Trash2, FileText, Calendar, DollarSign, ScanLine, Loader2, ChevronRight, Package } from 'lucide-react';
 
 interface DashboardProps {
   onNewInvoice: () => void;
   onEditInvoice: (invoice: Invoice) => void;
+  onOpenInventory: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onNewInvoice, onEditInvoice }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onNewInvoice, onEditInvoice, onOpenInventory }) => {
   const { currentCompany, loading: restoLoading } = useInvoice();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
@@ -22,11 +23,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewInvoice, onEditInvoice }) =>
       const data = await invoiceService.getInvoices(currentCompany.id);
       const mappedInvoices: Invoice[] = data.map(dbInv => ({
         id: dbInv.id,
-        vendorName: 'Proveedor Desconocido',
-        date: new Date(dbInv.created_at).toISOString().split('T')[0],
-        total: dbInv.total,
-        subtotal: dbInv.total,
-        tax: 0,
+        vendorName: dbInv.vendor_name || 'Proveedor Desconocido',
+        date: new Date((dbInv.invoice_date || dbInv.created_at)).toISOString().split('T')[0],
+        total: dbInv.total ?? 0,
+        subtotal: dbInv.subtotal ?? dbInv.total ?? 0,
+        tax: dbInv.tax ?? 0,
         items: [],
         status: 'saved',
         createdAt: new Date(dbInv.created_at).getTime(),
@@ -158,6 +159,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewInvoice, onEditInvoice }) =>
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-cyan-400 group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        <button
+          onClick={onOpenInventory}
+          className="w-full rounded-3xl border p-5 flex items-center justify-between group transition-all duration-300 active:scale-[0.98]"
+          style={{
+            backgroundColor: 'rgba(99, 102, 241, 0.08)',
+            borderColor: 'rgba(99, 102, 241, 0.25)',
+            boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(99, 102, 241, 0.1) inset'
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="h-14 w-14 rounded-2xl flex items-center justify-center"
+              style={{
+                backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                border: '1.5px solid rgba(99, 102, 241, 0.3)'
+              }}
+            >
+              <Package className="w-7 h-7 text-indigo-300" strokeWidth={2} />
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-indigo-200/70">
+                Inventario
+              </p>
+              <p className="text-lg font-semibold text-white mt-0.5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                Abrir inventario y stock
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-indigo-300 group-hover:translate-x-1 transition-transform" />
         </button>
 
         {/* Recent Invoices Section */}

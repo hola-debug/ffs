@@ -38,6 +38,14 @@ const InvoiceAppContent: React.FC = () => {
     setCurrentView('upload');
   };
 
+  const handleOpenInventory = () => {
+    setCurrentView('inventory');
+  };
+
+  const handleBackToInvoices = () => {
+    setCurrentView('dashboard');
+  };
+
   const handleAnalysisComplete = (drafts: Invoice[]) => {
     if (drafts.length > 0) {
       setReviewQueue(drafts);
@@ -191,11 +199,12 @@ const InvoiceAppContent: React.FC = () => {
               <Dashboard
                 onNewInvoice={handleNewInvoice}
                 onEditInvoice={handleEditInvoice}
+                onOpenInventory={handleOpenInventory}
               />
             )}
 
             {currentView === 'inventory' && (
-              <InventoryManager />
+              <InventoryManager onBack={handleBackToInvoices} />
             )}
           </div>
         </section>

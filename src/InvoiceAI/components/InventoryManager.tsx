@@ -2,9 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { invoiceService, InvoiceItemDB } from '../../services/invoiceService';
 import { useInvoice } from '../contexts/InvoiceContext';
-import { Plus, Search, AlertTriangle, Package, Loader2, Edit2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Package, Loader2, Edit2, TrendingUp, TrendingDown, ArrowLeft } from 'lucide-react';
+import AnimatedList from '../../components/ui/AnimatedList';
 
-const InventoryManager: React.FC = () => {
+interface InventoryManagerProps {
+    onBack?: () => void;
+}
+
+const InventoryManager: React.FC<InventoryManagerProps> = ({ onBack }) => {
     const { currentCompany } = useInvoice();
     const [inventory, setInventory] = useState<InvoiceItemDB[]>([]);
     const [loading, setLoading] = useState(false);
@@ -109,12 +114,23 @@ const InventoryManager: React.FC = () => {
     };
 
     return (
-        <div className="space-y-5 text-slate-50">
+        <div className="min-h-screen px-4 pt-20 pb-10 space-y-5 text-slate-50">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Inventario</p>
-                    <h2 className="text-2xl font-bold text-white">Items conectados</h2>
-                    <p className="text-sm text-slate-400">Stock, costos y alertas en tiempo real.</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 hover:border-sky-300/40 transition"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Facturas
+                        </button>
+                    )}
+                    <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Inventario</p>
+                        <h2 className="text-2xl font-bold text-white">Items conectados</h2>
+                        <p className="text-sm text-slate-400">Stock, costos y alertas en tiempo real.</p>
+                    </div>
                 </div>
                 <button
                     onClick={() => setIsAdding(true)}
@@ -223,64 +239,68 @@ const InventoryManager: React.FC = () => {
                         <p className="text-sm text-slate-500">Agrega items desde facturas o manualmente</p>
                     </div>
                 ) : (
-                    <div className="p-4 grid gap-3 sm:grid-cols-2">
-                        {filteredItems.map(item => (
-                            <div
-                                key={item.id}
-                                className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-md shadow-slate-900/50 hover:border-sky-300/40 transition"
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500/60 to-slate-900 border border-white/10 flex items-center justify-center text-white">
-                                            <Package className="w-5 h-5" />
+                    <div className="p-4">
+                        <AnimatedList<InvoiceItemDB>
+                            items={filteredItems}
+                            showGradients
+                            gradientColor="rgba(10, 12, 20, 0.9)"
+                            containerClassName="space-y-3 max-h-[calc(100vh-260px)] pr-1"
+                            className="w-full"
+                            renderItem={(item: InvoiceItemDB) => (
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-md shadow-slate-900/50 hover:border-sky-300/40 transition w-full">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500/60 to-slate-900 border border-white/10 flex items-center justify-center text-white">
+                                                <Package className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-white">{item.item_name}</div>
+                                                <div className="text-xs text-slate-400">{item.unit_type}</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="font-semibold text-white">{item.item_name}</div>
-                                            <div className="text-xs text-slate-400">{item.unit_type}</div>
-                                        </div>
+                                        <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border ${getStockStatusColor(item.stock_status)}`}>
+                                            {(item.stock_status === 'depleted' || item.stock_status === 'low') && <AlertTriangle className="w-3 h-3" />}
+                                            {getStockStatusLabel(item.stock_status)}
+                                        </span>
                                     </div>
-                                    <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border ${getStockStatusColor(item.stock_status)}`}>
-                                        {(item.stock_status === 'depleted' || item.stock_status === 'low') && <AlertTriangle className="w-3 h-3" />}
-                                        {getStockStatusLabel(item.stock_status)}
-                                    </span>
-                                </div>
 
-                                <div className="mt-3 grid grid-cols-3 gap-2 text-sm text-slate-200">
-                                    <div className="rounded-xl bg-white/5 border border-white/5 p-2">
-                                        <p className="text-[11px] text-slate-400">Stock</p>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono font-semibold text-white">
-                                                {item.current_stock.toFixed(2)}
-                                            </span>
-                                            <TrendingUp className="w-4 h-4 text-emerald-300" />
+                                    <div className="mt-3 grid grid-cols-3 gap-2 text-sm text-slate-200">
+                                        <div className="rounded-xl bg-white/5 border border-white/5 p-2">
+                                            <p className="text-[11px] text-slate-400">Stock</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono font-semibold text-white">
+                                                    {item.current_stock.toFixed(2)}
+                                                </span>
+                                                <TrendingUp className="w-4 h-4 text-emerald-300" />
+                                            </div>
+                                        </div>
+                                        <div className="rounded-xl bg-white/5 border border-white/5 p-2">
+                                            <p className="text-[11px] text-slate-400">Consumido</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono text-white">
+                                                    {item.stock_consumed.toFixed(2)}
+                                                </span>
+                                                <TrendingDown className="w-4 h-4 text-red-300" />
+                                            </div>
+                                        </div>
+                                        <div className="rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 border border-white/10 p-2 text-right">
+                                            <p className="text-[11px] text-slate-400">Precio</p>
+                                            <p className="font-mono font-semibold text-sky-100">${item.unit_price.toFixed(2)}</p>
                                         </div>
                                     </div>
-                                    <div className="rounded-xl bg-white/5 border border-white/5 p-2">
-                                        <p className="text-[11px] text-slate-400">Consumido</p>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono text-white">
-                                                {item.stock_consumed.toFixed(2)}
-                                            </span>
-                                            <TrendingDown className="w-4 h-4 text-red-300" />
-                                        </div>
-                                    </div>
-                                    <div className="rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 border border-white/10 p-2 text-right">
-                                        <p className="text-[11px] text-slate-400">Precio</p>
-                                        <p className="font-mono font-semibold text-sky-100">${item.unit_price.toFixed(2)}</p>
-                                    </div>
-                                </div>
 
-                                <div className="mt-3 flex justify-end">
-                                    <button
-                                        onClick={() => handleEdit(item)}
-                                        className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-white hover:border-sky-300/40"
-                                    >
-                                        <Edit2 className="w-3 h-3" />
-                                        Editar
-                                    </button>
+                                    <div className="mt-3 flex justify-end">
+                                        <button
+                                            onClick={() => handleEdit(item)}
+                                            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-white hover:border-sky-300/40"
+                                        >
+                                            <Edit2 className="w-3 h-3" />
+                                            Editar
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            )}
+                        />
                     </div>
                 )}
             </div>
