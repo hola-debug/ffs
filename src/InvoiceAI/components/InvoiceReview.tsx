@@ -22,7 +22,8 @@ const CATEGORY_LABELS: Record<InvoiceCategory, string> = {
   'Services': 'Servicios',
   'Maintenance': 'Mantenimiento',
   'Taxes': 'Impuestos',
-  'Other': 'Otros'
+  'Other': 'Otros',
+  'Otros': 'Otros'
 };
 
 const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, currentIndex, onSave, onSkip, onCancel }) => {
@@ -37,6 +38,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [lastTouchDistance, setLastTouchDistance] = useState(0);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,14 +80,24 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
     loadData();
   }, [invoice, currentCompany]);
 
-  // Zoom and Pan handlers
+  // Helper function to get distance between two touch points
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Zoom and Pan handlers - Mouse
   const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     setZoom(prev => Math.min(Math.max(1, prev + delta), 5));
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoom > 1) {
+      e.preventDefault();
       setIsDragging(true);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     }
@@ -93,6 +105,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isDragging && zoom > 1) {
+      e.preventDefault();
       setPosition({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y
@@ -102,6 +115,53 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
 
   const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  // Touch handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Pinch to zoom
+      e.preventDefault();
+      const distance = getTouchDistance(e.touches);
+      setLastTouchDistance(distance);
+    } else if (e.touches.length === 1 && zoom > 1) {
+      // Pan
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Pinch to zoom
+      e.preventDefault();
+      const distance = getTouchDistance(e.touches);
+      if (lastTouchDistance > 0) {
+        const delta = (distance - lastTouchDistance) * 0.01;
+        setZoom(prev => Math.min(Math.max(1, prev + delta), 5));
+      }
+      setLastTouchDistance(distance);
+    } else if (e.touches.length === 1 && isDragging && zoom > 1) {
+      // Pan
+      e.preventDefault();
+      setPosition({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      setLastTouchDistance(0);
+    }
+    if (e.touches.length === 0) {
+      setIsDragging(false);
+    }
   };
 
   const handleZoomIn = () => {
@@ -175,9 +235,9 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5 h-[calc(100vh-140px)] text-slate-50">
-      <div className="flex-1 rounded-3xl border border-white/10 bg-slate-950/70 shadow-2xl shadow-slate-900/60 flex flex-col overflow-hidden backdrop-blur">
-        <div className="p-4 md:p-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-slate-900/80 via-slate-900 to-slate-900/80">
+    <div className="flex flex-col lg:flex-row gap-3 h-auto lg:h-[calc(100vh-140px)] text-slate-50">
+      <div className="flex-1 rounded-3xl border border-white/10 bg-slate-950/70 shadow-2xl shadow-slate-900/60 flex flex-col overflow-visible lg:overflow-hidden backdrop-blur">
+        <div className="p-3 md:p-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-slate-900/80 via-slate-900 to-slate-900/80">
           <div className="flex items-center gap-3">
             <button onClick={onCancel} className="p-2 rounded-2xl bg-white/5 border border-white/10 text-slate-200 hover:border-slate-400/40" title="Volver al Dashboard">
               <ArrowLeft className="w-5 h-5" />
@@ -213,7 +273,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
           </div>
         </div>
 
-        <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-5">
+        <div className="p-3 md:p-4 overflow-visible lg:overflow-y-auto flex-1 space-y-4">
           <div className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-3">
             <div className="flex items-start gap-3">
               <ClipboardList className="w-5 h-5 text-amber-200 mt-1" />
@@ -240,16 +300,15 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Proveedor</label>
               <input
                 type="text"
                 value={data.vendorName}
                 onChange={e => updateField('vendorName', e.target.value)}
-                className={`w-full rounded-xl px-3 py-2 bg-slate-900/70 text-white border ${
-                  data.isSmartMatch ? 'border-purple-300/50' : 'border-white/10'
-                } focus:ring-2 focus:ring-sky-400/50 outline-none`}
+                className={`w-full rounded-xl px-3 py-2 bg-slate-900/70 text-white border ${data.isSmartMatch ? 'border-purple-300/50' : 'border-white/10'
+                  } focus:ring-2 focus:ring-sky-400/50 outline-none`}
               />
             </div>
             <div>
@@ -268,11 +327,10 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
                   <button
                     key={cat}
                     onClick={() => updateField('category', cat)}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition ${
-                      data.category === cat
-                        ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white border-transparent shadow-lg shadow-sky-900/40'
-                        : 'bg-slate-900/70 text-slate-200 border-white/10 hover:border-sky-300/40'
-                    }`}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition ${data.category === cat
+                      ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white border-transparent shadow-lg shadow-sky-900/40'
+                      : 'bg-slate-900/70 text-slate-200 border-white/10 hover:border-sky-300/40'
+                      }`}
                   >
                     {CATEGORY_LABELS[cat]}
                   </button>
@@ -281,7 +339,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3 md:p-4 shadow-inner shadow-slate-900/50">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-slate-900/50">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-white">Items & Inventario</h3>
               <button onClick={addItem} type="button" className="text-sm text-sky-200 hover:text-white font-medium flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-white/10">
@@ -289,7 +347,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {data.items.map((item, idx) => {
                 const validation = checkPrice(item);
                 const linked = Boolean(item.linkedInventoryId);
@@ -297,8 +355,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
                 return (
                   <div
                     key={idx}
-                    className={`p-3 rounded-2xl border ${linked ? 'border-emerald-300/40' : 'border-white/10'} bg-slate-950/60 shadow-sm shadow-slate-900/40`}
-                  >
+                    className={`p-2.5 rounded-2xl border ${linked ? 'border-emerald-300/40' : 'border-white/10'} bg-slate-950/60 shadow-sm shadow-slate-900/40`}>
                     <div className="grid grid-cols-12 gap-2 items-start">
                       <div className="col-span-12 md:col-span-5">
                         <label className="text-[11px] text-slate-400 block mb-1">Descripción Factura</label>
@@ -370,7 +427,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-800 p-4 space-y-3 shadow-inner shadow-slate-900/50">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-800 p-3 space-y-2 shadow-inner shadow-slate-900/50">
             <div className="flex justify-between text-sm items-center">
               <div className="flex items-center gap-2">
                 <span className="text-slate-200 font-medium">Subtotal</span>
@@ -416,7 +473,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
         </div>
       </div>
 
-      <div className="lg:w-[34%] rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 shadow-2xl shadow-slate-900/70 flex flex-col overflow-hidden">
+      <div className="h-96 lg:h-auto lg:w-[34%] rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 shadow-2xl shadow-slate-900/70 flex flex-col overflow-hidden">
         <div className="p-3 bg-white/5 text-white text-sm font-medium border-b border-white/10 flex justify-between items-center">
           <span>Documento Original</span>
           <div className="flex items-center gap-2">
@@ -464,7 +521,13 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          style={{ cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+            touchAction: zoom > 1 ? 'none' : 'auto'
+          }}
         >
           {data.originalImage ? (
             <div
@@ -488,7 +551,7 @@ const InvoiceReview: React.FC<InvoiceReviewProps> = ({ invoice, queueLength, cur
 
           {zoom === 1 && data.originalImage && (
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/10 text-slate-200 text-xs px-3 py-1.5 rounded-full border border-white/20 pointer-events-none">
-              Usa la rueda del mouse para hacer zoom
+              Usa la rueda del mouse o pellizca para hacer zoom
             </div>
           )}
         </div>

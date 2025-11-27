@@ -1,6 +1,6 @@
 
 import { Invoice, ReferencePrice, VendorProfile, InventoryItem, PurchaseOrder } from "../types";
-import { v4 as uuidv4 } from 'uuid';
+
 
 const INVOICE_KEY = 'app_invoices';
 const PRICE_KEY = 'app_prices';

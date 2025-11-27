@@ -8,7 +8,7 @@ export interface InvoiceItem {
   unitType?: string; // Unit type (kg, liters, units, etc.)
 }
 
-export type InvoiceCategory = 'Materials' | 'Supplies' | 'Services' | 'Maintenance' | 'Taxes' | 'Other';
+export type InvoiceCategory = 'Materials' | 'Supplies' | 'Services' | 'Maintenance' | 'Taxes' | 'Other' | 'Otros';
 export type CompanyType = 'restaurant' | 'warehouse' | 'transport' | 'retail' | 'services' | 'other';
 export type StockStatus = 'available' | 'low' | 'depleted';
 

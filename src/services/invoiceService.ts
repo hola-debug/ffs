@@ -55,10 +55,9 @@ export const invoiceService = {
     const userId = await getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data, error } = await supabase
-      .from('companies')
-      .insert([{ owner_id: userId, name, company_type: type } as any])
+    const { data, error } = await (supabase
+      .from('companies') as any)
+      .insert([{ owner_id: userId, name, company_type: type }])
       .select()
       .single();
 
@@ -77,10 +76,9 @@ export const invoiceService = {
   },
 
   async updateCompany(companyId: string, updates: Partial<Pick<Company, 'name' | 'company_type'>>) {
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data, error } = await supabase
-      .from('companies')
-      .update(updates as any)
+    const { data, error } = await (supabase
+      .from('companies') as any)
+      .update(updates)
       .eq('id', companyId)
       .select()
       .single();
@@ -108,10 +106,9 @@ export const invoiceService = {
       unit_price: number;
     }
   ) {
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data, error } = await supabase
-      .from('invoice_items')
-      .insert([{ ...item, company_id: companyId, stock_consumed: 0 } as any])
+    const { data, error } = await (supabase
+      .from('invoice_items') as any)
+      .insert([{ ...item, company_id: companyId, stock_consumed: 0 }])
       .select()
       .single();
 
@@ -136,9 +133,8 @@ export const invoiceService = {
     operation: 'add' | 'subtract' = 'add'
   ) {
     // First get current stock
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data: currentItem, error: fetchError } = await supabase
-      .from('invoice_items')
+    const { data: currentItem, error: fetchError } = await (supabase
+      .from('invoice_items') as any)
       .select('current_stock, stock_consumed')
       .eq('id', itemId)
       .single();
@@ -153,9 +149,8 @@ export const invoiceService = {
       ? currentItem.stock_consumed + amount
       : currentItem.stock_consumed;
 
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data, error } = await supabase
-      .from('invoice_items')
+    const { data, error } = await (supabase
+      .from('invoice_items') as any)
       .update({ 
         current_stock: Math.max(0, newStock),
         stock_consumed: newConsumed,
@@ -184,10 +179,9 @@ export const invoiceService = {
     itemId: string,
     updates: Partial<Omit<InvoiceItemDB, 'id' | 'company_id' | 'created_at'>>
   ) {
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data, error } = await supabase
-      .from('invoice_items')
-      .update({ ...updates, last_updated: new Date().toISOString() } as any)
+    const { data, error } = await (supabase
+      .from('invoice_items') as any)
+      .update({ ...updates, last_updated: new Date().toISOString() })
       .eq('id', itemId)
       .select()
       .single();
@@ -219,10 +213,9 @@ export const invoiceService = {
       pdf_path?: string;
     }
   ) {
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data, error } = await supabase
-      .from('invoices')
-      .insert([{ company_id: companyId, ...invoiceData } as any])
+    const { data, error } = await (supabase
+      .from('invoices') as any)
+      .insert([{ company_id: companyId, ...invoiceData }])
       .select()
       .single();
 
@@ -254,10 +247,9 @@ export const invoiceService = {
     invoiceId: string,
     updates: Partial<Omit<Invoice, 'id' | 'company_id' | 'created_at'>>
   ) {
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data, error } = await supabase
-      .from('invoices')
-      .update(updates as any)
+    const { data, error } = await (supabase
+      .from('invoices') as any)
+      .update(updates)
       .eq('id', invoiceId)
       .select()
       .single();
@@ -276,16 +268,15 @@ export const invoiceService = {
     const userId = await getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
-    // @ts-expect-error - Supabase types not matching generated schema
-    const { data, error } = await supabase
-      .from('invoice_item_matches')
+    const { data, error } = await (supabase
+      .from('invoice_item_matches') as any)
       .insert([{
         invoice_item_id: invoiceItemId,
         matched_existing_item_id: matchedExistingItemId,
         confidence_score: confidenceScore,
         match_method: matchMethod,
         created_by: userId
-      } as any])
+      }])
       .select()
       .single();
 

@@ -88,6 +88,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  console.log('Rendering App.tsx, current path:', window.location.pathname);
   return (
     <AuthProvider>
       <AccountsProvider>

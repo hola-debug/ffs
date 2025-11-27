@@ -5,6 +5,7 @@ import { applyVendorIntelligence } from '../utils/intelligence';
 import { Invoice, UploadJob } from '../types';
 import { UploadCloud, Loader2, CheckCircle, AlertCircle, Play, ArrowRight, X, Sparkles } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import BlurText from '../../components/BlurText';
 
 interface UploadProcessorProps {
   onAnalysisComplete: (drafts: Invoice[]) => void;
@@ -126,92 +127,51 @@ const UploadProcessor: React.FC<UploadProcessorProps> = ({ onAnalysisComplete, o
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
-      <div className="rounded-3xl border border-white/10 bg-slate-950/60 shadow-2xl shadow-slate-900/50 overflow-hidden">
-        <div className="p-5 md:p-6 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Batch IA</p>
-              <h2 className="text-2xl font-bold text-white">Cinta de procesamiento</h2>
-              <p className="text-sm text-slate-400">Pensado para móvil: suelta fotos, la IA limpia y las deja listas para revisar.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 text-sm hover:border-white/20">
-                Cancelar
-              </button>
-              <button
-                onClick={handleFinish}
-                disabled={completedCount === 0}
-                className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-sky-900/40 ${
-                  completedCount > 0
-                    ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white hover:shadow-sky-900/60'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                Revisar ({completedCount}) <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+    <div className="h-full flex flex-col">
+      {/* Minimal Progress Bar */}
+      {totalJobs > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-30 h-1 bg-black/50 backdrop-blur">
+          <div className="h-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      )}
 
-          <div className="flex items-center gap-3 text-xs text-slate-300">
-            <div className="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-emerald-400 via-sky-400 to-indigo-400 transition-all" style={{ width: `${progress}%` }} />
-            </div>
-            <span className="text-slate-400">{progress}%</span>
-            <span className="text-slate-500">({completedCount}/{totalJobs || 1})</span>
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+        <div className="rounded-3xl border border-dashed border-violet-500/30 bg-slate-900/30 backdrop-blur-xl p-8 md:p-12 flex flex-col items-center justify-center text-center shadow-inner shadow-slate-900/60 min-h-[50vh]">
+          <div className="h-24 w-24 rounded-full bg-gradient-to-br from-violet-500/20 via-fuchsia-500/20 to-cyan-500/20 border border-white/10 flex items-center justify-center text-white shadow-lg shadow-violet-500/40 mb-6 animate-pulse-slow">
+            <UploadCloud className="w-12 h-12" />
           </div>
+          <BlurText text="Arrastra y suelta o haz clic para subir" className="text-lg font-semibold text-white mb-2" delay={30} />
+          <p className="text-sm text-slate-400 mb-6">Imágenes de facturas (JPG, PNG)</p>
+          <button
+            className="px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 text-white font-bold text-lg shadow-2xl shadow-violet-500/50 hover:shadow-violet-500/70 hover:scale-105 transition-all duration-300"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Subir Facturas
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            multiple
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 md:p-5">
-          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/70 p-6 flex flex-col items-center justify-center text-center shadow-inner shadow-slate-900/60">
-            <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-sky-500/30 to-indigo-600/30 border border-white/10 flex items-center justify-center text-white shadow-lg shadow-sky-900/40 mb-4">
-              <UploadCloud className="w-10 h-10" />
-            </div>
-            <h3 className="text-xl font-semibold text-white">Arrastra o selecciona</h3>
-            <p className="text-slate-400 text-sm mt-1 mb-4 max-w-sm">
-              Modo gamer: soltá varias facturas, la IA aplica plantillas y resalta datos clave.
-            </p>
-            <div className="flex gap-2">
-              <button
-                className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-sm text-white hover:bg-white/20"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Elegir archivos
-              </button>
-              <button
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-emerald-500 text-emerald-950 font-semibold shadow-lg shadow-emerald-900/50"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Subir rápido
-              </button>
-            </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              accept="image/*"
-              multiple
-            />
+        {/* Processing Queue */}
+        <div className="md:w-1/3 rounded-2xl border border-white/10 bg-slate-900/50 shadow-inner shadow-slate-900/60 flex flex-col max-h-[50vh] md:max-h-full">
+          <div className="p-4 border-b border-white/5 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">Cola de procesamiento</h3>
+            <span className="text-xs text-slate-400">{completedCount}/{totalJobs}</span>
           </div>
-
-          <div className="rounded-2xl border border-white/10 bg-slate-900/50 shadow-inner shadow-slate-900/60 flex flex-col max-h-[520px]">
-            <div className="p-4 border-b border-white/5 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-white">Cola de procesamiento</h3>
-                <p className="text-xs text-slate-400">Auto-play activado</p>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {queue.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                <Play className="w-10 h-10 mb-2 opacity-50" />
+                <p className="text-sm">La cola está vacía</p>
               </div>
-              {isProcessingQueue && <span className="text-xs text-emerald-300 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Analizando</span>}
-            </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {queue.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                  <Play className="w-10 h-10 mb-2 opacity-50" />
-                  <p className="text-sm">La cola está vacía</p>
-                </div>
-              )}
-
-              {queue.map((job) => (
+            ) : (
+              queue.map((job) => (
                 <div
                   key={job.id}
                   className="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 hover:border-sky-400/40 transition relative group"
@@ -221,7 +181,7 @@ const UploadProcessor: React.FC<UploadProcessorProps> = ({ onAnalysisComplete, o
                     <p className="text-sm font-semibold text-white truncate">{job.file.name}</p>
                     <div className="flex items-center gap-2 mt-1">
                       {job.status === 'pending' && <span className="text-[11px] text-slate-200 bg-slate-800 px-2 py-0.5 rounded-full border border-white/10">Pendiente</span>}
-                      {job.status === 'processing' && <span className="text-[11px] text-sky-100 bg-sky-500/20 px-2 py-0.5 rounded-full border border-sky-300/30 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Analizando</span>}
+                      {job.status === 'processing' && <span className="text-[11px] text-violet-100 bg-violet-500/20 px-2 py-0.5 rounded-full border border-violet-300/30 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Analizando</span>}
                       {job.status === 'success' && <span className="text-[11px] text-emerald-100 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-300/30 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Completado</span>}
                       {job.status === 'error' && <span className="text-[11px] text-red-200 bg-red-500/20 px-2 py-0.5 rounded-full border border-red-300/30 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Error</span>}
                       {job.status === 'success' && job.result?.isSmartMatch && (
@@ -233,7 +193,7 @@ const UploadProcessor: React.FC<UploadProcessorProps> = ({ onAnalysisComplete, o
                   </div>
                   {job.status === 'success' && job.result && (
                     <div className="text-right">
-                      <p className="text-xs font-bold text-sky-100">${job.result.total.toFixed(2)}</p>
+                      <p className="text-xs font-bold text-cyan-100">${job.result.total.toFixed(2)}</p>
                       <p className="text-[10px] text-slate-400 truncate max-w-[90px]">{job.result.vendorName}</p>
                     </div>
                   )}
@@ -241,8 +201,24 @@ const UploadProcessor: React.FC<UploadProcessorProps> = ({ onAnalysisComplete, o
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
+          </div>
+          {/* Action Buttons */}
+          <div className="p-4 border-t border-white/5 flex flex-col gap-2">
+            <button
+              onClick={handleFinish}
+              disabled={completedCount === 0 || isProcessingQueue}
+              className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 text-white font-bold text-sm shadow-lg shadow-violet-500/50 hover:shadow-violet-500/70 hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              Continuar con {completedCount} facturas <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onCancel}
+              className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold text-sm hover:bg-slate-600 transition"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       </div>
