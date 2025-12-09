@@ -16,11 +16,13 @@ import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifier
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableModuleItem } from '../components/SortableModuleItem';
 import { useModuleOrder } from '../hooks/useModuleOrder';
+import { closePocket } from '../services/pockets';
+import { supabase } from '../lib/supabaseClient';
 
 export default function DashboardPage() {
   const { loading, error, pockets, refetch } = useDashboardData();
   const { toasts, removeToast } = useToast();
-  const { refetch: refetchAccounts } = useAccountsStore();
+  const { refetch: refetchAccounts, accounts } = useAccountsStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalData, setModalData] = useState<{ pocketId?: string }>({});
   const [moduleUpdateTrigger, setModuleUpdateTrigger] = useState(0);
@@ -130,13 +132,44 @@ export default function DashboardPage() {
     refetchAccounts();
   }, [refetch, refetchAccounts]);
 
-  // Helper function for modules to open modals
   const openModal = useCallback((modalId: string, data?: { pocketId?: string }) => {
     setActiveModal(modalId);
     if (data) {
       setModalData(data);
     }
   }, []);
+
+  const handleClosePocket = useCallback(async (pocketId: string) => {
+    if (!confirm('¿Estás seguro de que deseas cerrar esta bolsa? El saldo restante se devolverá a tu cuenta.')) {
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const pocket = pockets.find(p => p.id === pocketId);
+      let targetAccountId = pocket?.account_id;
+
+      // Si la bolsa no tiene cuenta asociada, buscamos una cuenta que soporte la moneda
+      if (!targetAccountId && pocket) {
+        const matchingAccount = accounts.find(acc =>
+          acc.currencies?.some(c => c.currency === pocket.currency)
+        );
+        targetAccountId = matchingAccount?.id;
+      }
+
+      await closePocket(pocketId, user.id, targetAccountId);
+
+      // Force refresh
+      refetch();
+      refetchAccounts();
+
+    } catch (error) {
+      console.error('Error closing pocket:', error);
+      alert('Error al cerrar la bolsa. Por favor intenta nuevamente.');
+    }
+  }, [pockets, accounts, refetch, refetchAccounts]);
 
 
   if (error) {
@@ -261,6 +294,7 @@ export default function DashboardPage() {
                               isEditMode={isEditMode}
                               onEnableEditMode={enableEditMode}
                               onDisableEditMode={disableEditMode}
+                              onClose={() => handleClosePocket(module.pocketId)}
                               index={index}
                             >
                               <ModuleComponent

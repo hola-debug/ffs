@@ -17,8 +17,9 @@ export function SortableModuleItem({
     isEditMode,
     onEnableEditMode,
     onDisableEditMode,
+    onClose,
     index,
-}: SortableModuleItemProps) {
+}: SortableModuleItemProps & { onClose?: (id: string) => void }) {
     const {
         attributes,
         listeners,
@@ -162,6 +163,35 @@ export function SortableModuleItem({
             {/* Overlay visual cuando se está arrastrando */}
             {isDragging && (
                 <div className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10" />
+            )}
+
+            {/* Botón de cerrar (solo en edit mode y no arrastrando) */}
+            {isEditMode && !isDragging && onClose && (
+                <button
+                    className="absolute -top-2 -right-2 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-md hover:bg-red-600 active:scale-90"
+                    onPointerDown={(e) => {
+                        e.stopPropagation(); // Evitar iniciar drag
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClose(id);
+                    }}
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2.5}
+                        stroke="currentColor"
+                        className="h-3.5 w-3.5"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
             )}
 
             {/* Contenido real del módulo */}
